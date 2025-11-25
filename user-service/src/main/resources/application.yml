@@ -1,0 +1,30 @@
+server:
+    port: 8081
+spring:
+    application:
+        name: user-service
+    data:
+        mongodb:
+            uri: "mongodb+srv://khoabuibk12042004_db_user:root@online-stories-cluster.ji5bsce.mongodb.net/?appName=online-stories-cluster"
+            database: "userdb"
+    security:
+        oauth2:
+            resourceserver:
+                jwt:
+                    issuer-uri: http://localhost:8181/realms/online-stories-realm
+
+keycloak:
+    admin:
+        server-url: "http://localhost:8181"
+        realm: ${REALM}
+        client-id: ${CLIENT_ID}
+        client-secret: ${CLIENT_SECRET}
+
+app:
+    keycloak:
+        realm: "online-stories-realm"
+
+eureka:
+    client:
+        service-url:
+            defaultZone: http://localhost:8761/eureka/
