@@ -133,6 +133,29 @@ public class UserService {
         }
     }
 
+    public ResponseEntity<UserResponse> getUserById(String id){
+        try{
+            User user = findUserById(id);
+            UserRepresentation userRep = keycloak.realm(appRealm)
+                    .users()
+                    .get(id)
+                    .toRepresentation();
+
+            UserResponse response = UserResponse.builder()
+                    .userId(user.getUserId())
+                    .username(userRep.getUsername())
+                    .email(userRep.getEmail())
+                    .dob(user.getDob())
+                    .img(user.getImg())
+                    .build();
+            return ResponseEntity.ok().body(response);
+        }
+        catch (Exception e){
+            log.error("Error retrieving user info for userId {}: {}", id, e.getMessage());
+            throw e;
+        }
+    }
+
     public ResponseEntity<UserResponse> updateProfile(UserUpdateRequest request){
         // Implementation for updating user profile goes here
         try{

@@ -34,7 +34,11 @@ public class UserController {
         return userService.getMyInfo();
     }
 
-
+    @GetMapping("/{id}")
+    public ResponseEntity<UserResponse> getUserById(@PathVariable String id) {
+        log.info("Received request to get user profile for userId={}", id);
+        return userService.getUserById(id);
+    }
 
     @PostMapping("/service-package")
     public ResponseEntity<PackageResponse> registerServicePackage(@RequestBody PackageRegisterRequest request) {
