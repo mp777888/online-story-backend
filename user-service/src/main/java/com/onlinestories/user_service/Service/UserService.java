@@ -62,6 +62,7 @@ public class UserService {
             return ResponseEntity.status(HttpStatus.CONFLICT).build();
         }
 
+        // Create Keycloak user representation
         UserRepresentation userRepresentation = new UserRepresentation();
         userRepresentation.setUsername(request.getUsername());
         userRepresentation.setEmail(request.getEmail());
@@ -83,6 +84,7 @@ public class UserService {
                  user.setUserId(userId);
                  user.setNickname(request.getUsername());
                  user.setDob(request.getDob());
+                 user.setCreatedAt(java.time.LocalDateTime.now());
                  wallet = walletRepository.save(wallet);
                  user.setWalletId(wallet.getWalletId());
                  userRepository.save(user);
@@ -93,7 +95,7 @@ public class UserService {
                 userResponse.setNickname(request.getUsername());
                 userResponse.setEmail(request.getEmail());
                 userResponse.setDob(request.getDob());
-                userResponse.setCreatedAt(userRepresentation.getCreatedTimestamp());
+                userResponse.setCreatedAt(user.getCreatedAt());
                 return ResponseEntity.status(HttpStatus.CREATED).body(userResponse);
             } else {
                 log.error("Failed to create user in Keycloak. Status: {}, Body: {}", response.getStatus(), response.readEntity(String.class));

@@ -4,6 +4,7 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Data
 @NoArgsConstructor
@@ -16,6 +17,6 @@ public class UserResponse {
     String nickname;
     String email;
     String img;
-    Long createdAt;
+    LocalDateTime createdAt;
     LocalDate dob;
 }
