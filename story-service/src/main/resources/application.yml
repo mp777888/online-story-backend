@@ -1,0 +1,19 @@
+server:
+  port: 8083
+spring:
+  application:
+      name: story-service
+  data:
+    mongodb:
+      uri: ${MONGODB_URI}
+      database: ${MONGODB_DB}
+
+azure:
+  speech:
+    key: ${AZURE_SPEECH_KEY}
+    region: ${AZURE_SPEECH_REGION}
+
+eureka:
+  client:
+    service-url:
+        defaultZone: http://localhost:8761/eureka/

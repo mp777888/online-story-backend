@@ -1,0 +1,85 @@
+package com.onlinestories.story_service.Service;
+
+import com.onlinestories.story_service.DTO.Request.AddGenreRequest;
+import com.onlinestories.story_service.DTO.Response.GenreResponse;
+import com.onlinestories.story_service.Entity.Genre;
+import com.onlinestories.story_service.Entity.Story;
+import com.onlinestories.story_service.Repository.GenreRepository;
+import com.onlinestories.story_service.Repository.StoryRepository;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+@Slf4j
+@RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class GenreService {
+    final GenreRepository genreRepository;
+    final StoryRepository storyRepository;
+
+    public ResponseEntity<GenreResponse> addGenre(AddGenreRequest request) {
+        try{
+            log.info("Adding new genre: {}", request.getName());
+            var genre = genreRepository.findByName(request.getName());
+            if (genre != null) {
+                log.warn("Genre {} already exists", request.getName());
+                return ResponseEntity.badRequest().build();
+            }
+            var newGenre = Genre.builder()
+                    .name(request.getName())
+                    .description(request.getDescription())
+                    .build();
+            genreRepository.save(newGenre);
+
+            GenreResponse genreResponse = GenreResponse.builder()
+                    .genreId(newGenre.getGenreId())
+                    .name(newGenre.getName())
+                    .description(newGenre.getDescription())
+                    .build();
+            log.info("Genre {} added successfully", request.getName());
+            return ResponseEntity.ok(genreResponse);
+        }
+        catch (Exception e) {
+            log.error("Error adding genre: {}", e.getMessage());
+            return ResponseEntity.status(500).build();
+        }
+    }
+
+    public ResponseEntity<?> getAllGenres() {
+        try {
+            log.info("Fetching all genres");
+            var genres = genreRepository.findAll();
+            log.info("Fetched {} genres", genres.size());
+            return ResponseEntity.ok(genres);
+        }
+        catch (Exception e) {
+            log.error("Error fetching genres: {}", e.getMessage());
+            return ResponseEntity.status(500).body("Internal server error");
+        }
+    }
+
+    public ResponseEntity<?> searchByGenre(String genre){
+        try {
+            log.info("Searching stories by genre: {}", genre);
+            Genre genreEntity = genreRepository.findByName(genre);
+            if (genreEntity == null) {
+                log.warn("Genre {} not found", genre);
+                return ResponseEntity.badRequest().body("Genre not found");
+            }
+            List<Story> stories = storyRepository.findByGenresContaining(genreEntity);
+            log.info("Found {} stories for genre {}", stories.size(), genre);
+            return ResponseEntity.ok(stories);
+        }
+        catch (Exception e) {
+            log.error("Error searching stories by genre: {}", e.getMessage());
+            return ResponseEntity.status(500).body("Internal server error");
+        }
+
+    }
+}
