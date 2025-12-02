@@ -1,18 +1,18 @@
 package com.onlinestories.user_service.Service;
 
+import com.onlinestories.user_service.Client.TransactionClient;
 import com.onlinestories.user_service.DTO.Request.PackageAddingRequest;
 import com.onlinestories.user_service.DTO.Request.PackageRegisterRequest;
 import com.onlinestories.user_service.DTO.Request.UserCreateRequest;
 import com.onlinestories.user_service.DTO.Request.UserUpdateRequest;
 import com.onlinestories.user_service.DTO.Response.PackageResponse;
 import com.onlinestories.user_service.DTO.Response.UserResponse;
+import com.onlinestories.user_service.DTO.Response.WalletResponse;
 import com.onlinestories.user_service.Entity.Package;
 import com.onlinestories.user_service.Entity.User;
-import com.onlinestories.user_service.Entity.Wallet;
 import com.onlinestories.user_service.Enum.ServicePackage;
 import com.onlinestories.user_service.Repository.PackageRepository;
 import com.onlinestories.user_service.Repository.UserRepository;
-import com.onlinestories.user_service.Repository.WalletRepository;
 import jakarta.ws.rs.core.Response;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +26,6 @@ import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -43,9 +42,9 @@ import java.util.List;
 public class UserService {
 
     final UserRepository userRepository;
-    final WalletRepository walletRepository;
     final PackageRepository serviceRepository;
     final Keycloak keycloak;
+    final TransactionClient transactionClient;
 
     @Value("${app.keycloak.realm}")
     String appRealm;
@@ -76,17 +75,19 @@ public class UserService {
 
         try (Response response = usersResource.create(userRepresentation)) {
             if (response.getStatus() == 201) {
-                log.info("User {} created successfully in Keycloak", request.getUsername());
+                 log.info("User {} created successfully in Keycloak", request.getUsername());
                  String userId = CreatedResponseUtil.getCreatedId(response);
                  User user = new User();
-                 Wallet wallet = new Wallet();
-                 wallet.setBalance(0.0);
+
+                 WalletResponse walletResponse = transactionClient.createWallet(userId);
+                 log.info("Wallet created for userId {}: walletId {}", userId, walletResponse.getWalletId());
+
                  user.setUserId(userId);
                  user.setNickname(request.getUsername());
                  user.setDob(request.getDob());
                  user.setCreatedAt(java.time.LocalDateTime.now());
-                 wallet = walletRepository.save(wallet);
-                 user.setWalletId(wallet.getWalletId());
+
+                 user.setWalletId(walletResponse.getWalletId());
                  userRepository.save(user);
 
                 UserResponse userResponse = new UserResponse();

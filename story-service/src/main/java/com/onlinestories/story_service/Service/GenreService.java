@@ -2,6 +2,7 @@ package com.onlinestories.story_service.Service;
 
 import com.onlinestories.story_service.DTO.Request.AddGenreRequest;
 import com.onlinestories.story_service.DTO.Response.GenreResponse;
+import com.onlinestories.story_service.DTO.Response.StoryResponse;
 import com.onlinestories.story_service.Entity.Genre;
 import com.onlinestories.story_service.Entity.Story;
 import com.onlinestories.story_service.Repository.GenreRepository;
@@ -64,21 +65,32 @@ public class GenreService {
         }
     }
 
-    public ResponseEntity<?> searchByGenre(String genre){
+    public ResponseEntity<List<StoryResponse>> searchByGenre(String genre){
         try {
             log.info("Searching stories by genre: {}", genre);
             Genre genreEntity = genreRepository.findByName(genre);
             if (genreEntity == null) {
                 log.warn("Genre {} not found", genre);
-                return ResponseEntity.badRequest().body("Genre not found");
+                return ResponseEntity.badRequest().build();
             }
             List<Story> stories = storyRepository.findByGenresContaining(genreEntity);
             log.info("Found {} stories for genre {}", stories.size(), genre);
-            return ResponseEntity.ok(stories);
+
+            List<StoryResponse> storyResponses = stories.stream()
+                    .map(story -> StoryResponse.builder()
+                    .storyId(story.getStoryId())
+                    .authorId(story.getAuthorId())
+                    .title(story.getTitle())
+                    .description(story.getDescription())
+                    .status(story.getStatus().name())
+                    .genres(story.getGenres().stream().map(Genre::getName).collect(java.util.stream.Collectors.toSet()))
+                    .build()).toList();
+
+            return ResponseEntity.ok(storyResponses);
         }
         catch (Exception e) {
             log.error("Error searching stories by genre: {}", e.getMessage());
-            return ResponseEntity.status(500).body("Internal server error");
+            return ResponseEntity.status(500).build();
         }
 
     }

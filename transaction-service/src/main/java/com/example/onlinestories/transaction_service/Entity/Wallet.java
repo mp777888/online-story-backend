@@ -1,4 +1,4 @@
-package com.onlinestories.user_service.Entity;
+package com.example.onlinestories.transaction_service.Entity;
 
 
 import lombok.*;
@@ -16,6 +16,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 public class Wallet {
     @Id
     String walletId;
+    String userId;
     Double balance;
     String bankCode;
     String accountNumber;

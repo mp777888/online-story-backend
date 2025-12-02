@@ -1,16 +1,16 @@
 package com.example.onlinestories.transaction_service.Controller;
 
+import com.example.onlinestories.transaction_service.DTO.Response.WalletResponse;
 import com.example.onlinestories.transaction_service.Service.MomoService;
 import com.example.onlinestories.transaction_service.Service.VNPayService;
+import com.example.onlinestories.transaction_service.Service.WalletService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
@@ -22,6 +22,13 @@ import java.util.Map;
 public class TransactionController {
     VNPayService vnPayService;
     MomoService momoService;
+    WalletService walletService;
+
+    @PostMapping("/wallet")
+    public ResponseEntity<WalletResponse> createWallet(@RequestBody String userId){
+        log.info("Received request to create wallet");
+        return ResponseEntity.ok(walletService.createWallet(userId));
+    }
 
     @GetMapping("/vn-pay")
     public ResponseEntity<String> createVNPayTransaction(HttpServletRequest request){

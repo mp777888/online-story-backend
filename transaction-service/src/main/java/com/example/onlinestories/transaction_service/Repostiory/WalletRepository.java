@@ -1,6 +1,6 @@
-package com.onlinestories.user_service.Repository;
+package com.example.onlinestories.transaction_service.Repostiory;
 
-import com.onlinestories.user_service.Entity.Wallet;
+import com.example.onlinestories.transaction_service.Entity.Wallet;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
 
