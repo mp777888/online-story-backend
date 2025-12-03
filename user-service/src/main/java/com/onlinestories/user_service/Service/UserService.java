@@ -60,8 +60,6 @@ public class UserService {
             log.error("Username {} already exists in Keycloak", request.getUsername());
             return ResponseEntity.status(HttpStatus.CONFLICT).build();
         }
-
-        // Create Keycloak user representation
         UserRepresentation userRepresentation = new UserRepresentation();
         userRepresentation.setUsername(request.getUsername());
         userRepresentation.setEmail(request.getEmail());
@@ -73,38 +71,54 @@ public class UserService {
         credential.setValue(request.getPassword());
         userRepresentation.setCredentials(Collections.singletonList(credential));
 
+        String userId = null;
+
         try (Response response = usersResource.create(userRepresentation)) {
-            if (response.getStatus() == 201) {
-                 log.info("User {} created successfully in Keycloak", request.getUsername());
-                 String userId = CreatedResponseUtil.getCreatedId(response);
-                 User user = new User();
 
-                 WalletResponse walletResponse = transactionClient.createWallet(userId);
-                 log.info("Wallet created for userId {}: walletId {}", userId, walletResponse.getWalletId());
-
-                 user.setUserId(userId);
-                 user.setNickname(request.getUsername());
-                 user.setDob(request.getDob());
-                 user.setCreatedAt(java.time.LocalDateTime.now());
-
-                 user.setWalletId(walletResponse.getWalletId());
-                 userRepository.save(user);
-
-                UserResponse userResponse = new UserResponse();
-                userResponse.setUserId(userId);
-                userResponse.setUsername(request.getUsername());
-                userResponse.setNickname(request.getUsername());
-                userResponse.setEmail(request.getEmail());
-                userResponse.setDob(request.getDob());
-                userResponse.setCreatedAt(user.getCreatedAt());
-                return ResponseEntity.status(HttpStatus.CREATED).body(userResponse);
-            } else {
+            if (response.getStatus() != 201) {
                 log.error("Failed to create user in Keycloak. Status: {}, Body: {}", response.getStatus(), response.readEntity(String.class));
                 return ResponseEntity.status(response.getStatus()).build();
             }
+
+            userId = CreatedResponseUtil.getCreatedId(response);
+            log.info("User {} created successfully in Keycloak with id {}", request.getUsername(), userId);
+
+            WalletResponse walletResponse = transactionClient.createWallet(userId);
+            log.info("Wallet created for userId {}: walletId {}", userId, walletResponse.getWalletId());
+
+            User user = new User();
+            user.setUserId(userId);
+            user.setNickname(request.getUsername());
+            user.setDob(request.getDob());
+            user.setCreatedAt(java.time.LocalDateTime.now());
+            user.setWalletId(walletResponse.getWalletId());
+
+            userRepository.save(user); // if this fails, exception will be thrown and handled below
+
+            UserResponse userResponse = new UserResponse();
+            userResponse.setUserId(userId);
+            userResponse.setUsername(request.getUsername());
+            userResponse.setNickname(request.getUsername());
+            userResponse.setEmail(request.getEmail());
+            userResponse.setDob(request.getDob());
+            userResponse.setCreatedAt(user.getCreatedAt());
+            return ResponseEntity.status(HttpStatus.CREATED).body(userResponse);
         } catch (Exception e) {
-            log.error("Exception while creating user in Keycloak", e);
-            return ResponseEntity.internalServerError().build();
+            log.error("Exception while creating user (compensating actions will run): {}", e.getMessage(), e);
+
+            // if Keycloak user was created, remove it to avoid orphaned entry
+            if (userId != null) {
+                try {
+                    keycloak.realm(appRealm).users().get(userId).remove();
+                    log.info("Removed Keycloak user {}", userId);
+                } catch (Exception ex) {
+                    log.error("Failed to remove Keycloak user {} during rollback: {}", userId, ex.getMessage(), ex);
+                }
+
+            }
+
+            // rethrow so @Transactional will rollback DB changes
+            throw new RuntimeException("Failed to create user", e);
         }
     }
 
