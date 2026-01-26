@@ -73,4 +73,16 @@ public class StoryService {
             throw ex;
         }
     }
+
+    // Get story details
+    public ResponseEntity<?> getStoryDetails(String storyId) {
+        return null;
+    }
+
+
+    // Get stories by filters: genre, author, status
+    public ResponseEntity<?> getStoriesBy(){
+        return null;
+    }
+
 }

@@ -6,6 +6,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDate;
+import java.util.Vector;
 
 @Document
 @Setter
@@ -18,4 +19,5 @@ public class Chunk {
     @Id
     String chunkId;
     String text;
+    Vector<Float> embedding;
 }

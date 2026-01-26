@@ -6,6 +6,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Document
@@ -20,10 +21,12 @@ public class Chapter {
     String chapterId;
     String storyId;
     String title;
+    String summary;
+    String img;
     Integer chapterNumber;
-    LocalDate createdAt;
+    LocalDateTime createdAt;
     String status;
-    byte[] audioData;
+    String audioUrl;
 
     List<ChapterVersion> versions;
     

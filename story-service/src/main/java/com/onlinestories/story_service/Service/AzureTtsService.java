@@ -27,6 +27,11 @@ public class AzureTtsService {
             String voiceName = language.equals("en") ? "en-US-JennyNeural" : "vi-VN-HoaiMyNeural";
             speechConfig.setSpeechSynthesisVoiceName(voiceName);
 
+            // Định dạng âm thanh xuất ra là MP3
+            speechConfig.setSpeechSynthesisOutputFormat(
+                    SpeechSynthesisOutputFormat.Audio16Khz64KBitRateMonoMp3
+            );
+
             // 2. Cấu hình Output là NULL (để nó không phát ra loa server, cũng không lưu file)
             // Chúng ta chỉ muốn lấy dữ liệu trong bộ nhớ (in-memory)
             SpeechSynthesizer synthesizer = new SpeechSynthesizer(speechConfig, null);
