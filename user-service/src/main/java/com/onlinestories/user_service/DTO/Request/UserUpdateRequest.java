@@ -11,7 +11,6 @@ import java.time.LocalDate;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class UserUpdateRequest {
-    String userId;
     String password;
     String nickname;
     LocalDate dob;

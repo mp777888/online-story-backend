@@ -1,17 +1,19 @@
 package com.onlinestories.user_service.Controller;
 
-import com.onlinestories.user_service.DTO.Request.PackageRegisterRequest;
 import com.onlinestories.user_service.DTO.Request.UserCreateRequest;
-import com.onlinestories.user_service.DTO.Response.PackageResponse;
+import com.onlinestories.user_service.DTO.Request.UserUpdateRequest;
 import com.onlinestories.user_service.DTO.Response.UserResponse;
 import com.onlinestories.user_service.Service.UserService;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.AccessLevel;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/users")
@@ -29,21 +31,26 @@ public class UserController {
     }
 
     @GetMapping
-    public ResponseEntity<UserResponse> getMyInfo() {
-        log.info("Received request to get user profile");
-        return userService.getMyInfo();
+    public ResponseEntity<UserResponse> getMyInfo(@AuthenticationPrincipal Jwt jwt) {
+        String userId = jwt.getSubject();
+        log.info("Received request to get profile for userId={}", userId);
+        return userService.getMyInfo(userId);
+    }
+
+    @PutMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<UserResponse> updateUserProfile(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestPart(value = "file", required = false) MultipartFile file,
+            @RequestPart("data") UserUpdateRequest request) {
+        String userId = jwt.getSubject();
+        log.info("Received profile update request for userId={}", userId);
+        return userService.updateProfile(userId,file,request);
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<UserResponse> getUserById(@PathVariable String id) {
         log.info("Received request to get user profile for userId={}", id);
         return userService.getUserById(id);
-    }
-
-    @PostMapping("/service-package")
-    public ResponseEntity<PackageResponse> registerServicePackage(@RequestBody PackageRegisterRequest request) {
-        log.info("Received service package registration request for userId={}", request.getUserId());
-        return userService.registerService(request);
     }
 
     @GetMapping("/ping")

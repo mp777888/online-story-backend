@@ -1,5 +1,6 @@
 package com.onlinestories.user_service.Service;
 
+import com.onlinestories.user_service.Client.MediaClient;
 import com.onlinestories.user_service.Client.TransactionClient;
 import com.onlinestories.user_service.DTO.Request.PackageAddingRequest;
 import com.onlinestories.user_service.DTO.Request.PackageRegisterRequest;
@@ -31,6 +32,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Collections;
 import java.util.List;
@@ -42,9 +44,9 @@ import java.util.List;
 public class UserService {
 
     final UserRepository userRepository;
-    final PackageRepository serviceRepository;
     final Keycloak keycloak;
     final TransactionClient transactionClient;
+    final MediaClient mediaClient;
 
     @Value("${app.keycloak.realm}")
     String appRealm;
@@ -117,16 +119,13 @@ public class UserService {
 
             }
 
-            // rethrow so @Transactional will rollback DB changes
+            // rethrow so @Transactional will roll back DB changes
             throw new RuntimeException("Failed to create user", e);
         }
     }
 
-    public ResponseEntity<UserResponse> getMyInfo() {
+    public ResponseEntity<UserResponse> getMyInfo(String userId) {
         try{
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            Jwt jwt = (Jwt) authentication.getPrincipal();
-            String userId = jwt.getSubject();
             User user = findUserById(userId);
             UserRepresentation userRep = keycloak.realm(appRealm)
                         .users()
@@ -171,13 +170,13 @@ public class UserService {
         }
     }
 
-    public ResponseEntity<UserResponse> updateProfile(UserUpdateRequest request){
+    public ResponseEntity<UserResponse> updateProfile(String userId, MultipartFile file, UserUpdateRequest request){
         // Implementation for updating user profile goes here
         try{
-            User user = findUserById(request.getUserId());
+            User user = findUserById(userId);
             UserRepresentation userRep = keycloak.realm(appRealm)
                     .users()
-                    .get(request.getUserId())
+                    .get(userId)
                     .toRepresentation();
 
             if(request.getPassword() != null){
@@ -187,8 +186,13 @@ public class UserService {
                 credential.setValue(request.getPassword());
                 keycloak.realm(appRealm)
                         .users()
-                        .get(request.getUserId())
+                        .get(userId)
                         .resetPassword(credential);
+            }
+
+            if(file != null && !file.isEmpty()){
+                String imgUrl = mediaClient.uploadFile(file, "avatars");
+                user.setImg(imgUrl);
             }
 
             if (request.getNickname() != null) {
@@ -201,83 +205,19 @@ public class UserService {
 
             userRepository.save(user);
 
-        }
-        catch (Exception e){
-            log.error(e.getMessage());
-            throw e;
-        }
-        return ResponseEntity.ok(new UserResponse());
-    }
-
-
-    public ResponseEntity<PackageResponse> registerService(PackageRegisterRequest request) {
-        // Implementation for registering a service package goes here
-
-        try{
-            Package pack = new Package();
-
-            List<User> listUsers = List.of(findUserById(request.getUserId()));
-            pack.setListUsers(listUsers);
-            pack.setStartDate(java.time.LocalDate.now());
-            double price = 0.0;
-            switch (request.getServicePackage()){
-                case "FREE":
-                    log.info("Registering FREE service package for userId {}", request.getUserId());
-                    pack.setServicePackage(ServicePackage.FREE);
-                    break;
-                case "PREMIUM":
-                    log.info("Registering PREMIUM service package for userId {}", request.getUserId());
-                    pack.setServicePackage(ServicePackage.PREMIUM);
-                    price = 49.000;
-                    break;
-                case "GROUP":
-                    log.info("Registering GROUP service package for userId {}", request.getUserId());
-                    pack.setServicePackage(ServicePackage.GROUP);
-                    price = 79.000;
-                    break;
-                default:
-                    log.error("Invalid service package: {}", request.getServicePackage());
-            }
-            pack.setPrice(price * request.getMonths());
-            pack.setEndDate(pack.getStartDate().plusMonths(request.getMonths()));
-            serviceRepository.save(pack);
-
-            PackageResponse response = PackageResponse.builder()
-                    .serviceId(pack.getServiceId())
-                    .servicePackage(pack.getServicePackage().name())
-                    .listUsers(pack.getListUsers())
-                    .price(pack.getPrice())
-                    .startDate(pack.getStartDate())
-                    .endDate(pack.getEndDate())
+            UserResponse response = UserResponse.builder()
+                    .userId(user.getUserId())
+                    .username(userRep.getUsername())
+                    .email(userRep.getEmail())
+                    .dob(user.getDob())
+                    .img(user.getImg())
                     .build();
             return ResponseEntity.ok().body(response);
         }
         catch (Exception e){
-            log.error("Error registering service package for userId {}: {}", request.getUserId(), e.getMessage());
-            throw e;
-        }
-    }
-
-    public ResponseEntity<PackageResponse> addUserToGroupPackage(PackageAddingRequest request){
-        try{
-            Package pack = serviceRepository.findById(request.getPackageId())
-                    .orElseThrow(() -> new RuntimeException("Service package not found"));
-
-
-            UsersResource usersResource = keycloak.realm(appRealm).users();
-            UserRepresentation userRep = usersResource.searchByEmail(request.getEmail(),true).stream().findFirst()
-                    .orElseThrow(() -> new RuntimeException("User with email " + request.getEmail() + " not found in Keycloak"));
-            User user = findUserById(userRep.getId());
-
-            pack.getListUsers().add(user);
-            serviceRepository.save(pack);
-            return null;
-        }
-        catch (Exception e){
             log.error(e.getMessage());
             throw e;
         }
-
     }
 
     private User findUserById(String userId) {
