@@ -1,8 +1,12 @@
 server:
   port: 8084
 spring:
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
   application:
-    name: media_service
+    name: media-service
 
 cloudinary:
   cloud-name: ${CLOUDINARY_CLOUD_NAME}

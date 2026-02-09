@@ -25,7 +25,7 @@ public class MediaController {
     public ResponseEntity<String> uploadFile(
             @RequestPart("file") MultipartFile file,
             @RequestParam("folder") String folder) { // Cho phép tham số folder để phân loại
-
+        log.info("Received file upload request for folder: {}", folder);
         // Gọi Cloudinary upload
         String url = cloudinaryService.uploadFile(file, folder);
         return ResponseEntity.ok(url);
