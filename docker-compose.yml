@@ -1,30 +1,22 @@
-version: '4'
+version: "4"
+
 services:
-  keycloak-mysql:
-    container_name: keycloak-mysql
-    image: mysql:8
-    volumes:
-      - ./volume-data/mysql_keycloak_data:/var/lib/mysql
-    environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: keycloak
-      MYSQL_USER: keycloak
-      MYSQL_PASSWORD: password
   keycloak:
     container_name: keycloak
     image: quay.io/keycloak/keycloak:24.0.1
     command: [ "start-dev", "--import-realm" ]
+
     environment:
-      DB_VENDOR: MYSQL
-      DB_ADDR: mysql
-      DB_DATABASE: keycloak
-      DB_USER: keycloak
-      DB_PASSWORD: password
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://dpg-d64r2na4d50c73emdsu0-a.oregon-postgres.render.com:5432/postgres_uf83?sslmode=require
+      KC_DB_USERNAME: postgres_uf83_user
+      KC_DB_PASSWORD: ULYfTl4ag6rCZ8kInsyp70hTbmoVsSz0
+
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
+
     ports:
       - "8181:8080"
+
     volumes:
-      - ./docker/keycloak/realms/:/opt/keycloak/data/import/
-    depends_on:
-      - keycloak-mysql
+      - ./docker/keycloak/realms:/opt/keycloak/data/import
