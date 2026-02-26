@@ -1,5 +1,6 @@
 package com.onlinestories.story_service.Service;
 
+import com.onlinestories.story_service.Client.MediaClient;
 import com.onlinestories.story_service.Client.UserClient;
 import com.onlinestories.story_service.DTO.Request.CreateStoryRequest;
 import com.onlinestories.story_service.DTO.Response.StoryResponse;
@@ -18,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Objects;
 
@@ -30,24 +32,25 @@ public class StoryService {
     ChapterRepository chapterRepository;
     GenreRepository genreRepository;
     UserClient userClient;
+    MediaClient mediaClient;
     Logger logger = LoggerFactory.getLogger(StoryService.class);
 
-    public ResponseEntity<StoryResponse> createNewStory(CreateStoryRequest request){
+    public ResponseEntity<StoryResponse> createNewStory(CreateStoryRequest request, String authorId, MultipartFile img) {
         try {
             log.info("Creating new story: {}", request.getTitle());
 
             // Validate author existence via UserClient
-            UserResponse userResponse = userClient.getUserById(request.getAuthorId());
+            UserResponse userResponse = userClient.getUserById(authorId);
             if (userResponse == null) {
-                log.error("Author with ID {} not found", request.getAuthorId());
+                log.error("Author with ID {} not found", authorId);
                 return ResponseEntity.badRequest().build();
             }
 
             Story story = Story.builder()
-                    .authorId(request.getAuthorId())
+                    .authorId(authorId)
                     .title(request.getTitle())
                     .description(request.getDescription())
-                    .img(request.getImg())
+                    .img(img != null ? mediaClient.uploadFile(img,"cover-img") : null)
                     .status(Status.ONGOING)
                     .genres(request.getGenreIds().stream()
                             .map(genreId -> genreRepository.findById(genreId).orElseThrow(() -> new RuntimeException("Genre not found: " + genreId)))
@@ -62,6 +65,7 @@ public class StoryService {
                     .authorId(story.getAuthorId())
                     .title(story.getTitle())
                     .description(story.getDescription())
+                    .img(story.getImg())
                     .status(story.getStatus().name())
                     .genres(story.getGenres().stream().map(Genre::getName).collect(java.util.stream.Collectors.toSet()))
                     .build();

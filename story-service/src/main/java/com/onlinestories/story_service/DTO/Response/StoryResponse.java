@@ -16,5 +16,6 @@ public class StoryResponse {
     String title;
     String description;
     String status;
+    String img;
     Set<String> genres;
 }

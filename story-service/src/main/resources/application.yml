@@ -3,10 +3,19 @@ server:
 spring:
   application:
       name: story-service
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 5MB
   data:
     mongodb:
       uri: ${MONGODB_URI}
       database: ${MONGODB_DB}
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8181/realms/online-stories-realm}
 
 azure:
   speech:

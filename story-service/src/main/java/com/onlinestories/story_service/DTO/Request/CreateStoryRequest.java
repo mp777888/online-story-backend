@@ -11,9 +11,7 @@ import java.util.Set;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class CreateStoryRequest {
-    String authorId;
     String title;
     String description;
-    String img;
     Set<String> genreIds;
 }
