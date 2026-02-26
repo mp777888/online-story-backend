@@ -25,6 +25,14 @@ public class Routes {
     }
 
     @Bean
+    public RouterFunction<ServerResponse> storyRoutes(){
+        return GatewayRouterFunctions.route("story-service")
+                .route(RequestPredicates.path("/api/stories/**"),
+                        HandlerFunctions.http("http://localhost:8083"))
+                .build();
+    }
+
+    @Bean
     public RouterFunction<ServerResponse> transRoutes(){
         return GatewayRouterFunctions.route("transaction-service")
                 .route(RequestPredicates.path("/api/transactions/**"),
