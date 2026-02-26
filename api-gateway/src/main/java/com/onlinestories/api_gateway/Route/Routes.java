@@ -23,4 +23,12 @@ public class Routes {
                         HandlerFunctions.http("http://localhost:8082"))
                 .build();
     }
+
+    @Bean
+    public RouterFunction<ServerResponse> transRoutes(){
+        return GatewayRouterFunctions.route("transaction-service")
+                .route(RequestPredicates.path("/api/transactions/**"),
+                        HandlerFunctions.http("http://localhost:8085"))
+                .build();
+    }
 }
