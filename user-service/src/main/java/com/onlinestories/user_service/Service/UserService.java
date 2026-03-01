@@ -2,17 +2,11 @@ package com.onlinestories.user_service.Service;
 
 import com.onlinestories.user_service.Client.MediaClient;
 import com.onlinestories.user_service.Client.TransactionClient;
-import com.onlinestories.user_service.DTO.Request.PackageAddingRequest;
-import com.onlinestories.user_service.DTO.Request.PackageRegisterRequest;
 import com.onlinestories.user_service.DTO.Request.UserCreateRequest;
 import com.onlinestories.user_service.DTO.Request.UserUpdateRequest;
-import com.onlinestories.user_service.DTO.Response.PackageResponse;
 import com.onlinestories.user_service.DTO.Response.UserResponse;
 import com.onlinestories.user_service.DTO.Response.WalletResponse;
-import com.onlinestories.user_service.Entity.Package;
 import com.onlinestories.user_service.Entity.User;
-import com.onlinestories.user_service.Enum.ServicePackage;
-import com.onlinestories.user_service.Repository.PackageRepository;
 import com.onlinestories.user_service.Repository.UserRepository;
 import jakarta.ws.rs.core.Response;
 import lombok.AccessLevel;
@@ -27,9 +21,6 @@ import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -135,9 +126,11 @@ public class UserService {
             UserResponse response = UserResponse.builder()
                     .userId(user.getUserId())
                     .username(userRep.getUsername())
+                    .nickname(user.getNickname())
                     .email(userRep.getEmail())
                     .dob(user.getDob())
                     .img(user.getImg())
+                    .createdAt(user.getCreatedAt())
                     .build();
             return ResponseEntity.ok().body(response);
         }
@@ -211,8 +204,93 @@ public class UserService {
                     .email(userRep.getEmail())
                     .dob(user.getDob())
                     .img(user.getImg())
+                    .createdAt(user.getCreatedAt())
                     .build();
             return ResponseEntity.ok().body(response);
+        }
+        catch (Exception e){
+            log.error(e.getMessage());
+            throw e;
+        }
+    }
+
+    public ResponseEntity<String> followUser(String userId, String followUserId){
+        try{
+            User user = findUserById(userId);
+            User followUser = findUserById(followUserId);
+
+            user.getFollowingIds().add(followUserId);
+            followUser.getFollowerIds().add(userId);
+
+            userRepository.save(user);
+            userRepository.save(followUser);
+            
+            return ResponseEntity.ok().body("Followed user successfully");
+        }
+        catch (Exception e){
+            log.error(e.getMessage());
+            throw e;
+        }
+    }
+
+    public ResponseEntity<String> unfollowUser(String userId, String followUserId){
+        try{
+            User user = findUserById(userId);
+            User followUser = findUserById(followUserId);
+
+            user.getFollowingIds().remove(followUserId);
+            followUser.getFollowerIds().remove(userId);
+
+            userRepository.save(user);
+            userRepository.save(followUser);
+
+            return ResponseEntity.ok().body("Unfollowed user successfully");
+        }
+        catch (Exception e){
+            log.error(e.getMessage());
+            throw e;
+        }
+    }
+
+    public ResponseEntity<List<UserResponse>> getFollowers(String userId){
+        try{
+            User user = findUserById(userId);
+            UserRepresentation userRep = keycloak.realm(appRealm)
+                    .users()
+                    .get(userId)
+                    .toRepresentation();
+            List<UserResponse> followers = user.getFollowerIds().stream()
+                    .map(this::findUserById)
+                    .map(follower -> UserResponse.builder()
+                            .userId(follower.getUserId())
+                            .nickname(follower.getNickname())
+                            .img(follower.getImg())
+                            .build())
+                    .toList();
+            return ResponseEntity.ok().body(followers);
+        }
+        catch (Exception e){
+            log.error(e.getMessage());
+            throw e;
+        }
+    }
+
+    public ResponseEntity<List<UserResponse>> getFollowing(String userId){
+        try{
+            User user = findUserById(userId);
+            UserRepresentation userRep = keycloak.realm(appRealm)
+                    .users()
+                    .get(userId)
+                    .toRepresentation();
+            List<UserResponse> following = user.getFollowingIds().stream()
+                    .map(this::findUserById)
+                    .map(follow -> UserResponse.builder()
+                            .userId(follow.getUserId())
+                            .nickname(follow.getNickname())
+                            .img(follow.getImg())
+                            .build())
+                    .toList();
+            return ResponseEntity.ok().body(following);
         }
         catch (Exception e){
             log.error(e.getMessage());

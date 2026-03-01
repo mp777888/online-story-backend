@@ -15,6 +15,8 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
@@ -53,8 +55,45 @@ public class UserController {
         return userService.getUserById(id);
     }
 
+    @PostMapping("/follow")
+    public ResponseEntity<String> followUser(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam String followUserId
+    ) {
+        String userId = jwt.getSubject();
+        log.info("Received follow request from userId={} to targetUserId={}",userId, followUserId);
+        return userService.followUser(userId, followUserId);
+    }
+
+    @PostMapping("/unfollow")
+    public ResponseEntity<String> unfollowUser(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam String followUserId
+    ) {
+        String userId = jwt.getSubject();
+        log.info("Received unfollow request from userId={} to targetUserId={}",userId, followUserId);
+        return userService.unfollowUser(userId, followUserId);
+    }
+
+    @GetMapping("/follower")
+    public ResponseEntity<List<UserResponse>> getFollowers(@AuthenticationPrincipal Jwt jwt) {
+        String userId = jwt.getSubject();
+        log.info("Received request to get followers for userId={}", userId);
+        return userService.getFollowers(userId);
+    }
+
+    @GetMapping("/following")
+    public ResponseEntity<List<UserResponse>> getFollowing(@AuthenticationPrincipal Jwt jwt) {
+        String userId = jwt.getSubject();
+        log.info("Received request to get following for userId={}", userId);
+        return userService.getFollowing(userId);
+    }
+
     @GetMapping("/ping")
     public ResponseEntity<String> ping() {
         return ResponseEntity.ok("user-service alive");
     }
+
+//    @PostMapping("/follow")
+
 }
