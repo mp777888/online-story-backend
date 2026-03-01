@@ -25,6 +25,18 @@ public class AuthController {
         return authService.authenticate(request);
     }
 
+    @PostMapping("/refresh")
+    public ResponseEntity<String> refreshToken(@RequestParam String refreshToken){
+        log.info("Received token refresh request");
+        return authService.refreshToken(refreshToken);
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<String> logout(@RequestParam String token){
+        log.info("Received logout request with token={}", token);
+        return authService.logout(token);
+    }
+
     @GetMapping("/ping")
     public ResponseEntity<String> healthCheck(){
         log.info("Authentication service health check endpoint called");

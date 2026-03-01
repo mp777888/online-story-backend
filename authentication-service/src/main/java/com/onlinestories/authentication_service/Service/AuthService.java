@@ -27,7 +27,7 @@ public class AuthService {
 
     @Value("${keycloak.client-id}")
     private String clientId;
-
+    
     @Value("${keycloak.realm}")
     private String realm;
 
@@ -62,5 +62,48 @@ public class AuthService {
         Map<String, Object> responseMap = responseMono.block();
         log.info("Received token for user: {}", request.getUsername());
         return ResponseEntity.ok(responseMap);
+    }
+
+    public ResponseEntity<String> refreshToken(String refreshToken){
+        log.info("Requesting token refresh with refresh token: {}", refreshToken);
+        String url = authServerUrl + "/realms/" + realm + "/protocol/openid-connect/token";
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+        formData.add("grant_type", "refresh_token");
+        formData.add("client_id", clientId);
+        formData.add("client_secret", clientSecret);
+        formData.add("refresh_token", refreshToken);
+
+        Mono<Map> responseMono = webClient.build()
+                .post()
+                .uri(url)
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .body(BodyInserters.fromFormData(formData))
+                .retrieve()
+                .bodyToMono(Map.class);
+
+        Map<String, Object> responseMap = responseMono.block();
+        log.info("Received refreshed token");
+        return ResponseEntity.ok(responseMap.toString());
+    }
+
+    public ResponseEntity<String> logout(String refreshToken) {
+        log.info("Logging out with refresh token: {}", refreshToken);
+        String url = authServerUrl + "/realms/" + realm + "/protocol/openid-connect/logout";
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+        formData.add("client_id", clientId);
+        formData.add("client_secret", clientSecret);
+        formData.add("refresh_token", refreshToken);
+
+        Mono<String> responseMono = webClient.build()
+                .post()
+                .uri(url)
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .body(BodyInserters.fromFormData(formData))
+                .retrieve()
+                .bodyToMono(String.class);
+
+        String response = responseMono.block();
+        log.info("Logout response: {}", response);
+        return ResponseEntity.ok(response);
     }
 }
