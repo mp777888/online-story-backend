@@ -16,5 +16,6 @@ public class Genre {
     @Id
     String genreId;
     String name;
+    String icon;
     String description;
 }

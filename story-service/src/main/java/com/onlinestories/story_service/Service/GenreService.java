@@ -52,16 +52,24 @@ public class GenreService {
         }
     }
 
-    public ResponseEntity<?> getAllGenres() {
+    public ResponseEntity<List<GenreResponse>> getAllGenres() {
         try {
             log.info("Fetching all genres");
-            var genres = genreRepository.findAll();
-            log.info("Fetched {} genres", genres.size());
-            return ResponseEntity.ok(genres);
+            List<Genre> genres = genreRepository.findAll();
+
+            List<GenreResponse> genreResponses = genres.stream()
+                    .map(genre -> GenreResponse.builder()
+                            .genreId(genre.getGenreId())
+                            .name(genre.getName())
+                            .description(genre.getDescription())
+                            .build())
+                    .toList();
+            log.info("Fetched {} genres", genreResponses.size());
+            return ResponseEntity.ok(genreResponses);
         }
         catch (Exception e) {
             log.error("Error fetching genres: {}", e.getMessage());
-            return ResponseEntity.status(500).body("Internal server error");
+            throw e;
         }
     }
 

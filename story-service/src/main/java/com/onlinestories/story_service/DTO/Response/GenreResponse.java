@@ -13,5 +13,6 @@ import java.util.Set;
 public class GenreResponse {
     String genreId;
     String name;
+    String icon;
     String description;
 }

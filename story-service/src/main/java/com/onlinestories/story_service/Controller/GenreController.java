@@ -32,4 +32,10 @@ public class GenreController {
         log.info("Received request to get stories for genre: {}", genreName);
         return genreService.searchByGenre(genreName);
     }
+
+    @GetMapping("/all")
+    public ResponseEntity<List<GenreResponse>> getAllGenres() {
+        log.info("Received request to fetch all genres");
+        return genreService.getAllGenres();
+    }
 }

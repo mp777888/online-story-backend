@@ -12,5 +12,6 @@ import java.util.Set;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class AddGenreRequest {
     String name;
+    String icon;
     String description;
 }
