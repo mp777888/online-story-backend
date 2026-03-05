@@ -28,10 +28,10 @@ public class User {
     String walletId;
     String description;
     LocalDateTime createdAt;
-    List<String> categories;
+    Set<String> categories = new HashSet<>();
     double trendingScore;
     long storyCount;
-    List<String> notificationIds;
+    List<String> notificationIds = List.of();
     Set<String> followingIds = new HashSet<>();
     Set<String> followerIds = new HashSet<>();
 }

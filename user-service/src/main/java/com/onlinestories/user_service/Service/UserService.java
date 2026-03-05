@@ -21,6 +21,7 @@ import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -207,6 +208,19 @@ public class UserService {
                     .createdAt(user.getCreatedAt())
                     .build();
             return ResponseEntity.ok().body(response);
+        }
+        catch (Exception e){
+            log.error(e.getMessage());
+            throw e;
+        }
+    }
+
+    public ResponseEntity<String> deleteUser(String userId){
+        try{
+            User user = findUserById(userId);
+            keycloak.realm(appRealm).users().get(userId).remove();
+            userRepository.delete(user);
+            return ResponseEntity.ok().body("User deleted successfully");
         }
         catch (Exception e){
             log.error(e.getMessage());

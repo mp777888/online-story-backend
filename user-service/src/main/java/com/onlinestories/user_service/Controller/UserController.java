@@ -55,6 +55,13 @@ public class UserController {
         return userService.getUserById(id);
     }
 
+    @DeleteMapping
+    public ResponseEntity<String> deleteUser(@AuthenticationPrincipal Jwt jwt) {
+        String userId = jwt.getSubject();
+        log.info("Received request to delete account for userId={}", userId);
+        return userService.deleteUser(userId);
+    }
+
     @PostMapping("/follow")
     public ResponseEntity<String> followUser(
             @AuthenticationPrincipal Jwt jwt,
