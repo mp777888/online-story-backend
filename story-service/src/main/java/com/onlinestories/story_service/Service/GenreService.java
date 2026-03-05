@@ -35,6 +35,7 @@ public class GenreService {
             var newGenre = Genre.builder()
                     .name(request.getName())
                     .description(request.getDescription())
+                    .icon(request.getIcon())
                     .build();
             genreRepository.save(newGenre);
 
@@ -42,6 +43,7 @@ public class GenreService {
                     .genreId(newGenre.getGenreId())
                     .name(newGenre.getName())
                     .description(newGenre.getDescription())
+                    .icon(newGenre.getIcon())
                     .build();
             log.info("Genre {} added successfully", request.getName());
             return ResponseEntity.ok(genreResponse);
@@ -62,6 +64,7 @@ public class GenreService {
                             .genreId(genre.getGenreId())
                             .name(genre.getName())
                             .description(genre.getDescription())
+                            .icon(genre.getIcon())
                             .build())
                     .toList();
             log.info("Fetched {} genres", genreResponses.size());
