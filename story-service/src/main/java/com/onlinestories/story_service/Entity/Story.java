@@ -26,6 +26,7 @@ public class Story {
     Status status;
     String img;
     Integer audience; // 0: Young Adult, 1: New Adult, 2: Adult
+    Integer numberOfChapters;
     @DBRef
     Set<Genre> genres;
     List<Chapter> chapters;
