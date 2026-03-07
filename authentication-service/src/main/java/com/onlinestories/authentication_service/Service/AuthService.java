@@ -64,7 +64,7 @@ public class AuthService {
         return ResponseEntity.ok(responseMap);
     }
 
-    public ResponseEntity<String> refreshToken(String refreshToken){
+    public ResponseEntity<Map<String, Object>> refreshToken(String refreshToken){
         log.info("Requesting token refresh with refresh token: {}", refreshToken);
         String url = authServerUrl + "/realms/" + realm + "/protocol/openid-connect/token";
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
@@ -83,7 +83,7 @@ public class AuthService {
 
         Map<String, Object> responseMap = responseMono.block();
         log.info("Received refreshed token");
-        return ResponseEntity.ok(responseMap.toString());
+        return ResponseEntity.ok(responseMap);
     }
 
     public ResponseEntity<String> logout(String refreshToken) {

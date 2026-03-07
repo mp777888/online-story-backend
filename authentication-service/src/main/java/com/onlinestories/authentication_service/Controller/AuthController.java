@@ -26,15 +26,15 @@ public class AuthController {
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<String> refreshToken(@RequestParam String refreshToken){
+    public ResponseEntity<Map<String, Object>> refreshToken(@RequestParam String refreshToken){
         log.info("Received token refresh request");
         return authService.refreshToken(refreshToken);
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<String> logout(@RequestParam String token){
-        log.info("Received logout request with token={}", token);
-        return authService.logout(token);
+    public ResponseEntity<String> logout(@RequestParam String refreshToken){
+        log.info("Received logout request with token={}", refreshToken);
+        return authService.logout(refreshToken);
     }
 
     @GetMapping("/ping")
