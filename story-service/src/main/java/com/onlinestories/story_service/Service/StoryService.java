@@ -103,6 +103,8 @@ public class StoryService {
                             .description(story.getDescription())
                             .img(story.getImg())
                             .status(story.getStatus().name())
+                            .numberOfChapters(story.getNumberOfChapters())
+                            .isPublished(story.getIsPublished())
                             .genres(story.getGenres()
                                     .stream()
                                     .map(Story.GenreSummary::getName)
@@ -124,6 +126,37 @@ public class StoryService {
         return null;
     }
 
+
+    public ResponseEntity<Page<StoryResponse>> getMyStories(
+            String userId, int page, int size) {
+        try{
+            log.info("Fetching my stories for user: {}, page: {}, size: {}", userId, page, size);
+            Pageable pageable = PageRequest.of(page, size);
+            Page<StoryResponse> storyPage = storyRepository.findByAuthorId(userId, pageable)
+                    .map(story -> StoryResponse.builder()
+                            .storyId(story.getStoryId())
+                            .authorId(story.getAuthorId())
+                            .title(story.getTitle())
+                            .description(story.getDescription())
+                            .img(story.getImg())
+                            .status(story.getStatus().name())
+                            .numberOfChapters(story.getNumberOfChapters())
+                            .isPublished(story.getIsPublished())
+                            .genres(story.getGenres()
+                                    .stream()
+                                    .map(Story.GenreSummary::getName)
+                                    .collect(Collectors.toSet()))
+                            .build());
+
+            log.info("Fetched {} stories for user {}", storyPage.getTotalElements(), userId);
+            return ResponseEntity.ok().body(storyPage);
+
+        }
+        catch(Exception ex){
+            logger.error("Error fetching my stories for user {}: {}", userId, ex.getMessage(), ex);
+            throw ex;
+        }
+    }
 
     // Get stories by filters: genre, author, status
     public ResponseEntity<?> getStoriesBy(){

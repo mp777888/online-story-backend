@@ -10,5 +10,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface StoryRepository extends MongoRepository<Story, String> {
     Page<Story> findByGenresGenreId(String genreId, Pageable pageable);
+    Page<Story> findByAuthorId(String authorId, Pageable pageable);
     Page<Story> findByAuthorIdAndIsPublishedTrue(String authorId, Pageable pageable);
 }
