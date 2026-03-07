@@ -2,12 +2,13 @@ package com.onlinestories.story_service.Repository;
 
 import com.onlinestories.story_service.Entity.Genre;
 import com.onlinestories.story_service.Entity.Story;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
-
 @Repository
 public interface StoryRepository extends MongoRepository<Story, String> {
-    List<Story> findByGenresContaining(Genre genre);
+    Page<Story> findByGenresGenreId(String genreId, Pageable pageable);
+    Page<Story> findByAuthorIdAndIsPublishedTrue(String authorId, Pageable pageable);
 }
