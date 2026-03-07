@@ -8,6 +8,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,10 +28,13 @@ public class GenreController {
         return genreService.addGenre(request);
     }
 
-    @GetMapping
-    public ResponseEntity<List<StoryResponse>> getStoriesByGenre(@RequestParam String genreName){
-        log.info("Received request to get stories for genre: {}", genreName);
-        return genreService.searchByGenre(genreName);
+    @GetMapping("/search-stories")
+    public ResponseEntity<Page<StoryResponse>> getStoriesByGenre(
+            @RequestParam String genreId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        log.info("Received request to get stories for genre: {}", genreId);
+        return genreService.searchByGenre(genreId, page, size);
     }
 
     @GetMapping("/all")

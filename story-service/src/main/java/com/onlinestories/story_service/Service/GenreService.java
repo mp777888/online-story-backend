@@ -11,10 +11,14 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -76,26 +80,29 @@ public class GenreService {
         }
     }
 
-    public ResponseEntity<List<StoryResponse>> searchByGenre(String genre){
+    public ResponseEntity<Page<StoryResponse>> searchByGenre(
+            String genreId, int page, int size) {
         try {
-            log.info("Searching stories by genre: {}", genre);
-            Genre genreEntity = genreRepository.findByName(genre);
-            if (genreEntity == null) {
-                log.warn("Genre {} not found", genre);
-                return ResponseEntity.badRequest().build();
+            log.info("Searching stories by genre: {}", genreId);
+            if(!genreRepository.existsById(genreId)) {
+                log.warn("Genre with id {} not found", genreId);
+                return ResponseEntity.notFound().build();
             }
-            List<Story> stories = storyRepository.findByGenresContaining(genreEntity);
-            log.info("Found {} stories for genre {}", stories.size(), genre);
 
-            List<StoryResponse> storyResponses = stories.stream()
+            Pageable pageable = PageRequest.of(page, size);
+
+            Page<StoryResponse> storyResponses = storyRepository.findByGenresGenreId(genreId, pageable)
                     .map(story -> StoryResponse.builder()
-                    .storyId(story.getStoryId())
-                    .authorId(story.getAuthorId())
-                    .title(story.getTitle())
-                    .description(story.getDescription())
-                    .status(story.getStatus().name())
-                    .genres(story.getGenres().stream().map(Genre::getName).collect(java.util.stream.Collectors.toSet()))
-                    .build()).toList();
+                            .storyId(story.getStoryId())
+                            .authorId(story.getAuthorId())
+                            .title(story.getTitle())
+                            .description(story.getDescription())
+                            .img(story.getImg())
+                            .status(story.getStatus().name())
+                            .genres(story.getGenres().stream()
+                                    .map(Story.GenreSummary::getName)
+                                    .collect(Collectors.toSet()))
+                            .build());
 
             return ResponseEntity.ok(storyResponses);
         }
