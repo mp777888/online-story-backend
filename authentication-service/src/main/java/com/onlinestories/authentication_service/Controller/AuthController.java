@@ -25,6 +25,15 @@ public class AuthController {
         return authService.authenticate(request);
     }
 
+    @PostMapping("/google")
+    public ResponseEntity<Map<String, Object>> googleAuthentication(
+            @RequestParam String code,
+            @RequestParam String redirectUri
+    ){
+        log.info("Received Google authentication request with code={} and redirectUri={}", code, redirectUri);
+        return authService.authenticateByGoogle(code, redirectUri);
+    }
+
     @PostMapping("/refresh")
     public ResponseEntity<Map<String, Object>> refreshToken(@RequestParam String refreshToken){
         log.info("Received token refresh request");

@@ -312,6 +312,17 @@ public class UserService {
         }
     }
 
+
+    public ResponseEntity<Boolean> checkUserExistence(String userId){
+        try{
+            return ResponseEntity.ok().body(userRepository.existsById(userId));
+        }
+        catch (Exception e){
+            log.error(e.getMessage());
+            throw e;
+        }
+    }
+
     private User findUserById(String userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));

@@ -101,6 +101,10 @@ public class UserController {
         return ResponseEntity.ok("user-service alive");
     }
 
-//    @PostMapping("/follow")
+    @GetMapping("/exists")
+    public ResponseEntity<Boolean> checkUserExistence(@RequestParam String userId) {
+        log.info("Received request to check existence for userId={}", userId);
+        return userService.checkUserExistence(userId);
+    }
 
 }
