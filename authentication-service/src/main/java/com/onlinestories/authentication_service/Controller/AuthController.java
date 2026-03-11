@@ -25,13 +25,13 @@ public class AuthController {
         return authService.authenticate(request);
     }
 
-    @PostMapping("/google")
-    public ResponseEntity<Map<String, Object>> googleAuthentication(
+    @PostMapping("/social")
+    public ResponseEntity<Map<String, Object>> socialAuthentication(
             @RequestParam String code,
             @RequestParam String redirectUri
     ){
-        log.info("Received Google authentication request with code={} and redirectUri={}", code, redirectUri);
-        return authService.authenticateByGoogle(code, redirectUri);
+        log.info("Received Social authentication request with code={} and redirectUri={}", code, redirectUri);
+        return authService.authenticateBySocial(code, redirectUri);
     }
 
     @PostMapping("/refresh")

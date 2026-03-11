@@ -16,6 +16,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
 
 import java.util.Base64;
@@ -128,9 +129,9 @@ public class AuthService {
         }
     }
 
-    public ResponseEntity<Map<String, Object>> authenticateByGoogle(String code, String redirectUri) {
+    public ResponseEntity<Map<String, Object>> authenticateBySocial(String code, String redirectUri) {
         try {
-            log.info("Authenticating with Google, code: {}, redirectUri: {}", code, redirectUri);
+            log.info("Authenticating with Social, code: {}, redirectUri: {}", code, redirectUri);
             String url = authServerUrl + "/realms/" + realm + "/protocol/openid-connect/token";
             MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
             formData.add("grant_type", "authorization_code");
@@ -148,10 +149,10 @@ public class AuthService {
                     .bodyToMono(Map.class);
 
             Map<String, Object> responseMap = responseMono.block();
-            log.info("Received token from Google authentication");
+            log.info("Received token from Social authentication");
             if (responseMap == null || !responseMap.containsKey("access_token")) {
-                log.error("Invalid response from Google authentication: {}", responseMap);
-                return ResponseEntity.status(401).body(Map.of("error", "Google authentication failed"));
+                log.error("Invalid response from Social authentication: {}", responseMap);
+                return ResponseEntity.status(401).body(Map.of("error", "Social authentication failed"));
             }
 
             String accessToken = (String) responseMap.get("access_token");
@@ -173,9 +174,13 @@ public class AuthService {
             }
 
             return ResponseEntity.ok(finalResponse);
+        } catch (WebClientResponseException e) {
+            log.error("Keycloak rejected the request. Status: {}, Error Body: {}",
+                    e.getStatusCode(), e.getResponseBodyAsString());
+            return ResponseEntity.status(401).body(Map.of("error", "Social authentication failed"));
         } catch (Exception e) {
-            log.error("Error during Google authentication: {}", e.getMessage());
-            return ResponseEntity.status(401).body(Map.of("error", "Google authentication failed"));
+            log.error("Error during Social authentication: {}", e.getMessage());
+            return ResponseEntity.status(401).body(Map.of("error", "Social authentication failed"));
         }
     }
 }
