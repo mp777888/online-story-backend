@@ -2,6 +2,7 @@ package com.onlinestories.user_service.Service;
 
 import com.onlinestories.user_service.Client.MediaClient;
 import com.onlinestories.user_service.Client.TransactionClient;
+import com.onlinestories.user_service.DTO.Request.SocialCreateRequest;
 import com.onlinestories.user_service.DTO.Request.UserCreateRequest;
 import com.onlinestories.user_service.DTO.Request.UserUpdateRequest;
 import com.onlinestories.user_service.DTO.Response.UserResponse;
@@ -113,6 +114,42 @@ public class UserService {
 
             // rethrow so @Transactional will roll back DB changes
             throw new RuntimeException("Failed to create user", e);
+        }
+    }
+
+    @Transactional
+    public ResponseEntity<UserResponse> createUserViaSocial(
+            String userId, String email, SocialCreateRequest request){
+        log.info("Creating user for social login with userId: {}", userId);
+
+        if(userRepository.existsById(userId)){
+            log.warn("User with userId {} already exists", userId);
+            return ResponseEntity.status(HttpStatus.CONFLICT).build();
+        }
+
+        try{
+            WalletResponse walletResponse = transactionClient.createWallet(userId);
+            log.info("Wallet created for userId {}: walletId {}", userId, walletResponse.getWalletId());
+
+            User user = new User();
+            user.setUserId(userId);
+            user.setNickname(request.getNickname());
+            user.setDob(request.getDob());
+            user.setCreatedAt(java.time.LocalDateTime.now());
+            user.setWalletId(walletResponse.getWalletId());
+
+            userRepository.save(user);
+            UserResponse userResponse = new UserResponse();
+            userResponse.setUserId(userId);
+            userResponse.setNickname(request.getNickname());
+            userResponse.setEmail(email);
+            userResponse.setDob(request.getDob());
+            userResponse.setCreatedAt(user.getCreatedAt());
+            return ResponseEntity.status(HttpStatus.CREATED).body(userResponse);
+        }
+        catch (Exception e){
+            log.error("Error creating user for social login: {}", e.getMessage());
+            throw new RuntimeException("Failed to create user for social login", e);
         }
     }
 

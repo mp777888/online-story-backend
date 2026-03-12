@@ -1,5 +1,6 @@
 package com.onlinestories.user_service.Controller;
 
+import com.onlinestories.user_service.DTO.Request.SocialCreateRequest;
 import com.onlinestories.user_service.DTO.Request.UserCreateRequest;
 import com.onlinestories.user_service.DTO.Request.UserUpdateRequest;
 import com.onlinestories.user_service.DTO.Response.UserResponse;
@@ -30,6 +31,17 @@ public class UserController {
     public ResponseEntity<UserResponse> registerUser(@RequestBody UserCreateRequest request) {
         log.info("Received registration request for username={}", request.getUsername());
         return userService.createUser(request);
+    }
+
+    @PostMapping("/social")
+    public ResponseEntity<UserResponse> registerUserViaSocial(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestBody SocialCreateRequest request) {
+        String userId = jwt.getSubject();
+        String email = jwt.getClaimAsString("email");
+
+        log.info("Received social registration request for userId={} with email={}", userId, email);
+        return userService.createUserViaSocial(userId,email,request);
     }
 
     @GetMapping
