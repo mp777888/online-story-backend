@@ -3,11 +3,12 @@ package com.onlinestories.story_service.Service;
 import com.onlinestories.story_service.Client.MediaClient;
 import com.onlinestories.story_service.Client.UserClient;
 import com.onlinestories.story_service.DTO.Request.CreateStoryRequest;
+import com.onlinestories.story_service.DTO.Request.UpdateStoryRequest;
+import com.onlinestories.story_service.DTO.Response.ChapterResponse;
 import com.onlinestories.story_service.DTO.Response.StoryResponse;
 import com.onlinestories.story_service.DTO.Response.UserResponse;
-import com.onlinestories.story_service.Entity.Genre;
 import com.onlinestories.story_service.Entity.Story;
-import com.onlinestories.story_service.Enum.Status;
+import com.onlinestories.story_service.Enum.StoryStatus;
 import com.onlinestories.story_service.Repository.ChapterRepository;
 import com.onlinestories.story_service.Repository.GenreRepository;
 import com.onlinestories.story_service.Repository.StoryRepository;
@@ -24,7 +25,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -56,7 +57,7 @@ public class StoryService {
                     .description(request.getDescription())
                     .img(img == null || img.isEmpty()
                             ? null : mediaClient.uploadFile(img,"cover-img"))
-                    .status(Status.ONGOING)
+                    .status(StoryStatus.ONGOING)
                     .numberOfChapters(0)
                     .isPublished(false)
                     .genres(request.getGenreIds().stream()
@@ -122,8 +123,32 @@ public class StoryService {
     }
 
     // Get story details
-    public ResponseEntity<?> getStoryDetails(String storyId) {
-        return null;
+    public ResponseEntity<StoryResponse> getStoryDetails(String storyId) {
+        try{
+            log.info("Fetching details for story: {}", storyId);
+            Story story = storyRepository.findById(storyId)
+                    .orElseThrow(() -> new RuntimeException("Story not found: " + storyId));
+
+            StoryResponse response = StoryResponse.builder()
+                    .storyId(story.getStoryId())
+                    .authorId(story.getAuthorId())
+                    .title(story.getTitle())
+                    .description(story.getDescription())
+                    .img(story.getImg())
+                    .isPublished(story.getIsPublished())
+                    .status(story.getStatus().name())
+                    .numberOfChapters(story.getNumberOfChapters())
+                    .genres(story.getGenres().stream()
+                            .map(Story.GenreSummary::getName)
+                            .collect(Collectors.toSet()))
+                    .build();
+
+            log.info("Fetched details for story {}", storyId);
+            return ResponseEntity.ok().body(response);
+        }catch (Exception ex){
+            logger.error("Error fetching story details for story {}: {}", storyId, ex.getMessage(), ex);
+            throw ex;
+        }
     }
 
 
@@ -141,7 +166,6 @@ public class StoryService {
                             .img(story.getImg())
                             .status(story.getStatus().name())
                             .numberOfChapters(story.getNumberOfChapters())
-                            .isPublished(story.getIsPublished())
                             .genres(story.getGenres()
                                     .stream()
                                     .map(Story.GenreSummary::getName)
@@ -154,6 +178,87 @@ public class StoryService {
         }
         catch(Exception ex){
             logger.error("Error fetching my stories for user {}: {}", userId, ex.getMessage(), ex);
+            throw ex;
+        }
+    }
+
+    public ResponseEntity<StoryResponse> updateStory(UpdateStoryRequest request, MultipartFile img) {
+        try {
+            log.info("Updating story: {}", request.getStoryId());
+            Story story = storyRepository.findById(request.getStoryId())
+                    .orElseThrow(() -> new RuntimeException("Story not found: " + request.getStoryId()));
+
+            if (request.getTitle() != null) {
+                story.setTitle(request.getTitle());
+            }
+            if (request.getDescription() != null) {
+                story.setDescription(request.getDescription());
+            }
+            if (request.getStatus() != null) {
+                story.setStatus(StoryStatus.valueOf(request.getStatus()));
+            }
+            if (request.getIsPublished() != null) {
+                story.setIsPublished(request.getIsPublished());
+            }
+            if (request.getGenreIds() != null) {
+                Set<Story.GenreSummary> genres = story.getGenres();
+
+                Set<Story.GenreSummary> newGenres = request.getGenreIds().stream()
+                        .map(genreId -> genreRepository.findById(genreId)
+                                .orElseThrow(() -> new RuntimeException("Genre not found: " + genreId)))
+                        .map(genre -> new Story.GenreSummary(genre.getGenreId(), genre.getName()))
+                        .collect(Collectors.toSet());
+
+                genres.addAll(newGenres);
+            }
+            if (img != null && !img.isEmpty()) {
+                String imgUrl = mediaClient.uploadFile(img, "cover-img");
+                story.setImg(imgUrl);
+            }
+
+            storyRepository.save(story);
+            log.info("Story {} updated successfully", request.getStoryId());
+
+            StoryResponse response = StoryResponse.builder()
+                    .storyId(story.getStoryId())
+                    .authorId(story.getAuthorId())
+                    .title(story.getTitle())
+                    .description(story.getDescription())
+                    .img(story.getImg())
+                    .isPublished(story.getIsPublished())
+                    .status(story.getStatus().name())
+                    .numberOfChapters(story.getNumberOfChapters())
+                    .genres(story.getGenres().stream()
+                            .map(Story.GenreSummary::getName)
+                            .collect(Collectors.toSet()))
+                    .build();
+
+            return ResponseEntity.ok().body(response);
+        }
+        catch (Exception ex) {
+            logger.error("Error updating story {}: {}", request.getStoryId(), ex.getMessage(), ex);
+            throw ex;
+        }
+    }
+
+    // Get chapters by story ID with pagination
+    public ResponseEntity<Page<ChapterResponse>> getChaptersByStoryId(
+            String storyId, int page, int size) {
+        try{
+            log.info("Fetching chapters for story: {}, page: {}, size: {}", storyId, page, size);
+            Pageable pageable = PageRequest.of(page, size);
+            Page<ChapterResponse> chapterPage = chapterRepository.findByStoryId(storyId, pageable)
+                    .map(chapter -> ChapterResponse.builder()
+                            .chapterId(chapter.getChapterId())
+                            .title(chapter.getTitle())
+                            .createdAt(chapter.getCreatedAt())
+                            .build());
+
+            log.info("Fetched {} chapters for story {}", chapterPage.getTotalElements(), storyId);
+            return ResponseEntity.ok().body(chapterPage);
+        }
+        catch (Exception ex){
+            logger.error("Error fetching chapters for story {}: {}", storyId, ex.getMessage(), ex);
             throw ex;
         }
     }

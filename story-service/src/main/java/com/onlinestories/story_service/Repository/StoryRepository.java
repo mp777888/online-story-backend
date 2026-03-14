@@ -1,6 +1,5 @@
 package com.onlinestories.story_service.Repository;
 
-import com.onlinestories.story_service.Entity.Genre;
 import com.onlinestories.story_service.Entity.Story;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -12,4 +11,7 @@ public interface StoryRepository extends MongoRepository<Story, String> {
     Page<Story> findByGenresGenreId(String genreId, Pageable pageable);
     Page<Story> findByAuthorId(String authorId, Pageable pageable);
     Page<Story> findByAuthorIdAndIsPublishedTrue(String authorId, Pageable pageable);
+    Page<Story> findByAuthorIdAndStatus(String authorId, String status, Pageable pageable);
+    Page<Story> findByStatus(String status, Pageable pageable);
+    Page<Story> findByTitleContainingIgnoreCase(String title, Pageable pageable);
 }

@@ -1,6 +1,7 @@
 package com.onlinestories.story_service.Enum;
 
-public enum Status {
+public enum ChapterStatus {
+    DRAFT,
     ONGOING,
     COMPLETED,
 }
