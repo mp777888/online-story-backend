@@ -1,6 +1,8 @@
 package com.onlinestories.story_service.Controller;
 
 import com.onlinestories.story_service.DTO.Request.CreateStoryRequest;
+import com.onlinestories.story_service.DTO.Request.UpdateStoryRequest;
+import com.onlinestories.story_service.DTO.Response.ChapterResponse;
 import com.onlinestories.story_service.DTO.Response.StoryResponse;
 import com.onlinestories.story_service.Service.StoryService;
 import lombok.AccessLevel;
@@ -32,6 +34,12 @@ public class StoryController {
         return storyService.createNewStory(request, authorId, img);
     }
 
+    @GetMapping("/details")
+    public ResponseEntity<StoryResponse> getStoryDetails(@RequestParam String storyId) {
+        log.info("Received request to fetch story details for story ID: {}", storyId);
+        return storyService.getStoryDetails(storyId);
+    }
+
     @GetMapping("/my-stories")
     public ResponseEntity<Page<StoryResponse>> getMyStories(
             @AuthenticationPrincipal Jwt jwt,
@@ -49,5 +57,22 @@ public class StoryController {
             @RequestParam(defaultValue = "10") int size) {
         log.info("Received request to fetch stories for user: {}", userId);
         return storyService.getUserStories(userId, page, size);
+    }
+
+    @GetMapping("/list-chapters")
+    public ResponseEntity<Page<ChapterResponse>> getStoryWithChapters(
+            @RequestParam String storyId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        log.info("Received request to fetch story with chapters for story ID: {}", storyId);
+        return storyService.getChaptersByStoryId(storyId, page, size);
+    }
+
+    @PutMapping("/update")
+    public ResponseEntity<StoryResponse> updateStory(
+            @RequestPart("request") UpdateStoryRequest request,
+            @RequestPart(value = "file", required = false) MultipartFile img) {
+        log.info("Received request to update story: {}", request.getTitle());
+        return storyService.updateStory(request, img);
     }
 }

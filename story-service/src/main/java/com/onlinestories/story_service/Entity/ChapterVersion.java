@@ -6,6 +6,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Document
 @Setter
@@ -17,8 +18,9 @@ import java.time.LocalDate;
 public class ChapterVersion {
     @Id
     String chapterVersionId;
-    Boolean isLatest;
-    LocalDate createdAt;
-
-
+    String chapterId;
+    String versionName;
+    String content;
+    Boolean isPublished;
+    LocalDateTime createdAt;
 }

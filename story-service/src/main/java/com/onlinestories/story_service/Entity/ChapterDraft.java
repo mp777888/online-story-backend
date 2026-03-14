@@ -1,9 +1,9 @@
 package com.onlinestories.story_service.Entity;
 
-import com.onlinestories.story_service.Enum.ChapterStatus;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
@@ -15,16 +15,11 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class Chapter {
+public class ChapterDraft {
     @Id
+    String chapterDraftId;
+    @Indexed(unique = true)
     String chapterId;
-    String storyId;
-    String title;
-    String summary;
-    String img;
-    Integer chapterNumber;
-    LocalDateTime createdAt;
-    ChapterStatus status;
-    String audioUrl;
-
+    String content;
+    LocalDateTime lastSavedAt;
 }
