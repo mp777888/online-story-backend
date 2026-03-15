@@ -27,6 +27,10 @@ spring:
             uri: http://localhost:8083
             predicates:
               - Path=/api/stories/**
+          - id: media-service
+            uri: http://localhost:8084
+            predicates:
+              - Path=/api/media/**
           - id: trans-service
             uri: http://localhost:8085
             predicates:

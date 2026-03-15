@@ -33,6 +33,14 @@ public class Routes {
     }
 
     @Bean
+    public RouterFunction<ServerResponse> commentRoutes(){
+        return GatewayRouterFunctions.route("media-service")
+                .route(RequestPredicates.path("/api/media/**"),
+                        HandlerFunctions.http("http://localhost:8084"))
+                .build();
+    }
+
+    @Bean
     public RouterFunction<ServerResponse> transRoutes(){
         return GatewayRouterFunctions.route("transaction-service")
                 .route(RequestPredicates.path("/api/transactions/**"),

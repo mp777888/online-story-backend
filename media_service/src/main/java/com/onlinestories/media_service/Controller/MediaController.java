@@ -30,4 +30,13 @@ public class MediaController {
         String url = cloudinaryService.uploadFile(file, folder);
         return ResponseEntity.ok(url);
     }
+
+    @DeleteMapping("/delete")
+    public ResponseEntity<String> deleteFile(
+            @RequestParam String url,
+            @RequestParam String resourceType) {
+        log.info("Received file delete request for URL: {}", url);
+        return ResponseEntity.ok(cloudinaryService.deleteFile(url, resourceType));
+    }
+
 }
