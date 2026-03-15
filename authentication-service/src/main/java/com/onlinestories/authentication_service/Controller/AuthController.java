@@ -46,6 +46,12 @@ public class AuthController {
         return authService.logout(refreshToken);
     }
 
+    @PostMapping("/forgot-password")
+    public ResponseEntity<Map<String,Object>> forgotPassword(@RequestParam String email){
+        log.info("Received forgot password request for email={}", email);
+        return authService.forgotPassword(email);
+    }
+
     @GetMapping("/ping")
     public ResponseEntity<String> healthCheck(){
         log.info("Authentication service health check endpoint called");

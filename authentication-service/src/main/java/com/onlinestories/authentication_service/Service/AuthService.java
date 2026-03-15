@@ -8,6 +8,10 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.keycloak.admin.client.Keycloak;
+import org.keycloak.admin.client.KeycloakBuilder;
+import org.keycloak.admin.client.resource.UsersResource;
+import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +25,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -181,6 +186,37 @@ public class AuthService {
         } catch (Exception e) {
             log.error("Error during Social authentication: {}", e.getMessage());
             return ResponseEntity.status(401).body(Map.of("error", "Social authentication failed"));
+        }
+    }
+
+    public ResponseEntity<Map<String, Object>> forgotPassword(String email) {
+        try {
+            log.info("Initiating forgot password flow for email: {}", email);
+            Keycloak keycloakAdmin = KeycloakBuilder.builder()
+                    .serverUrl(authServerUrl)
+                    .realm(realm)
+                    .grantType("client_credentials")
+                    .clientId(clientId)
+                    .clientSecret(clientSecret)
+                    .build();
+
+            UsersResource usersResource = keycloakAdmin.realm(realm).users();
+            List<UserRepresentation> users = usersResource.searchByEmail(email, true);
+
+            if (users.isEmpty()) {
+                return ResponseEntity.ok(Map.of("message", "If an account with that email exists, a password reset link has been sent"));
+            }
+
+
+            String keycloakUserId = users.getFirst().getId();
+
+            usersResource.get(keycloakUserId).executeActionsEmail(List.of("UPDATE_PASSWORD"));
+
+            log.info("Forgot password email sent successfully to: {}", email);
+            return ResponseEntity.ok(Map.of("message", "Password reset initiated"));
+        } catch (Exception e) {
+            log.error("Error during forgot password flow for email {}: {}", email, e.getMessage());
+            return ResponseEntity.status(500).body(Map.of("error", "Failed to initiate password reset"));
         }
     }
 }
