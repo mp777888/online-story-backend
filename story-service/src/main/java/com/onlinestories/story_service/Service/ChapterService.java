@@ -122,10 +122,20 @@ public class ChapterService {
             }
 
             if(request.getStatus() != null && !request.getStatus().isEmpty()) {
-                chapter.setStatus(ChapterStatus.valueOf(request.getStatus()));
+                String status = request.getStatus().toUpperCase();
+                if(status.equals("TAKEN_DOWN")){
+                    Story story = storyRepository.findById(chapter.getStoryId())
+                            .orElseThrow(() -> new RuntimeException("Story not found with ID: " + chapter.getStoryId()));
+
+                    story.setNumberOfChapters(story.getNumberOfChapters() - 1);
+                    storyRepository.save(story);
+                }
+                chapter.setStatus(ChapterStatus.valueOf(status));
             }
 
             if(img != null && !img.isEmpty()) {
+                String message = mediaClient.deleteFile(chapter.getImg(), "image");
+                log.info("Old chapter image deleted successfully: {}", message);
                 String imgUrl = mediaClient.uploadFile(img, "chapter-img");
                 chapter.setImg(imgUrl);
             }
@@ -372,6 +382,11 @@ public class ChapterService {
             }
 
             chapter.setStatus(ChapterStatus.PUBLISHED);
+
+            if(chapter.getAudioUrl() != null && !chapter.getAudioUrl().isEmpty()){
+                String message = mediaClient.deleteFile(chapter.getAudioUrl(), "audio");
+                log.info("Old chapter audio deleted successfully: {}", message);
+            }
             chapter.setAudioUrl(getAudioUrl(version.getContent(), "vn-VN"));
             chapterRepository.save(chapter);
 

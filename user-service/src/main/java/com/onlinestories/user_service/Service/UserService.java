@@ -222,6 +222,8 @@ public class UserService {
             }
 
             if(file != null && !file.isEmpty()){
+                String message = mediaClient.deleteFile(user.getImg(), "image");
+                log.info("Deleted old avatar for userId {}: {}", userId, message);
                 String imgUrl = mediaClient.uploadFile(file, "avatars");
                 user.setImg(imgUrl);
             }

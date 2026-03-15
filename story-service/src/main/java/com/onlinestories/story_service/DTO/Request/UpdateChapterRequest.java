@@ -11,6 +11,7 @@ import java.util.Set;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class UpdateChapterRequest {
+    String storyId;
     String chapterId;
     String title;
     String status;

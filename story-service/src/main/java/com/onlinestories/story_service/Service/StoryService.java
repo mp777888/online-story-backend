@@ -213,6 +213,8 @@ public class StoryService {
                 genres.addAll(newGenres);
             }
             if (img != null && !img.isEmpty()) {
+                String message = mediaClient.deleteFile(story.getImg(), "image");
+                log.info("Deleted old image for story {}: {}", story.getStoryId(), message);
                 String imgUrl = mediaClient.uploadFile(img, "cover-img");
                 story.setImg(imgUrl);
             }

@@ -4,4 +4,5 @@ public enum ChapterStatus {
     DRAFT,
     PUBLISHED,
     SCHEDULED,
+    TAKEN_DOWN
 }

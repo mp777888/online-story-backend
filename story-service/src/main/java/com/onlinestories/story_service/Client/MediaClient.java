@@ -2,6 +2,7 @@ package com.onlinestories.story_service.Client;
 
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -14,4 +15,9 @@ public interface MediaClient {
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     String uploadFile(@RequestPart("file") MultipartFile file,
                       @RequestParam("folder") String folder);
+
+    @DeleteMapping("/api/media/delete")
+    String deleteFile(@RequestParam String url,
+                      @RequestParam String resourceType);
+
 }
