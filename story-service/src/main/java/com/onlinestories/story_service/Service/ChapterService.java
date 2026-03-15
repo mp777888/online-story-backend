@@ -14,6 +14,7 @@ import com.onlinestories.story_service.Enum.ChapterStatus;
 import com.onlinestories.story_service.Repository.ChapterDraftRepository;
 import com.onlinestories.story_service.Repository.ChapterRepository;
 import com.onlinestories.story_service.Repository.ChapterVersionRepository;
+import com.onlinestories.story_service.Repository.StoryRepository;
 import com.onlinestories.story_service.Utils.ByteArrayMultipartFile;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +40,7 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class ChapterService {
+    StoryRepository storyRepository;
     ChapterRepository chapterRepository;
     ChapterVersionRepository chapterVersionRepository;
     ChapterDraftRepository chapterDraftRepository;
@@ -50,7 +52,10 @@ public class ChapterService {
     public ResponseEntity<ChapterResponse> creteNewChapter(CreateChapterRequest request, MultipartFile img) {
         try{
             log.info("Creating new chapter: {}", request.getTitle());
-            // Implementation for creating a new chapter goes here
+            if(!storyRepository.existsById(request.getStoryId())){
+                log.warn("Story not found with ID: {}", request.getStoryId());
+                throw new RuntimeException("Story not found with ID: " + request.getStoryId());
+            }
 
             Chapter chapter = Chapter.builder()
                     .storyId(request.getStoryId())
@@ -140,6 +145,28 @@ public class ChapterService {
         }
     }
 
+    public ResponseEntity<String> deleteChapter(String chapterId) {
+        try{
+            log.info("Deleting chapter with ID: {}", chapterId);
+            if(!chapterRepository.existsByChapterId(chapterId)){
+                log.warn("Chapter not found with ID: {}", chapterId);
+                throw new RuntimeException("Chapter not found with ID: " + chapterId);
+            }
+            chapterRepository.deleteById(chapterId);
+            log.info("Chapter with ID: {} deleted successfully", chapterId);
+
+            chapterDraftRepository.deleteByChapterId(chapterId);
+            log.info("Chapter draft for chapterId: {} deleted successfully", chapterId);
+
+            chapterVersionRepository.deleteByChapterId(chapterId);
+            log.info("Chapter versions for chapterId: {} deleted successfully", chapterId);
+            return ResponseEntity.ok().body("Chapter deleted successfully");
+        }
+        catch (Exception e){
+            log.error("Error deleting chapter: {}", e.getMessage());
+            throw e;
+        }
+    }
 
     // Create chapter drafts
     public ResponseEntity<DraftResponse> createDraft(String chapterId){

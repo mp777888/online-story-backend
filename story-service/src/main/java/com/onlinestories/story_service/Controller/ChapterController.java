@@ -45,6 +45,12 @@ public class ChapterController {
         return chapterService.updateChapter(request, img);
     }
 
+    @DeleteMapping
+    public ResponseEntity<String> deleteChapter(@RequestParam String chapterId){
+        log.info("Received request to delete chapter ID: {}", chapterId);
+        return chapterService.deleteChapter(chapterId);
+    }
+
     @PostMapping("/draft")
     public ResponseEntity<DraftResponse> createChapterDraft(@RequestParam String chapterId){
         log.info("Received request to create draft for chapter ID: {}", chapterId);
