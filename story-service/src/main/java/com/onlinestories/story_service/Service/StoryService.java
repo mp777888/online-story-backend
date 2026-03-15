@@ -8,6 +8,7 @@ import com.onlinestories.story_service.DTO.Response.ChapterResponse;
 import com.onlinestories.story_service.DTO.Response.StoryResponse;
 import com.onlinestories.story_service.DTO.Response.UserResponse;
 import com.onlinestories.story_service.Entity.Story;
+import com.onlinestories.story_service.Enum.ChapterStatus;
 import com.onlinestories.story_service.Enum.StoryStatus;
 import com.onlinestories.story_service.Repository.ChapterRepository;
 import com.onlinestories.story_service.Repository.GenreRepository;
@@ -246,6 +247,36 @@ public class StoryService {
             String storyId, int page, int size) {
         try{
             log.info("Fetching chapters for story: {}, page: {}, size: {}", storyId, page, size);
+            Pageable pageable = PageRequest.of(page, size);
+            Page<ChapterResponse> chapterPage = chapterRepository.findByStoryIdAndStatus(storyId, ChapterStatus.PUBLISHED.name(), pageable)
+                    .map(chapter -> ChapterResponse.builder()
+                            .chapterId(chapter.getChapterId())
+                            .title(chapter.getTitle())
+                            .createdAt(chapter.getCreatedAt())
+                            .build());
+
+            log.info("Fetched {} chapters for story {}", chapterPage.getTotalElements(), storyId);
+            return ResponseEntity.ok().body(chapterPage);
+        }
+        catch (Exception ex){
+            logger.error("Error fetching chapters for story {}: {}", storyId, ex.getMessage(), ex);
+            throw ex;
+        }
+    }
+
+    // Get chapters for authors to manage
+    public ResponseEntity<Page<ChapterResponse>> getChaptersForManagement(
+            String authorId, String storyId, int page, int size) {
+        try{
+            log.info("Fetching chapters for story: {}, page: {}, size: {}", storyId, page, size);
+
+            Story story = storyRepository.findById(storyId)
+                    .orElseThrow(() -> new RuntimeException("Story not found: " + storyId));
+            if(!story.getAuthorId().equals(authorId)){
+                log.error("Unauthorized access: User {} is not the author of story {}", authorId, storyId);
+                return ResponseEntity.status(403).build();
+            }
+
             Pageable pageable = PageRequest.of(page, size);
             Page<ChapterResponse> chapterPage = chapterRepository.findByStoryId(storyId, pageable)
                     .map(chapter -> ChapterResponse.builder()

@@ -1,6 +1,7 @@
 package com.onlinestories.story_service.Controller;
 
 import com.onlinestories.story_service.DTO.Request.CreateChapterRequest;
+import com.onlinestories.story_service.DTO.Request.PublishRequest;
 import com.onlinestories.story_service.DTO.Request.UpdateChapterRequest;
 import com.onlinestories.story_service.DTO.Response.ChapterResponse;
 import com.onlinestories.story_service.DTO.Response.DraftResponse;
@@ -29,6 +30,13 @@ public class ChapterController {
             @RequestPart(value = "file", required = false) MultipartFile img){
         log.info("Received request to create new chapter: {}", request.getTitle());
         return chapterService.creteNewChapter(request,img);
+    }
+
+    @PostMapping("/publish")
+    public ResponseEntity<ChapterResponse> publishChapter(
+            @RequestParam PublishRequest request){
+        log.info("Received request to publish chapter ID: {}", request.getChapterId());
+        return chapterService.publishChapter(request);
     }
 
     @GetMapping("/details")
@@ -75,6 +83,24 @@ public class ChapterController {
             @RequestParam String versionName){
         log.info("Received request to create version for chapter ID: {}", chapterId);
         return chapterService.createChapterVersionSnapshot(chapterId, versionName);
+    }
+
+    @GetMapping("/read")
+    public ResponseEntity<VersionResponse> readChapter(@RequestParam String chapterId){
+        log.info("Received request to read chapter ID: {}", chapterId);
+        return chapterService.getChapterVersionDetails(chapterId);
+    }
+
+    @GetMapping("/version")
+    public ResponseEntity<VersionResponse> getChapterVersion(@RequestParam String versionId){
+        log.info("Received request to fetch version details for version ID: {}", versionId);
+        return chapterService.getChapterVersion(versionId);
+    }
+
+    @DeleteMapping("/version")
+    public ResponseEntity<String> deleteChapterVersion(@RequestParam String versionId){
+        log.info("Received request to delete version ID: {}", versionId);
+        return chapterService.deleteChapterVersion(versionId);
     }
 
     @GetMapping("/list-versions")

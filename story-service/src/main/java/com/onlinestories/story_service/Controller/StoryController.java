@@ -68,6 +68,17 @@ public class StoryController {
         return storyService.getChaptersByStoryId(storyId, page, size);
     }
 
+    @GetMapping("/my-story/list-chapters")
+    public ResponseEntity<Page<ChapterResponse>> getMyStoryWithChapters(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam String storyId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        String authorId = jwt.getSubject();
+        log.info("Received request to fetch my story with chapters for story ID: {}", storyId);
+        return storyService.getChaptersForManagement(authorId, storyId, page, size);
+    }
+
     @PutMapping("/update")
     public ResponseEntity<StoryResponse> updateStory(
             @RequestPart("request") UpdateStoryRequest request,

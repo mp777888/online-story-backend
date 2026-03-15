@@ -15,5 +15,6 @@ public class VersionResponse {
     String versionId;
     String chapterId;
     String versionName;
+    String content;
     LocalDateTime createdAt;
 }

@@ -3,6 +3,7 @@ package com.onlinestories.story_service.Service;
 import com.onlinestories.story_service.Client.MediaClient;
 import com.onlinestories.story_service.Client.UserClient;
 import com.onlinestories.story_service.DTO.Request.CreateChapterRequest;
+import com.onlinestories.story_service.DTO.Request.PublishRequest;
 import com.onlinestories.story_service.DTO.Request.UpdateChapterRequest;
 import com.onlinestories.story_service.DTO.Response.ChapterResponse;
 import com.onlinestories.story_service.DTO.Response.DraftResponse;
@@ -10,6 +11,7 @@ import com.onlinestories.story_service.DTO.Response.VersionResponse;
 import com.onlinestories.story_service.Entity.Chapter;
 import com.onlinestories.story_service.Entity.ChapterDraft;
 import com.onlinestories.story_service.Entity.ChapterVersion;
+import com.onlinestories.story_service.Entity.Story;
 import com.onlinestories.story_service.Enum.ChapterStatus;
 import com.onlinestories.story_service.Repository.ChapterDraftRepository;
 import com.onlinestories.story_service.Repository.ChapterRepository;
@@ -197,29 +199,6 @@ public class ChapterService {
         }
     }
 
-    public String getAudioUrl(String content, String language){
-        try {
-
-            String text = Jsoup.parse(content).text();
-
-
-            byte[] audioBytes = azureTtsService.synthesizeText(text, language);
-            MultipartFile fileToSend = new ByteArrayMultipartFile(
-                    audioBytes,
-                    "audioData",
-                    "chapter_1.mp3",
-                    "audio/mpeg"
-            );
-            String url = mediaClient.uploadFile(fileToSend, "truyen-audio");
-            log.info("Text to speech transfer completed successfully.");
-            return url;
-        }
-        catch (Exception e){
-            log.error("Error transferring text to speech: {}", e.getMessage());
-            throw e;
-        }
-    }
-
     // Save chapter drafts
     public ResponseEntity<String> autoSaveDraft(String chapterId, String content) {
         try{
@@ -242,8 +221,13 @@ public class ChapterService {
     public ResponseEntity<DraftResponse> getChapterDraft(String chapterId) {
         try{
             log.info("Fetching chapter draft for chapterId: {}", chapterId);
-            ChapterDraft draft = chapterDraftRepository.findByChapterId(chapterId)
-                    .orElseThrow(() -> new RuntimeException("Chapter draft not found for chapterId: " + chapterId));
+            ChapterDraft draft = chapterDraftRepository.findByChapterId(chapterId);
+            if(draft == null){
+                log.warn("Chapter draft not found for chapterId: {}", chapterId);
+                return ResponseEntity.status(404).build();
+            }
+
+
             log.info("Chapter draft fetched successfully for chapterId: {}", chapterId);
             return ResponseEntity.ok().body(DraftResponse.builder()
                     .draftId(draft.getChapterDraftId())
@@ -261,8 +245,12 @@ public class ChapterService {
     public ResponseEntity<VersionResponse> createChapterVersionSnapshot(String chapterId, String versionName) {
         try{
             log.info("Creating chapter version snapshot for chapterId: {}, versionName: {}", chapterId, versionName);
-            ChapterDraft draft = chapterDraftRepository.findByChapterId(chapterId)
-                    .orElseThrow(() -> new RuntimeException("Chapter draft not found for chapterId: " + chapterId));
+            ChapterDraft draft = chapterDraftRepository.findByChapterId(chapterId);
+
+            if (draft == null) {
+                log.warn("Chapter draft not found for chapterId: {}", chapterId);
+                return ResponseEntity.status(404).build();
+            }
 
             ChapterVersion version = ChapterVersion.builder()
                     .chapterId(chapterId)
@@ -280,6 +268,50 @@ public class ChapterService {
                     .build());
         } catch (Exception e){
             log.error("Error creating chapter version snapshot: {}", e.getMessage());
+            throw e;
+        }
+    }
+
+    public ResponseEntity<VersionResponse> getChapterVersionDetails(String chapterId) {
+        try{
+            log.info("Fetching chapter version details for chapterId: {}", chapterId);
+            ChapterVersion version = chapterVersionRepository.findByChapterIdAndStatus(chapterId, "PUBLISHED");
+
+            if(version == null){
+                log.warn("Published chapter version not found for chapterId: {}", chapterId);
+                throw new RuntimeException("Published chapter version not found for chapterId: " + chapterId);
+            }
+
+            log.info("Chapter version details fetched successfully for chapterId: {}", chapterId);
+            return ResponseEntity.ok().body(VersionResponse.builder()
+                    .versionId(version.getChapterVersionId())
+                    .chapterId(version.getChapterId())
+                    .versionName(version.getVersionName())
+                    .content(version.getContent())
+                    .createdAt(version.getCreatedAt())
+                    .build());
+        } catch (Exception e){
+            log.error("Error fetching chapter version details: {}", e.getMessage());
+            throw e;
+        }
+    }
+
+    public ResponseEntity<VersionResponse> getChapterVersion(String versionId) {
+        try{
+            log.info("Fetching chapter version details for versionId: {}", versionId);
+            ChapterVersion version = chapterVersionRepository.findById(versionId)
+                    .orElseThrow(() -> new RuntimeException("Chapter version not found for versionId: " + versionId));
+
+            log.info("Chapter version details fetched successfully for versionId: {}", versionId);
+            return ResponseEntity.ok().body(VersionResponse.builder()
+                    .versionId(version.getChapterVersionId())
+                    .chapterId(version.getChapterId())
+                    .versionName(version.getVersionName())
+                    .content(version.getContent())
+                    .createdAt(version.getCreatedAt())
+                    .build());
+        } catch (Exception e){
+            log.error("Error fetching chapter version details: {}", e.getMessage());
             throw e;
         }
     }
@@ -305,15 +337,88 @@ public class ChapterService {
         }
     }
 
-    public ResponseEntity<?> deleteChapterVersion(String versionId) {
-        return null;
+    public ResponseEntity<String> deleteChapterVersion(String versionId) {
+        try{
+            log.info("Deleting chapter version with ID: {}", versionId);
+            if(!chapterVersionRepository.existsById(versionId)){
+                log.warn("Chapter version not found with ID: {}", versionId);
+                throw new RuntimeException("Chapter version not found with ID: " + versionId);
+            }
+            chapterVersionRepository.deleteById(versionId);
+            log.info("Chapter version with ID: {} deleted successfully", versionId);
+            return ResponseEntity.ok().body("Chapter version deleted successfully");
+        } catch (Exception e){
+            log.error("Error deleting chapter version: {}", e.getMessage());
+            throw e;
+        }
     }
-
 
     // Publish chapter
-    public ResponseEntity<?> publishChapter(String chapterId) {
-        return null;
+    public ResponseEntity<ChapterResponse> publishChapter(PublishRequest request) {
+        try{
+            log.info("Publishing chapter with ID: {}", request.getChapterId());
+            Story story = storyRepository.findById(request.getStoryId())
+                    .orElseThrow(() -> new RuntimeException("Story not found with ID: " + request.getStoryId()));
+
+            Chapter chapter = chapterRepository.findById(request.getChapterId())
+                    .orElseThrow(() -> new RuntimeException("Chapter not found with ID: " + request.getChapterId()));
+
+            ChapterVersion version = chapterVersionRepository.findById(request.getChapterVersionId())
+                    .orElseThrow(() -> new RuntimeException("Chapter version not found with ID: " + request.getChapterVersionId()));
+
+            if(chapter.getStatus() == ChapterStatus.PUBLISHED){
+                log.warn("Chapter with ID: {} is already published", request.getChapterId());
+                throw new RuntimeException("Chapter is already published");
+            }
+
+            chapter.setStatus(ChapterStatus.PUBLISHED);
+            chapter.setAudioUrl(getAudioUrl(version.getContent(), "vn-VN"));
+            chapterRepository.save(chapter);
+
+            version.setIsPublished(true);
+            chapterVersionRepository.save(version);
+
+            story.setNumberOfChapters(story.getNumberOfChapters() + 1);
+            storyRepository.save(story);
+            log.info("Chapter with ID: {} published successfully", request.getChapterId());
+
+            ChapterResponse response = ChapterResponse.builder()
+                    .chapterId(chapter.getChapterId())
+                    .storyId(chapter.getStoryId())
+                    .title(chapter.getTitle())
+                    .img(chapter.getImg())
+                    .status(chapter.getStatus().name())
+                    .createdAt(chapter.getCreatedAt())
+                    .build();
+            return ResponseEntity.ok().body(response);
+        } catch (Exception e){
+            log.error("Error publishing chapter: {}", e.getMessage());
+            throw e;
+        }
+
     }
 
+    private String getAudioUrl(String content, String language){
+        try {
+
+            String text = Jsoup.parse(content).text();
+
+
+            byte[] audioBytes = azureTtsService.synthesizeText(text, language);
+            MultipartFile fileToSend = new ByteArrayMultipartFile(
+                    audioBytes,
+                    "audioData",
+                    "chapter_1.mp3",
+                    "audio/mpeg"
+            );
+            String url = mediaClient.uploadFile(fileToSend, "truyen-audio");
+            log.info("Text to speech transfer completed successfully.");
+            return url;
+        }
+        catch (Exception e){
+            log.error("Error transferring text to speech: {}", e.getMessage());
+            throw e;
+        }
+    }
 
 }

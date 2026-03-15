@@ -9,7 +9,7 @@ import java.util.Optional;
 
 @Repository
 public interface ChapterDraftRepository extends MongoRepository<ChapterDraft, String> {
-    Optional<ChapterDraft> findByChapterId(String chapterId);
+    ChapterDraft findByChapterId(String chapterId);
     boolean existsByChapterId(String chapterId);
     void deleteByChapterId(String chapterId);
 }
