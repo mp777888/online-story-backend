@@ -97,6 +97,15 @@ public class ChapterController {
         return chapterService.getChapterVersion(versionId);
     }
 
+    @PutMapping("/version")
+    public ResponseEntity<VersionResponse> updateChapterVersion(
+            @RequestParam String versionId,
+            @RequestParam String versionName,
+            @RequestParam String content){
+        log.info("Received request to update version ID: {}", versionId);
+        return chapterService.updateChapterVersion(versionId, versionName, content);
+    }
+
     @DeleteMapping("/version")
     public ResponseEntity<String> deleteChapterVersion(@RequestParam String versionId){
         log.info("Received request to delete version ID: {}", versionId);

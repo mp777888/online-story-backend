@@ -158,6 +158,7 @@ public class ChapterService {
         }
     }
 
+    @Transactional
     public ResponseEntity<String> deleteChapter(String chapterId) {
         try{
             log.info("Deleting chapter with ID: {}", chapterId);
@@ -344,6 +345,34 @@ public class ChapterService {
             return ResponseEntity.ok().body(versionPage);
         } catch (Exception e){
             log.error("Error fetching chapter versions: {}", e.getMessage());
+            throw e;
+        }
+    }
+
+    public ResponseEntity<VersionResponse> updateChapterVersion(
+            String versionId, String versionName, String content) {
+        try {
+            log.info("Updating chapter version with ID: {}", versionId);
+            ChapterVersion version = chapterVersionRepository.findById(versionId)
+                    .orElseThrow(() -> new RuntimeException("Chapter version not found with ID: " + versionId));
+
+            if (versionName != null && !versionName.isEmpty()) {
+                version.setVersionName(versionName);
+            }
+            if (content != null && !content.isEmpty()) {
+                version.setContent(content);
+            }
+            chapterVersionRepository.save(version);
+            log.info("Chapter version with ID: {} updated successfully", versionId);
+            return ResponseEntity.ok().body(VersionResponse.builder()
+                    .versionId(version.getChapterVersionId())
+                    .chapterId(version.getChapterId())
+                    .versionName(version.getVersionName())
+                    .content(version.getContent())
+                    .createdAt(version.getCreatedAt())
+                    .build());
+        } catch (Exception e) {
+            log.error("Error updating chapter version: {}", e.getMessage());
             throw e;
         }
     }
