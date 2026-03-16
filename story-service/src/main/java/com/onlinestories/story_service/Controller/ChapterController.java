@@ -34,7 +34,7 @@ public class ChapterController {
 
     @PostMapping("/publish")
     public ResponseEntity<ChapterResponse> publishChapter(
-            @RequestParam PublishRequest request){
+            @RequestBody PublishRequest request){
         log.info("Received request to publish chapter ID: {}", request.getChapterId());
         return chapterService.publishChapter(request);
     }

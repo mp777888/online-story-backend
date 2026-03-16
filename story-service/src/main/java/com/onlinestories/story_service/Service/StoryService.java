@@ -241,8 +241,13 @@ public class StoryService {
             String storyId, int page, int size) {
         try{
             log.info("Fetching chapters for story: {}, page: {}, size: {}", storyId, page, size);
+            if(!storyRepository.existsById(storyId)){
+                log.error("Story with ID {} not found", storyId);
+                return ResponseEntity.notFound().build();
+            }
+
             Pageable pageable = PageRequest.of(page, size);
-            Page<ChapterResponse> chapterPage = chapterRepository.findByStoryIdAndStatus(storyId, ChapterStatus.PUBLISHED.name(), pageable)
+            Page<ChapterResponse> chapterPage = chapterRepository.findByStoryIdAndStatus(storyId, ChapterStatus.PUBLISHED, pageable)
                     .map(chapter -> ChapterResponse.builder()
                             .chapterId(chapter.getChapterId())
                             .title(chapter.getTitle())

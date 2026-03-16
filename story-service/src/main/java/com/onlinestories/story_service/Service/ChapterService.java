@@ -33,6 +33,7 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
@@ -364,6 +365,7 @@ public class ChapterService {
     }
 
     // Publish chapter
+    @Transactional
     public ResponseEntity<ChapterResponse> publishChapter(PublishRequest request) {
         try{
             log.info("Publishing chapter with ID: {}", request.getChapterId());
