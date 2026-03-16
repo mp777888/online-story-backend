@@ -58,9 +58,8 @@ public class StoryService {
                     .description(request.getDescription())
                     .img(img == null || img.isEmpty()
                             ? null : mediaClient.uploadFile(img,"cover-img"))
-                    .status(StoryStatus.ONGOING)
+                    .status(StoryStatus.DRAFT)
                     .numberOfChapters(0)
-                    .isPublished(false)
                     .genres(request.getGenreIds().stream()
                             .map(genreId -> genreRepository.findById(genreId)
                                     .orElseThrow(() -> new RuntimeException("Genre not found: " + genreId)))
@@ -76,7 +75,6 @@ public class StoryService {
                     .title(story.getTitle())
                     .description(story.getDescription())
                     .img(story.getImg())
-                    .isPublished(story.getIsPublished())
                     .status(story.getStatus().name())
                     .numberOfChapters(story.getNumberOfChapters())
                     .genres(story.getGenres().stream()
@@ -97,7 +95,7 @@ public class StoryService {
         try{
             log.info("Fetching stories for user: {}, page: {}, size: {}", userId, page, size);
             Pageable pageable = PageRequest.of(page, size);
-            Page<StoryResponse> storyPage = storyRepository.findByAuthorIdAndIsPublishedTrue(userId, pageable)
+            Page<StoryResponse> storyPage = storyRepository.findByAuthorIdAndStatusNot(userId, StoryStatus.DRAFT, pageable)
                     .map(story -> StoryResponse.builder()
                             .storyId(story.getStoryId())
                             .authorId(story.getAuthorId())
@@ -106,7 +104,6 @@ public class StoryService {
                             .img(story.getImg())
                             .status(story.getStatus().name())
                             .numberOfChapters(story.getNumberOfChapters())
-                            .isPublished(story.getIsPublished())
                             .genres(story.getGenres()
                                     .stream()
                                     .map(Story.GenreSummary::getName)
@@ -136,7 +133,6 @@ public class StoryService {
                     .title(story.getTitle())
                     .description(story.getDescription())
                     .img(story.getImg())
-                    .isPublished(story.getIsPublished())
                     .status(story.getStatus().name())
                     .numberOfChapters(story.getNumberOfChapters())
                     .genres(story.getGenres().stream()
@@ -198,9 +194,6 @@ public class StoryService {
             if (request.getStatus() != null) {
                 story.setStatus(StoryStatus.valueOf(request.getStatus()));
             }
-            if (request.getIsPublished() != null) {
-                story.setIsPublished(request.getIsPublished());
-            }
             if (request.getGenreIds() != null) {
                 Set<Story.GenreSummary> genres = story.getGenres();
 
@@ -228,7 +221,6 @@ public class StoryService {
                     .title(story.getTitle())
                     .description(story.getDescription())
                     .img(story.getImg())
-                    .isPublished(story.getIsPublished())
                     .status(story.getStatus().name())
                     .numberOfChapters(story.getNumberOfChapters())
                     .genres(story.getGenres().stream()

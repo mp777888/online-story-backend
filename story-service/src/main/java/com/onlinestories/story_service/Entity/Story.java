@@ -26,7 +26,6 @@ public class Story {
     String img;
     Integer audience; // 0: Young Adult, 1: New Adult, 2: Adult
     Integer numberOfChapters;
-    Boolean isPublished;
     Set<GenreSummary> genres;
 
 

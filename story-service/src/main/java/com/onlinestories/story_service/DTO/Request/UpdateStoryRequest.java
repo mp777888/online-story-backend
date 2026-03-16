@@ -15,6 +15,5 @@ public class UpdateStoryRequest {
     String title;
     String description;
     String status;
-    Boolean isPublished;
     Set<String> genreIds;
 }

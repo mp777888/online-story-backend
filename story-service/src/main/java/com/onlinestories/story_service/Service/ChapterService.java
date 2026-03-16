@@ -285,11 +285,11 @@ public class ChapterService {
     public ResponseEntity<VersionResponse> getChapterVersionDetails(String chapterId) {
         try{
             log.info("Fetching chapter version details for chapterId: {}", chapterId);
-            ChapterVersion version = chapterVersionRepository.findByChapterIdAndStatus(chapterId, "PUBLISHED");
+            ChapterVersion version = chapterVersionRepository.findByChapterIdAndIsPublished(chapterId);
 
             if(version == null){
                 log.warn("Published chapter version not found for chapterId: {}", chapterId);
-                throw new RuntimeException("Published chapter version not found for chapterId: " + chapterId);
+                return ResponseEntity.status(404).build();
             }
 
             log.info("Chapter version details fetched successfully for chapterId: {}", chapterId);
