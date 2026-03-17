@@ -123,19 +123,30 @@ public class WritingService {
 
             if(request.getStatus() != null && !request.getStatus().isEmpty()) {
                 String status = request.getStatus().toUpperCase();
-                if(status.equals("TAKEN_DOWN")){
-                    Story story = storyRepository.findById(chapter.getStoryId())
-                            .orElseThrow(() -> new RuntimeException("Story not found with ID: " + chapter.getStoryId()));
+                if(status.equals("TAKEN_DOWN")) {
+                    if (chapter.getStatus() == ChapterStatus.PUBLISHED) {
+                        Story story = storyRepository.findById(chapter.getStoryId())
+                                .orElseThrow(() -> new RuntimeException("Story not found with ID: " + chapter.getStoryId()));
 
-                    story.setNumberOfChapters(story.getNumberOfChapters() - 1);
-                    storyRepository.save(story);
+                        story.setNumberOfChapters(story.getNumberOfChapters() - 1);
+                        storyRepository.save(story);
+
+
+                        ChapterVersion version = chapterVersionRepository.findByChapterIdAndIsPublished(request.getChapterId());
+                        if (version != null) {
+                            version.setIsPublished(false);
+                            chapterVersionRepository.save(version);
+                        }
+                    }
                 }
                 chapter.setStatus(ChapterStatus.valueOf(status));
             }
 
             if(img != null && !img.isEmpty()) {
-                String message = mediaClient.deleteFile(chapter.getImg(), "image");
-                log.info("Old chapter image deleted successfully: {}", message);
+                if (chapter.getImg() != null && !chapter.getImg().isEmpty()) {
+                    String message = mediaClient.deleteFile(chapter.getImg(), "image");
+                    log.info("Old chapter image deleted successfully: {}", message);
+                }
                 String imgUrl = mediaClient.uploadFile(img, "chapter-img");
                 chapter.setImg(imgUrl);
             }
