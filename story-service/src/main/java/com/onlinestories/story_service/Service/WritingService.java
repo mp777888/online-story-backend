@@ -132,7 +132,7 @@ public class WritingService {
                         storyRepository.save(story);
 
 
-                        ChapterVersion version = chapterVersionRepository.findByChapterIdAndIsPublished(request.getChapterId());
+                        ChapterVersion version = chapterVersionRepository.findByChapterIdAndIsPublishedTrue(request.getChapterId());
                         if (version != null) {
                             version.setIsPublished(false);
                             chapterVersionRepository.save(version);

@@ -5,6 +5,7 @@ import com.onlinestories.story_service.DTO.Request.PublishRequest;
 import com.onlinestories.story_service.DTO.Request.UpdateChapterRequest;
 import com.onlinestories.story_service.DTO.Response.ChapterResponse;
 import com.onlinestories.story_service.DTO.Response.DraftResponse;
+import com.onlinestories.story_service.DTO.Response.ReadingHistoryResponse;
 import com.onlinestories.story_service.DTO.Response.VersionResponse;
 import com.onlinestories.story_service.Service.ReadingService;
 import com.onlinestories.story_service.Service.WritingService;
@@ -16,6 +17,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("api/stories/chapters")
@@ -121,6 +124,15 @@ public class ChapterController {
             @RequestParam(defaultValue = "10") int size){
         log.info("Received request to list versions for chapter ID: {}", chapterId);
         return writingService.getChapterVersionList(chapterId, page, size);
+    }
+
+    @PostMapping("/read")
+    public ResponseEntity<ReadingHistoryResponse> readChapterAndUpdateHistory(
+            @RequestParam String userId,
+            @RequestParam String storyId,
+            @RequestParam String chapterId){
+        log.info("Received request to read chapter ID: {} for user ID: {}", chapterId, userId);
+        return ResponseEntity.ok().body(readingService.readChapter(userId, storyId, chapterId));
     }
 
 //    @GetMapping

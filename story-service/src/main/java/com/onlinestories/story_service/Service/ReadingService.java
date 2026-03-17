@@ -4,6 +4,7 @@ import com.onlinestories.story_service.DTO.Response.ChapterResponse;
 import com.onlinestories.story_service.DTO.Response.ReadingHistoryResponse;
 import com.onlinestories.story_service.DTO.Response.StoryResponse;
 import com.onlinestories.story_service.DTO.Response.VersionResponse;
+import com.onlinestories.story_service.Entity.Chapter;
 import com.onlinestories.story_service.Entity.ChapterVersion;
 import com.onlinestories.story_service.Entity.ReadingHistory;
 import com.onlinestories.story_service.Entity.Story;
@@ -20,9 +21,16 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.stream.Collectors;
 
 @Service
@@ -34,6 +42,7 @@ public class ReadingService {
     StoryRepository storyRepository;
     ChapterRepository chapterRepository;
     ChapterVersionRepository chapterVersionRepository;
+    MongoTemplate mongoTemplate;
 
     public ResponseEntity<Page<ChapterResponse>> getChaptersByStoryId(
             String storyId, int page, int size) {
@@ -91,10 +100,67 @@ public class ReadingService {
         }
     }
 
+    @Transactional
+    public ReadingHistoryResponse readChapter(String userId, String storyId, String chapterId) {
+        log.info("Processing reading chapter for user: {}, story: {}, chapter: {}", userId, storyId, chapterId);
+
+        Story story = storyRepository.findById(storyId)
+                .orElseThrow(() -> new RuntimeException("Story not found with ID: " + storyId));
+
+        Chapter chapter = chapterRepository.findById(chapterId)
+                .orElseThrow(() -> new RuntimeException("Chapter not found with ID: " + chapterId));
+
+        if(chapter.getStatus() != ChapterStatus.PUBLISHED){
+            log.warn("Chapter {} is not published. Current status: {}", chapterId, chapter.getStatus());
+            throw new RuntimeException("Chapter is not available for reading");
+        }
+
+        ReadingHistory history = readingHistoryRepository.findByUserIdAndStoryId(userId, storyId)
+                .orElse(null);
+
+        boolean shouldIncreaseView = false;
+        LocalDateTime readAt = LocalDateTime.now();
+
+        if (history == null) {
+            history = ReadingHistory.builder()
+                    .userId(userId)
+                    .storyId(storyId)
+                    .lastView(readAt)
+                    .build();
+            shouldIncreaseView = true;
+        } else {
+            if (history.getLastView() == null || history.getLastView().plusMinutes(30).isBefore(readAt)) {
+                shouldIncreaseView = true;
+                history.setLastView(readAt);
+            }
+        }
+
+        if (shouldIncreaseView) {
+            Query query = new Query().addCriteria(Criteria.where("storyId").is(storyId));
+            Update update = new Update().inc("views", 1);
+            mongoTemplate.updateFirst(query, update, Story.class);
+            log.info("Increased view count for story: {}", storyId);
+        }
+
+        history.setChapterId(chapterId);
+        history.setLastReadAt(readAt);
+        readingHistoryRepository.save(history);
+
+        log.info("Updated reading history for user: {}, story: {}, chapter: {}", userId, storyId, chapterId);
+
+        return ReadingHistoryResponse.builder()
+                .historyId(history.getHistoryId())
+                .userId(userId)
+                .storyName(story.getTitle())
+                .chapterName(chapter.getTitle())
+                .lastReadAt(readAt)
+                .build();
+    }
+
     public ResponseEntity<VersionResponse> getContentForReading(String chapterId) {
         try{
             log.info("Fetching chapter version details for chapterId: {}", chapterId);
-            ChapterVersion version = chapterVersionRepository.findByChapterIdAndIsPublished(chapterId);
+            ChapterVersion version = chapterVersionRepository.findByChapterIdAndIsPublishedTrue(chapterId);
 
             if(version == null){
                 log.warn("Published chapter version not found for chapterId: {}", chapterId);
@@ -111,41 +177,6 @@ public class ReadingService {
                     .build());
         } catch (Exception e){
             log.error("Error fetching chapter version details: {}", e.getMessage());
-            throw e;
-        }
-    }
-
-
-    public ResponseEntity<String> addToReadingHistory(String userId, String storyId, String chapterId){
-        try{
-            log.info("Processing reading history for user: {}, story: {}", userId, storyId);
-
-            // Tìm lịch sử đọc cũ của truyện này cho user này
-            ReadingHistory history = readingHistoryRepository
-                    .findByUserIdAndStoryId(userId, storyId)
-                    .map(existingHistory -> {
-                        // Cập nhật chapterId và lastReadAt nếu đã tồn tại
-                        existingHistory.setChapterId(chapterId);
-                        existingHistory.setLastReadAt(java.time.LocalDateTime.now());
-                        return existingHistory;
-                    })
-                    .orElseGet(() -> {
-                        // Nếu chưa có, tạo record mới hoàn toàn
-                        return ReadingHistory.builder()
-                                .userId(userId)
-                                .storyId(storyId)
-                                .chapterId(chapterId)
-                                .lastReadAt(java.time.LocalDateTime.now())
-                                .build();
-                    });
-
-            readingHistoryRepository.save(history);
-
-            log.info("Reading history updated successfully");
-            return ResponseEntity.ok().body("History updated");
-        }
-        catch(Exception e){
-            log.error("Error adding to reading history: {}", e.getMessage());
             throw e;
         }
     }

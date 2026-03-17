@@ -22,5 +22,6 @@ public class ReadingHistory {
     String userId;
     String storyId;
     String chapterId;
+    LocalDateTime lastView;
     LocalDateTime lastReadAt;
 }
