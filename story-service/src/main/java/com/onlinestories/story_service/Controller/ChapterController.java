@@ -6,7 +6,8 @@ import com.onlinestories.story_service.DTO.Request.UpdateChapterRequest;
 import com.onlinestories.story_service.DTO.Response.ChapterResponse;
 import com.onlinestories.story_service.DTO.Response.DraftResponse;
 import com.onlinestories.story_service.DTO.Response.VersionResponse;
-import com.onlinestories.story_service.Service.ChapterService;
+import com.onlinestories.story_service.Service.ReadingService;
+import com.onlinestories.story_service.Service.WritingService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -22,27 +23,28 @@ import org.springframework.web.multipart.MultipartFile;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Slf4j
 public class ChapterController {
-    ChapterService chapterService;
+    WritingService writingService;
+    ReadingService readingService;
 
     @PostMapping
     public ResponseEntity<?> createNewChapter(
             @RequestPart CreateChapterRequest request,
             @RequestPart(value = "file", required = false) MultipartFile img){
         log.info("Received request to create new chapter: {}", request.getTitle());
-        return chapterService.creteNewChapter(request,img);
+        return writingService.creteNewChapter(request,img);
     }
 
     @PostMapping("/publish")
     public ResponseEntity<ChapterResponse> publishChapter(
             @RequestBody PublishRequest request){
         log.info("Received request to publish chapter ID: {}", request.getChapterId());
-        return chapterService.publishChapter(request);
+        return writingService.publishChapter(request);
     }
 
     @GetMapping("/details")
     public ResponseEntity<ChapterResponse> getChapterDetails(@RequestParam String chapterId){
         log.info("Received request to fetch chapter details for chapter ID: {}", chapterId);
-        return chapterService.getChapterDetails(chapterId);
+        return writingService.getChapterDetails(chapterId);
     }
 
     @PutMapping("/update")
@@ -50,31 +52,31 @@ public class ChapterController {
             @RequestPart UpdateChapterRequest request,
             @RequestPart(value = "file", required = false) MultipartFile img){
         log.info("Received request to update chapter: {}", request.getChapterId());
-        return chapterService.updateChapter(request, img);
+        return writingService.updateChapter(request, img);
     }
 
     @DeleteMapping
     public ResponseEntity<String> deleteChapter(@RequestParam String chapterId){
         log.info("Received request to delete chapter ID: {}", chapterId);
-        return chapterService.deleteChapter(chapterId);
+        return writingService.deleteChapter(chapterId);
     }
 
     @PostMapping("/draft")
     public ResponseEntity<DraftResponse> createChapterDraft(@RequestParam String chapterId){
         log.info("Received request to create draft for chapter ID: {}", chapterId);
-        return chapterService.createDraft(chapterId);
+        return writingService.createDraft(chapterId);
     }
 
     @GetMapping("/draft")
     public ResponseEntity<DraftResponse> getChapterDraft(@RequestParam String chapterId){
         log.info("Received request to fetch draft for chapter ID: {}", chapterId);
-        return chapterService.getChapterDraft(chapterId);
+        return writingService.getChapterDraft(chapterId);
     }
 
     @PutMapping("/draft")
     public ResponseEntity<String> autosaveChapterDraft(@RequestParam String chapterId, @RequestParam String content){
         log.info("Received request to auto-save draft for chapter ID: {}", chapterId);
-        return chapterService.autoSaveDraft(chapterId, content);
+        return writingService.autoSaveDraft(chapterId, content);
     }
 
     @PostMapping("/version")
@@ -82,19 +84,19 @@ public class ChapterController {
             @RequestParam String chapterId,
             @RequestParam String versionName){
         log.info("Received request to create version for chapter ID: {}", chapterId);
-        return chapterService.createChapterVersionSnapshot(chapterId, versionName);
+        return writingService.createChapterVersionSnapshot(chapterId, versionName);
     }
 
     @GetMapping("/read")
     public ResponseEntity<VersionResponse> readChapter(@RequestParam String chapterId){
         log.info("Received request to read chapter ID: {}", chapterId);
-        return chapterService.getChapterVersionDetails(chapterId);
+        return readingService.getContentForReading(chapterId);
     }
 
     @GetMapping("/version")
     public ResponseEntity<VersionResponse> getChapterVersion(@RequestParam String versionId){
         log.info("Received request to fetch version details for version ID: {}", versionId);
-        return chapterService.getChapterVersion(versionId);
+        return writingService.getChapterVersion(versionId);
     }
 
     @PutMapping("/version")
@@ -103,13 +105,13 @@ public class ChapterController {
             @RequestParam String versionName,
             @RequestParam String content){
         log.info("Received request to update version ID: {}", versionId);
-        return chapterService.updateChapterVersion(versionId, versionName, content);
+        return writingService.updateChapterVersion(versionId, versionName, content);
     }
 
     @DeleteMapping("/version")
     public ResponseEntity<String> deleteChapterVersion(@RequestParam String versionId){
         log.info("Received request to delete version ID: {}", versionId);
-        return chapterService.deleteChapterVersion(versionId);
+        return writingService.deleteChapterVersion(versionId);
     }
 
     @GetMapping("/list-versions")
@@ -118,7 +120,7 @@ public class ChapterController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size){
         log.info("Received request to list versions for chapter ID: {}", chapterId);
-        return chapterService.getChapterVersionList(chapterId, page, size);
+        return writingService.getChapterVersionList(chapterId, page, size);
     }
 
 //    @GetMapping

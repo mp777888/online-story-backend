@@ -1,7 +1,6 @@
 package com.onlinestories.story_service.Service;
 
 import com.onlinestories.story_service.Client.MediaClient;
-import com.onlinestories.story_service.Client.UserClient;
 import com.onlinestories.story_service.DTO.Request.CreateChapterRequest;
 import com.onlinestories.story_service.DTO.Request.PublishRequest;
 import com.onlinestories.story_service.DTO.Request.UpdateChapterRequest;
@@ -42,7 +41,7 @@ import java.time.LocalDateTime;
 @Slf4j
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-public class ChapterService {
+public class WritingService {
     StoryRepository storyRepository;
     ChapterRepository chapterRepository;
     ChapterVersionRepository chapterVersionRepository;
@@ -284,29 +283,6 @@ public class ChapterService {
         }
     }
 
-    public ResponseEntity<VersionResponse> getChapterVersionDetails(String chapterId) {
-        try{
-            log.info("Fetching chapter version details for chapterId: {}", chapterId);
-            ChapterVersion version = chapterVersionRepository.findByChapterIdAndIsPublished(chapterId);
-
-            if(version == null){
-                log.warn("Published chapter version not found for chapterId: {}", chapterId);
-                return ResponseEntity.status(404).build();
-            }
-
-            log.info("Chapter version details fetched successfully for chapterId: {}", chapterId);
-            return ResponseEntity.ok().body(VersionResponse.builder()
-                    .versionId(version.getChapterVersionId())
-                    .chapterId(version.getChapterId())
-                    .versionName(version.getVersionName())
-                    .content(version.getContent())
-                    .createdAt(version.getCreatedAt())
-                    .build());
-        } catch (Exception e){
-            log.error("Error fetching chapter version details: {}", e.getMessage());
-            throw e;
-        }
-    }
 
     public ResponseEntity<VersionResponse> getChapterVersion(String versionId) {
         try{

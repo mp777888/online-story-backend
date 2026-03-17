@@ -4,6 +4,7 @@ import com.onlinestories.story_service.DTO.Request.CreateStoryRequest;
 import com.onlinestories.story_service.DTO.Request.UpdateStoryRequest;
 import com.onlinestories.story_service.DTO.Response.ChapterResponse;
 import com.onlinestories.story_service.DTO.Response.StoryResponse;
+import com.onlinestories.story_service.Service.ReadingService;
 import com.onlinestories.story_service.Service.StoryService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,7 @@ import org.springframework.web.multipart.MultipartFile;
 @Slf4j
 public class StoryController {
     StoryService storyService;
+    ReadingService readingService;
 
     @PostMapping
     public ResponseEntity<StoryResponse> createNewStory(
@@ -56,7 +58,7 @@ public class StoryController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         log.info("Received request to fetch stories for user: {}", userId);
-        return storyService.getUserStories(userId, page, size);
+        return readingService.getUserStories(userId, page, size);
     }
 
     @GetMapping("/list-chapters")
@@ -65,7 +67,7 @@ public class StoryController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         log.info("Received request to fetch story with chapters for story ID: {}", storyId);
-        return storyService.getChaptersByStoryId(storyId, page, size);
+        return readingService.getChaptersByStoryId(storyId, page, size);
     }
 
     @GetMapping("/my-story/list-chapters")

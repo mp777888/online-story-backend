@@ -24,7 +24,7 @@ public class Story {
     String description;
     StoryStatus status;
     String img;
-    Integer audience; // 0: Young Adult, 1: New Adult, 2: Adult
+    Integer numberOfViews;
     Integer numberOfChapters;
     Set<GenreSummary> genres;
 

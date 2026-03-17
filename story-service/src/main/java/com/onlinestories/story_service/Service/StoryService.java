@@ -90,36 +90,6 @@ public class StoryService {
         }
     }
 
-    public ResponseEntity<Page<StoryResponse>> getUserStories(
-            String userId, int page, int size) {
-        try{
-            log.info("Fetching stories for user: {}, page: {}, size: {}", userId, page, size);
-            Pageable pageable = PageRequest.of(page, size);
-            Page<StoryResponse> storyPage = storyRepository.findByAuthorIdAndStatusNot(userId, StoryStatus.DRAFT, pageable)
-                    .map(story -> StoryResponse.builder()
-                            .storyId(story.getStoryId())
-                            .authorId(story.getAuthorId())
-                            .title(story.getTitle())
-                            .description(story.getDescription())
-                            .img(story.getImg())
-                            .status(story.getStatus().name())
-                            .numberOfChapters(story.getNumberOfChapters())
-                            .genres(story.getGenres()
-                                    .stream()
-                                    .map(Story.GenreSummary::getName)
-                                    .collect(Collectors.toSet()))
-                            .build());
-
-            log.info("Fetched {} stories for user {}", storyPage.getTotalElements(), userId);
-            return ResponseEntity.ok().body(storyPage);
-
-        }
-        catch(Exception ex){
-            logger.error("Error fetching stories for user {}: {}", userId, ex.getMessage(), ex);
-            throw ex;
-        }
-    }
-
     // Get story details
     public ResponseEntity<StoryResponse> getStoryDetails(String storyId) {
         try{
@@ -236,32 +206,6 @@ public class StoryService {
         }
     }
 
-    // Get chapters by story ID with pagination
-    public ResponseEntity<Page<ChapterResponse>> getChaptersByStoryId(
-            String storyId, int page, int size) {
-        try{
-            log.info("Fetching chapters for story: {}, page: {}, size: {}", storyId, page, size);
-            if(!storyRepository.existsById(storyId)){
-                log.error("Story with ID {} not found", storyId);
-                return ResponseEntity.notFound().build();
-            }
-
-            Pageable pageable = PageRequest.of(page, size);
-            Page<ChapterResponse> chapterPage = chapterRepository.findByStoryIdAndStatus(storyId, ChapterStatus.PUBLISHED, pageable)
-                    .map(chapter -> ChapterResponse.builder()
-                            .chapterId(chapter.getChapterId())
-                            .title(chapter.getTitle())
-                            .createdAt(chapter.getCreatedAt())
-                            .build());
-
-            log.info("Fetched {} chapters for story {}", chapterPage.getTotalElements(), storyId);
-            return ResponseEntity.ok().body(chapterPage);
-        }
-        catch (Exception ex){
-            logger.error("Error fetching chapters for story {}: {}", storyId, ex.getMessage(), ex);
-            throw ex;
-        }
-    }
 
     // Get chapters for authors to manage
     public ResponseEntity<Page<ChapterResponse>> getChaptersForManagement(
