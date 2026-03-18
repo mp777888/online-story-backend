@@ -8,9 +8,9 @@ services:
 
     environment:
       KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://ep-bold-voice-algmzksr.c-3.eu-central-1.pg.koyeb.app:5432/koyebdb?sslmode=require
-      KC_DB_USERNAME: koyeb-adm
-      KC_DB_PASSWORD: npg_Bjvf7OepPG3S
+      KC_DB_URL: jdbc:postgresql://${DATABASE_HOST}:5432/${DATABASE_NAME}?sslmode=require
+      KC_DB_USERNAME: ${DATABASE_USERNAME}
+      KC_DB_PASSWORD: ${DATABASE_PASSWORD}
 
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
