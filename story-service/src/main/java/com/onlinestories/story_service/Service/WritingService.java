@@ -12,6 +12,8 @@ import com.onlinestories.story_service.Entity.ChapterDraft;
 import com.onlinestories.story_service.Entity.ChapterVersion;
 import com.onlinestories.story_service.Entity.Story;
 import com.onlinestories.story_service.Enum.ChapterStatus;
+import com.onlinestories.story_service.Exception.AppException;
+import com.onlinestories.story_service.Exception.ErrorCode;
 import com.onlinestories.story_service.Repository.ChapterDraftRepository;
 import com.onlinestories.story_service.Repository.ChapterRepository;
 import com.onlinestories.story_service.Repository.ChapterVersionRepository;
@@ -30,7 +32,6 @@ import org.springframework.data.mongodb.core.query.Criteria;
 
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -51,12 +52,12 @@ public class WritingService {
     MongoTemplate mongoTemplate;
 
     // Create new chapters
-    public ResponseEntity<ChapterResponse> creteNewChapter(CreateChapterRequest request, MultipartFile img) {
+    public ChapterResponse creteNewChapter(CreateChapterRequest request, MultipartFile img) {
         try{
             log.info("Creating new chapter: {}", request.getTitle());
             if(!storyRepository.existsById(request.getStoryId())){
                 log.warn("Story not found with ID: {}", request.getStoryId());
-                throw new RuntimeException("Story not found with ID: " + request.getStoryId());
+                throw new AppException(ErrorCode.STORY_NOT_FOUND);
             }
 
             Chapter chapter = Chapter.builder()
@@ -72,16 +73,13 @@ public class WritingService {
             log.info("Chapter {} created in database with ID: {}", request.getTitle(), chapter.getChapterId());
 
 
-            ChapterResponse response = ChapterResponse.builder()
+            return ChapterResponse.builder()
                     .chapterId(chapter.getChapterId())
                     .storyId(chapter.getStoryId())
                     .title(chapter.getTitle())
                     .img(chapter.getImg())
                     .createdAt(chapter.getCreatedAt())
                     .build();
-
-            log.info("Chapter {} created successfully", request.getTitle());
-            return ResponseEntity.ok().body(response);
         }
         catch(Exception e){
             log.error("Error creating chapter: {}", e.getMessage());
@@ -90,12 +88,13 @@ public class WritingService {
     }
 
     // Get chapter details
-    public ResponseEntity<ChapterResponse> getChapterDetails(String chapterId) {
+    public ChapterResponse getChapterDetails(String chapterId) {
         try {
             log.info("Fetching chapter details for chapterId: {}", chapterId);
             Chapter chapter = chapterRepository.findById(chapterId)
-                    .orElseThrow(() -> new RuntimeException("Chapter not found with ID: " + chapterId));
-            ChapterResponse response = ChapterResponse.builder()
+                    .orElseThrow(() -> new AppException(ErrorCode.CHAPTER_NOT_FOUND));
+
+            return ChapterResponse.builder()
                     .chapterId(chapter.getChapterId())
                     .storyId(chapter.getStoryId())
                     .title(chapter.getTitle())
@@ -103,19 +102,17 @@ public class WritingService {
                     .img(chapter.getImg())
                     .createdAt(chapter.getCreatedAt())
                     .build();
-            log.info("Chapter details fetched successfully for chapterId: {}", chapterId);
-            return ResponseEntity.ok().body(response);
         }catch (Exception e){
             log.error("Error fetching chapter details: {}", e.getMessage());
             throw e;
         }
     }
 
-    public ResponseEntity<ChapterResponse> updateChapter(UpdateChapterRequest request, MultipartFile img) {
+    public ChapterResponse updateChapter(UpdateChapterRequest request, MultipartFile img) {
         try{
             log.info("Updating chapter: {}", request.getChapterId());
             Chapter chapter = chapterRepository.findById(request.getChapterId())
-                    .orElseThrow(() -> new RuntimeException("Chapter not found with ID: " + request.getChapterId()));
+                    .orElseThrow(() -> new AppException(ErrorCode.CHAPTER_NOT_FOUND));
 
             if(request.getTitle() != null && !request.getTitle().isEmpty()) {
                 chapter.setTitle(request.getTitle());
@@ -126,7 +123,7 @@ public class WritingService {
                 if(status.equals("TAKEN_DOWN")) {
                     if (chapter.getStatus() == ChapterStatus.PUBLISHED) {
                         Story story = storyRepository.findById(chapter.getStoryId())
-                                .orElseThrow(() -> new RuntimeException("Story not found with ID: " + chapter.getStoryId()));
+                                .orElseThrow(() -> new AppException(ErrorCode.STORY_NOT_FOUND));
 
                         story.setNumberOfChapters(story.getNumberOfChapters() - 1);
                         storyRepository.save(story);
@@ -151,7 +148,7 @@ public class WritingService {
                 chapter.setImg(imgUrl);
             }
             chapterRepository.save(chapter);
-            ChapterResponse response = ChapterResponse.builder()
+            return ChapterResponse.builder()
                     .chapterId(chapter.getChapterId())
                     .storyId(chapter.getStoryId())
                     .title(chapter.getTitle())
@@ -159,8 +156,7 @@ public class WritingService {
                     .status(chapter.getStatus().name())
                     .createdAt(chapter.getCreatedAt())
                     .build();
-            log.info("Chapter {} updated successfully", request.getChapterId());
-            return ResponseEntity.ok().body(response);
+
         }
         catch (Exception e){
             log.error("Error updating chapter: {}", e.getMessage());
@@ -169,12 +165,12 @@ public class WritingService {
     }
 
     @Transactional
-    public ResponseEntity<String> deleteChapter(String chapterId) {
+    public void deleteChapter(String chapterId) {
         try{
             log.info("Deleting chapter with ID: {}", chapterId);
             if(!chapterRepository.existsByChapterId(chapterId)){
                 log.warn("Chapter not found with ID: {}", chapterId);
-                throw new RuntimeException("Chapter not found with ID: " + chapterId);
+                throw new AppException(ErrorCode.CHAPTER_NOT_FOUND);
             }
             chapterRepository.deleteById(chapterId);
             log.info("Chapter with ID: {} deleted successfully", chapterId);
@@ -184,7 +180,6 @@ public class WritingService {
 
             chapterVersionRepository.deleteByChapterId(chapterId);
             log.info("Chapter versions for chapterId: {} deleted successfully", chapterId);
-            return ResponseEntity.ok().body("Chapter deleted successfully");
         }
         catch (Exception e){
             log.error("Error deleting chapter: {}", e.getMessage());
@@ -193,11 +188,11 @@ public class WritingService {
     }
 
     // Create chapter drafts
-    public ResponseEntity<DraftResponse> createDraft(String chapterId){
+    public DraftResponse createDraft(String chapterId){
         try{
             if(chapterDraftRepository.existsByChapterId(chapterId)){
                 log.warn("Chapter draft already exists for chapterId: {}", chapterId);
-                throw new RuntimeException("Chapter draft already exists for chapterId: " + chapterId);
+                throw new AppException(ErrorCode.DRAFT_ALREADY_EXISTS);
             }
 
             log.info("Creating chapter draft for chapterId: {}", chapterId);
@@ -208,12 +203,12 @@ public class WritingService {
                     .build();
             chapterDraftRepository.save(draft);
             log.info("Chapter draft created successfully for chapterId: {}", chapterId);
-            return ResponseEntity.ok().body(DraftResponse.builder()
+            return DraftResponse.builder()
                     .draftId(draft.getChapterDraftId())
                     .chapterId(draft.getChapterId())
                     .content(draft.getContent())
                     .lastSavedAt(draft.getLastSavedAt())
-                    .build());
+                    .build();
         }
         catch (Exception e){
             log.error("Error creating chapter draft: {}", e.getMessage());
@@ -222,7 +217,7 @@ public class WritingService {
     }
 
     // Save chapter drafts
-    public ResponseEntity<String> autoSaveDraft(String chapterId, String content) {
+    public void autoSaveDraft(String chapterId, String content) {
         try{
             Query query = new Query(Criteria.where("chapterId").is(chapterId));
             Update update = new Update()
@@ -231,7 +226,6 @@ public class WritingService {
             mongoTemplate.upsert(query, update, ChapterDraft.class);
 
             log.info("Chapter draft auto-saved successfully for chapterId: {}", chapterId);
-            return ResponseEntity.ok().body("Chapter draft auto-saved successfully");
         }
         catch (Exception e){
             log.error("Error auto-saving chapter draft: {}", e.getMessage());
@@ -240,23 +234,22 @@ public class WritingService {
     }
 
     // Get chapter drafts
-    public ResponseEntity<DraftResponse> getChapterDraft(String chapterId) {
+    public DraftResponse getChapterDraft(String chapterId) {
         try{
             log.info("Fetching chapter draft for chapterId: {}", chapterId);
             ChapterDraft draft = chapterDraftRepository.findByChapterId(chapterId);
             if(draft == null){
                 log.warn("Chapter draft not found for chapterId: {}", chapterId);
-                return ResponseEntity.status(404).build();
+                throw new AppException(ErrorCode.DRAFT_NOT_FOUND);
             }
 
-
             log.info("Chapter draft fetched successfully for chapterId: {}", chapterId);
-            return ResponseEntity.ok().body(DraftResponse.builder()
+            return DraftResponse.builder()
                     .draftId(draft.getChapterDraftId())
                     .chapterId(draft.getChapterId())
                     .content(draft.getContent())
                     .lastSavedAt(draft.getLastSavedAt())
-                    .build());
+                    .build();
         } catch (Exception e){
             log.error("Error fetching chapter draft: {}", e.getMessage());
             throw e;
@@ -264,14 +257,14 @@ public class WritingService {
     }
 
     // Create Version Snapshot
-    public ResponseEntity<VersionResponse> createChapterVersionSnapshot(String chapterId, String versionName) {
+    public VersionResponse createChapterVersionSnapshot(String chapterId, String versionName) {
         try{
             log.info("Creating chapter version snapshot for chapterId: {}, versionName: {}", chapterId, versionName);
             ChapterDraft draft = chapterDraftRepository.findByChapterId(chapterId);
 
             if (draft == null) {
                 log.warn("Chapter draft not found for chapterId: {}", chapterId);
-                return ResponseEntity.status(404).build();
+                throw new AppException(ErrorCode.DRAFT_NOT_FOUND);
             }
 
             ChapterVersion version = ChapterVersion.builder()
@@ -282,12 +275,12 @@ public class WritingService {
                     .build();
             chapterVersionRepository.save(version);
             log.info("Chapter version snapshot created successfully for chapterId: {}", chapterId);
-            return ResponseEntity.ok().body(VersionResponse.builder()
+            return VersionResponse.builder()
                     .versionId(version.getChapterVersionId())
                     .chapterId(version.getChapterId())
                     .versionName(version.getVersionName())
                     .createdAt(version.getCreatedAt())
-                    .build());
+                    .build();
         } catch (Exception e){
             log.error("Error creating chapter version snapshot: {}", e.getMessage());
             throw e;
@@ -295,20 +288,20 @@ public class WritingService {
     }
 
 
-    public ResponseEntity<VersionResponse> getChapterVersion(String versionId) {
+    public VersionResponse getChapterVersion(String versionId) {
         try{
             log.info("Fetching chapter version details for versionId: {}", versionId);
             ChapterVersion version = chapterVersionRepository.findById(versionId)
-                    .orElseThrow(() -> new RuntimeException("Chapter version not found for versionId: " + versionId));
+                    .orElseThrow(() -> new AppException(ErrorCode.VERSION_NOT_FOUND));
 
             log.info("Chapter version details fetched successfully for versionId: {}", versionId);
-            return ResponseEntity.ok().body(VersionResponse.builder()
+            return VersionResponse.builder()
                     .versionId(version.getChapterVersionId())
                     .chapterId(version.getChapterId())
                     .versionName(version.getVersionName())
                     .content(version.getContent())
                     .createdAt(version.getCreatedAt())
-                    .build());
+                    .build();
         } catch (Exception e){
             log.error("Error fetching chapter version details: {}", e.getMessage());
             throw e;
@@ -316,32 +309,30 @@ public class WritingService {
     }
 
     // Get chapter versions
-    public ResponseEntity<Page<VersionResponse>> getChapterVersionList(
+    public Page<VersionResponse> getChapterVersionList(
             String chapterId, int page, int size) {
         try{
             log.info("Fetching chapter versions for chapterId: {}", chapterId);
             Pageable pageable = PageRequest.of(page, size);
-            Page<VersionResponse> versionPage = chapterVersionRepository.findByChapterId(chapterId,pageable)
+            return chapterVersionRepository.findByChapterId(chapterId,pageable)
                     .map(version -> VersionResponse.builder()
                             .versionId(version.getChapterVersionId())
                             .chapterId(version.getChapterId())
                             .versionName(version.getVersionName())
                             .createdAt(version.getCreatedAt())
                             .build());
-            log.info("Fetched {} chapter versions for chapterId: {}", versionPage.getTotalElements(), chapterId);
-            return ResponseEntity.ok().body(versionPage);
         } catch (Exception e){
             log.error("Error fetching chapter versions: {}", e.getMessage());
             throw e;
         }
     }
 
-    public ResponseEntity<VersionResponse> updateChapterVersion(
+    public VersionResponse updateChapterVersion(
             String versionId, String versionName, String content) {
         try {
             log.info("Updating chapter version with ID: {}", versionId);
             ChapterVersion version = chapterVersionRepository.findById(versionId)
-                    .orElseThrow(() -> new RuntimeException("Chapter version not found with ID: " + versionId));
+                    .orElseThrow(() -> new AppException(ErrorCode.VERSION_NOT_FOUND));
 
             if (versionName != null && !versionName.isEmpty()) {
                 version.setVersionName(versionName);
@@ -351,29 +342,28 @@ public class WritingService {
             }
             chapterVersionRepository.save(version);
             log.info("Chapter version with ID: {} updated successfully", versionId);
-            return ResponseEntity.ok().body(VersionResponse.builder()
+            return VersionResponse.builder()
                     .versionId(version.getChapterVersionId())
                     .chapterId(version.getChapterId())
                     .versionName(version.getVersionName())
                     .content(version.getContent())
                     .createdAt(version.getCreatedAt())
-                    .build());
+                    .build();
         } catch (Exception e) {
             log.error("Error updating chapter version: {}", e.getMessage());
             throw e;
         }
     }
 
-    public ResponseEntity<String> deleteChapterVersion(String versionId) {
+    public void deleteChapterVersion(String versionId) {
         try{
             log.info("Deleting chapter version with ID: {}", versionId);
             if(!chapterVersionRepository.existsById(versionId)){
                 log.warn("Chapter version not found with ID: {}", versionId);
-                throw new RuntimeException("Chapter version not found with ID: " + versionId);
+                throw new AppException(ErrorCode.VERSION_NOT_FOUND);
             }
             chapterVersionRepository.deleteById(versionId);
             log.info("Chapter version with ID: {} deleted successfully", versionId);
-            return ResponseEntity.ok().body("Chapter version deleted successfully");
         } catch (Exception e){
             log.error("Error deleting chapter version: {}", e.getMessage());
             throw e;
@@ -382,21 +372,21 @@ public class WritingService {
 
     // Publish chapter
     @Transactional
-    public ResponseEntity<ChapterResponse> publishChapter(PublishRequest request) {
+    public ChapterResponse publishChapter(PublishRequest request) {
         try{
             log.info("Publishing chapter with ID: {}", request.getChapterId());
             Story story = storyRepository.findById(request.getStoryId())
-                    .orElseThrow(() -> new RuntimeException("Story not found with ID: " + request.getStoryId()));
+                    .orElseThrow(() -> new AppException(ErrorCode.STORY_NOT_FOUND));
 
             Chapter chapter = chapterRepository.findById(request.getChapterId())
-                    .orElseThrow(() -> new RuntimeException("Chapter not found with ID: " + request.getChapterId()));
+                    .orElseThrow(() -> new AppException(ErrorCode.CHAPTER_NOT_FOUND));
 
             ChapterVersion version = chapterVersionRepository.findById(request.getChapterVersionId())
-                    .orElseThrow(() -> new RuntimeException("Chapter version not found with ID: " + request.getChapterVersionId()));
+                    .orElseThrow(() -> new AppException(ErrorCode.VERSION_NOT_FOUND));
 
             if(chapter.getStatus() == ChapterStatus.PUBLISHED){
                 log.warn("Chapter with ID: {} is already published", request.getChapterId());
-                throw new RuntimeException("Chapter is already published");
+                throw new AppException(ErrorCode.CHAPTER_ALREADY_PUBLISHED);
             }
 
             chapter.setStatus(ChapterStatus.PUBLISHED);
@@ -415,7 +405,7 @@ public class WritingService {
             storyRepository.save(story);
             log.info("Chapter with ID: {} published successfully", request.getChapterId());
 
-            ChapterResponse response = ChapterResponse.builder()
+            return  ChapterResponse.builder()
                     .chapterId(chapter.getChapterId())
                     .storyId(chapter.getStoryId())
                     .title(chapter.getTitle())
@@ -423,7 +413,7 @@ public class WritingService {
                     .status(chapter.getStatus().name())
                     .createdAt(chapter.getCreatedAt())
                     .build();
-            return ResponseEntity.ok().body(response);
+
         } catch (Exception e){
             log.error("Error publishing chapter: {}", e.getMessage());
             throw e;

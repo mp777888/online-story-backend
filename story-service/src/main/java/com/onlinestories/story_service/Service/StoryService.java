@@ -10,6 +10,8 @@ import com.onlinestories.story_service.DTO.Response.UserResponse;
 import com.onlinestories.story_service.Entity.Story;
 import com.onlinestories.story_service.Enum.ChapterStatus;
 import com.onlinestories.story_service.Enum.StoryStatus;
+import com.onlinestories.story_service.Exception.AppException;
+import com.onlinestories.story_service.Exception.ErrorCode;
 import com.onlinestories.story_service.Repository.ChapterRepository;
 import com.onlinestories.story_service.Repository.GenreRepository;
 import com.onlinestories.story_service.Repository.StoryRepository;
@@ -41,7 +43,7 @@ public class StoryService {
     MediaClient mediaClient;
     Logger logger = LoggerFactory.getLogger(StoryService.class);
 
-    public ResponseEntity<StoryResponse> createNewStory(CreateStoryRequest request, String authorId, MultipartFile img) {
+    public StoryResponse createNewStory(CreateStoryRequest request, String authorId, MultipartFile img) {
         try {
             log.info("Creating new story: {}", request.getTitle());
 
@@ -49,7 +51,7 @@ public class StoryService {
             UserResponse userResponse = userClient.getUserById(authorId);
             if (userResponse == null) {
                 log.error("Author with ID {} not found", authorId);
-                return ResponseEntity.badRequest().build();
+                throw new AppException(ErrorCode.USER_NOT_FOUND);
             }
 
             Story story = Story.builder()
@@ -62,14 +64,14 @@ public class StoryService {
                     .numberOfChapters(0)
                     .genres(request.getGenreIds().stream()
                             .map(genreId -> genreRepository.findById(genreId)
-                                    .orElseThrow(() -> new RuntimeException("Genre not found: " + genreId)))
+                                    .orElseThrow(() -> new AppException(ErrorCode.GENRE_NOT_FOUND)))
                             .map(genre -> new Story.GenreSummary(genre.getGenreId(), genre.getName()))
                             .collect(Collectors.toSet()))
                     .build();
             storyRepository.save(story);
             log.info("Story {} created successfully", request.getTitle());
 
-            StoryResponse response = StoryResponse.builder()
+            return StoryResponse.builder()
                     .storyId(story.getStoryId())
                     .authorId(story.getAuthorId())
                     .title(story.getTitle())
@@ -81,8 +83,6 @@ public class StoryService {
                             .map(Story.GenreSummary::getName)
                             .collect(Collectors.toSet()))
                     .build();
-
-            return ResponseEntity.ok().body(response);
         }
         catch (Exception ex) {
             logger.error("Error creating new story: {}", ex.getMessage(), ex);
@@ -91,13 +91,13 @@ public class StoryService {
     }
 
     // Get story details
-    public ResponseEntity<StoryResponse> getStoryDetails(String storyId) {
+    public StoryResponse getStoryDetails(String storyId) {
         try{
             log.info("Fetching details for story: {}", storyId);
             Story story = storyRepository.findById(storyId)
-                    .orElseThrow(() -> new RuntimeException("Story not found: " + storyId));
+                    .orElseThrow(() -> new AppException(ErrorCode.STORY_NOT_FOUND));
 
-            StoryResponse response = StoryResponse.builder()
+            return StoryResponse.builder()
                     .storyId(story.getStoryId())
                     .authorId(story.getAuthorId())
                     .title(story.getTitle())
@@ -109,9 +109,6 @@ public class StoryService {
                             .map(Story.GenreSummary::getName)
                             .collect(Collectors.toSet()))
                     .build();
-
-            log.info("Fetched details for story {}", storyId);
-            return ResponseEntity.ok().body(response);
         }catch (Exception ex){
             logger.error("Error fetching story details for story {}: {}", storyId, ex.getMessage(), ex);
             throw ex;
@@ -119,7 +116,7 @@ public class StoryService {
     }
 
 
-    public ResponseEntity<Page<StoryResponse>> getMyStories(
+    public Page<StoryResponse> getMyStories(
             String userId, int page, int size) {
         try{
             log.info("Fetching my stories for user: {}, page: {}, size: {}", userId, page, size);
@@ -140,7 +137,7 @@ public class StoryService {
                             .build());
 
             log.info("Fetched {} stories for user {}", storyPage.getTotalElements(), userId);
-            return ResponseEntity.ok().body(storyPage);
+            return storyPage;
 
         }
         catch(Exception ex){
@@ -149,11 +146,11 @@ public class StoryService {
         }
     }
 
-    public ResponseEntity<StoryResponse> updateStory(UpdateStoryRequest request, MultipartFile img) {
+    public StoryResponse updateStory(UpdateStoryRequest request, MultipartFile img) {
         try {
             log.info("Updating story: {}", request.getStoryId());
             Story story = storyRepository.findById(request.getStoryId())
-                    .orElseThrow(() -> new RuntimeException("Story not found: " + request.getStoryId()));
+                    .orElseThrow(() -> new AppException(ErrorCode.STORY_NOT_FOUND));
 
             if (request.getTitle() != null) {
                 story.setTitle(request.getTitle());
@@ -169,7 +166,7 @@ public class StoryService {
 
                 Set<Story.GenreSummary> newGenres = request.getGenreIds().stream()
                         .map(genreId -> genreRepository.findById(genreId)
-                                .orElseThrow(() -> new RuntimeException("Genre not found: " + genreId)))
+                                .orElseThrow(() -> new AppException(ErrorCode.GENRE_NOT_FOUND)))
                         .map(genre -> new Story.GenreSummary(genre.getGenreId(), genre.getName()))
                         .collect(Collectors.toSet());
 
@@ -185,7 +182,7 @@ public class StoryService {
             storyRepository.save(story);
             log.info("Story {} updated successfully", request.getStoryId());
 
-            StoryResponse response = StoryResponse.builder()
+            return StoryResponse.builder()
                     .storyId(story.getStoryId())
                     .authorId(story.getAuthorId())
                     .title(story.getTitle())
@@ -197,8 +194,6 @@ public class StoryService {
                             .map(Story.GenreSummary::getName)
                             .collect(Collectors.toSet()))
                     .build();
-
-            return ResponseEntity.ok().body(response);
         }
         catch (Exception ex) {
             logger.error("Error updating story {}: {}", request.getStoryId(), ex.getMessage(), ex);
@@ -208,7 +203,7 @@ public class StoryService {
 
 
     // Get chapters for authors to manage
-    public ResponseEntity<Page<ChapterResponse>> getChaptersForManagement(
+    public Page<ChapterResponse> getChaptersForManagement(
             String authorId, String storyId, int page, int size) {
         try{
             log.info("Fetching chapters for story: {}, page: {}, size: {}", storyId, page, size);
@@ -217,7 +212,7 @@ public class StoryService {
                     .orElseThrow(() -> new RuntimeException("Story not found: " + storyId));
             if(!story.getAuthorId().equals(authorId)){
                 log.error("Unauthorized access: User {} is not the author of story {}", authorId, storyId);
-                return ResponseEntity.status(403).build();
+                throw new AppException(ErrorCode.NOT_AUTHOR_OF_STORY);
             }
 
             Pageable pageable = PageRequest.of(page, size);
@@ -229,7 +224,7 @@ public class StoryService {
                             .build());
 
             log.info("Fetched {} chapters for story {}", chapterPage.getTotalElements(), storyId);
-            return ResponseEntity.ok().body(chapterPage);
+            return chapterPage;
         }
         catch (Exception ex){
             logger.error("Error fetching chapters for story {}: {}", storyId, ex.getMessage(), ex);

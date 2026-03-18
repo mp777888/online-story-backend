@@ -7,6 +7,7 @@ import com.onlinestories.story_service.DTO.Response.ChapterResponse;
 import com.onlinestories.story_service.DTO.Response.DraftResponse;
 import com.onlinestories.story_service.DTO.Response.ReadingHistoryResponse;
 import com.onlinestories.story_service.DTO.Response.VersionResponse;
+import com.onlinestories.story_service.Exception.ApiResponse;
 import com.onlinestories.story_service.Service.ReadingService;
 import com.onlinestories.story_service.Service.WritingService;
 import lombok.AccessLevel;
@@ -30,64 +31,102 @@ public class ChapterController {
     ReadingService readingService;
 
     @PostMapping
-    public ResponseEntity<?> createNewChapter(
+    public ApiResponse<ChapterResponse> createNewChapter(
             @RequestPart CreateChapterRequest request,
             @RequestPart(value = "file", required = false) MultipartFile img){
         log.info("Received request to create new chapter: {}", request.getTitle());
-        return writingService.creteNewChapter(request,img);
+        return ApiResponse.<ChapterResponse>builder()
+                .code(200)
+                .message("Chapter created successfully")
+                .result(writingService.creteNewChapter(request, img))
+                .build();
     }
 
     @PostMapping("/publish")
-    public ResponseEntity<ChapterResponse> publishChapter(
+    public ApiResponse<ChapterResponse> publishChapter(
             @RequestBody PublishRequest request){
         log.info("Received request to publish chapter ID: {}", request.getChapterId());
-        return writingService.publishChapter(request);
+        return ApiResponse.<ChapterResponse>builder()
+                .code(200)
+                .message("Chapter published successfully")
+                .result(writingService.publishChapter(request))
+                .build();
     }
 
     @GetMapping("/details")
-    public ResponseEntity<ChapterResponse> getChapterDetails(@RequestParam String chapterId){
+    public ApiResponse<ChapterResponse> getChapterDetails(@RequestParam String chapterId){
         log.info("Received request to fetch chapter details for chapter ID: {}", chapterId);
-        return writingService.getChapterDetails(chapterId);
+        return ApiResponse.<ChapterResponse>builder()
+                .code(200)
+                .message("Chapter details fetched successfully")
+                .result(writingService.getChapterDetails(chapterId))
+                .build();
     }
 
     @PutMapping("/update")
-    public ResponseEntity<?> updateChapter(
+    public ApiResponse<ChapterResponse> updateChapter(
             @RequestPart UpdateChapterRequest request,
             @RequestPart(value = "file", required = false) MultipartFile img){
         log.info("Received request to update chapter: {}", request.getChapterId());
-        return writingService.updateChapter(request, img);
+        return ApiResponse.<ChapterResponse>builder()
+                .code(200)
+                .message("Chapter updated successfully")
+                .result(writingService.updateChapter(request, img))
+                .build();
     }
 
     @DeleteMapping
-    public ResponseEntity<String> deleteChapter(@RequestParam String chapterId){
+    public ApiResponse<String> deleteChapter(@RequestParam String chapterId){
         log.info("Received request to delete chapter ID: {}", chapterId);
-        return writingService.deleteChapter(chapterId);
+        writingService.deleteChapter(chapterId);
+        return ApiResponse.<String>builder()
+                .code(200)
+                .message("Chapter deleted successfully")
+                .result("Chapter with ID " + chapterId + " has been deleted.")
+                .build();
     }
 
     @PostMapping("/draft")
-    public ResponseEntity<DraftResponse> createChapterDraft(@RequestParam String chapterId){
+    public ApiResponse<DraftResponse> createChapterDraft(@RequestParam String chapterId){
         log.info("Received request to create draft for chapter ID: {}", chapterId);
-        return writingService.createDraft(chapterId);
+        return ApiResponse.<DraftResponse>builder()
+                .code(200)
+                .message("Draft created successfully")
+                .result(writingService.createDraft(chapterId))
+                .build();
     }
 
     @GetMapping("/draft")
-    public ResponseEntity<DraftResponse> getChapterDraft(@RequestParam String chapterId){
+    public ApiResponse<DraftResponse> getChapterDraft(@RequestParam String chapterId){
         log.info("Received request to fetch draft for chapter ID: {}", chapterId);
-        return writingService.getChapterDraft(chapterId);
+        return ApiResponse.<DraftResponse>builder()
+                .code(200)
+                .message("Draft fetched successfully")
+                .result(writingService.getChapterDraft(chapterId))
+                .build();
     }
 
     @PutMapping("/draft")
-    public ResponseEntity<String> autosaveChapterDraft(@RequestParam String chapterId, @RequestParam String content){
+    public ApiResponse<String> autosaveChapterDraft(@RequestParam String chapterId, @RequestParam String content){
         log.info("Received request to auto-save draft for chapter ID: {}", chapterId);
-        return writingService.autoSaveDraft(chapterId, content);
+        writingService.autoSaveDraft(chapterId, content);
+        return ApiResponse.<String>builder()
+                .code(200)
+                .message("Draft auto-saved successfully")
+                .result("Draft for chapter ID " + chapterId + " has been auto-saved.")
+                .build();
     }
 
     @PostMapping("/version")
-    public ResponseEntity<VersionResponse> createChapterVersion(
+    public ApiResponse<VersionResponse> createChapterVersion(
             @RequestParam String chapterId,
             @RequestParam String versionName){
         log.info("Received request to create version for chapter ID: {}", chapterId);
-        return writingService.createChapterVersionSnapshot(chapterId, versionName);
+        return ApiResponse.<VersionResponse>builder()
+                .code(200)
+                .message("Version created successfully")
+                .result(writingService.createChapterVersionSnapshot(chapterId, versionName))
+                .build();
     }
 
     @GetMapping("/read")
@@ -97,42 +136,63 @@ public class ChapterController {
     }
 
     @GetMapping("/version")
-    public ResponseEntity<VersionResponse> getChapterVersion(@RequestParam String versionId){
+    public ApiResponse<VersionResponse> getChapterVersion(@RequestParam String versionId){
         log.info("Received request to fetch version details for version ID: {}", versionId);
-        return writingService.getChapterVersion(versionId);
+        return ApiResponse.<VersionResponse>builder()
+                .code(200)
+                .message("Version details fetched successfully")
+                .result(writingService.getChapterVersion(versionId))
+                .build();
     }
 
     @PutMapping("/version")
-    public ResponseEntity<VersionResponse> updateChapterVersion(
+    public ApiResponse<VersionResponse> updateChapterVersion(
             @RequestParam String versionId,
             @RequestParam String versionName,
             @RequestParam String content){
         log.info("Received request to update version ID: {}", versionId);
-        return writingService.updateChapterVersion(versionId, versionName, content);
+        return ApiResponse.<VersionResponse>builder()
+                .code(200)
+                .message("Version updated successfully")
+                .result(writingService.updateChapterVersion(versionId, versionName, content))
+                .build();
     }
 
     @DeleteMapping("/version")
-    public ResponseEntity<String> deleteChapterVersion(@RequestParam String versionId){
+    public ApiResponse<String> deleteChapterVersion(@RequestParam String versionId){
         log.info("Received request to delete version ID: {}", versionId);
-        return writingService.deleteChapterVersion(versionId);
+        writingService.deleteChapterVersion(versionId);
+        return ApiResponse.<String>builder()
+                .code(200)
+                .message("Version deleted successfully")
+                .result("Version with ID " + versionId + " has been deleted.")
+                .build();
     }
 
     @GetMapping("/list-versions")
-    public ResponseEntity<Page<VersionResponse>> listChapterVersions(
+    public ApiResponse<Page<VersionResponse>> listChapterVersions(
             @RequestParam String chapterId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size){
         log.info("Received request to list versions for chapter ID: {}", chapterId);
-        return writingService.getChapterVersionList(chapterId, page, size);
+        return ApiResponse.<Page<VersionResponse>>builder()
+                .code(200)
+                .message("Chapter versions listed successfully")
+                .result(writingService.getChapterVersionList(chapterId, page, size))
+                .build();
     }
 
     @PostMapping("/read")
-    public ResponseEntity<ReadingHistoryResponse> readChapterAndUpdateHistory(
+    public ApiResponse<ReadingHistoryResponse> readChapterAndUpdateHistory(
             @RequestParam String userId,
             @RequestParam String storyId,
             @RequestParam String chapterId){
         log.info("Received request to read chapter ID: {} for user ID: {}", chapterId, userId);
-        return ResponseEntity.ok().body(readingService.readChapter(userId, storyId, chapterId));
+        return ApiResponse.<ReadingHistoryResponse>builder()
+                .code(200)
+                .message("Chapter read and history updated successfully")
+                .result(readingService.readChapter(userId, storyId, chapterId))
+                .build();
     }
 
 //    @GetMapping

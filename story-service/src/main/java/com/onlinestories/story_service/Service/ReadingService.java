@@ -4,16 +4,12 @@ import com.onlinestories.story_service.DTO.Response.ChapterResponse;
 import com.onlinestories.story_service.DTO.Response.ReadingHistoryResponse;
 import com.onlinestories.story_service.DTO.Response.StoryResponse;
 import com.onlinestories.story_service.DTO.Response.VersionResponse;
-import com.onlinestories.story_service.Entity.Chapter;
-import com.onlinestories.story_service.Entity.ChapterVersion;
-import com.onlinestories.story_service.Entity.ReadingHistory;
-import com.onlinestories.story_service.Entity.Story;
+import com.onlinestories.story_service.Entity.*;
 import com.onlinestories.story_service.Enum.ChapterStatus;
 import com.onlinestories.story_service.Enum.StoryStatus;
-import com.onlinestories.story_service.Repository.ChapterRepository;
-import com.onlinestories.story_service.Repository.ChapterVersionRepository;
-import com.onlinestories.story_service.Repository.ReadingHistoryRepository;
-import com.onlinestories.story_service.Repository.StoryRepository;
+import com.onlinestories.story_service.Exception.AppException;
+import com.onlinestories.story_service.Exception.ErrorCode;
+import com.onlinestories.story_service.Repository.*;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -29,7 +25,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.stream.Collectors;
 
@@ -44,13 +39,13 @@ public class ReadingService {
     ChapterVersionRepository chapterVersionRepository;
     MongoTemplate mongoTemplate;
 
-    public ResponseEntity<Page<ChapterResponse>> getChaptersByStoryId(
+    public Page<ChapterResponse> getChaptersByStoryId(
             String storyId, int page, int size) {
         try{
             log.info("Fetching chapters for story: {}, page: {}, size: {}", storyId, page, size);
             if(!storyRepository.existsById(storyId)){
                 log.error("Story with ID {} not found", storyId);
-                return ResponseEntity.notFound().build();
+                throw new AppException(ErrorCode.STORY_NOT_FOUND);
             }
 
             Pageable pageable = PageRequest.of(page, size);
@@ -62,7 +57,7 @@ public class ReadingService {
                             .build());
 
             log.info("Fetched {} chapters for story {}", chapterPage.getTotalElements(), storyId);
-            return ResponseEntity.ok().body(chapterPage);
+            return chapterPage;
         }
         catch (Exception ex){
             log.error("Error fetching chapters for story {}: {}", storyId, ex.getMessage(), ex);
@@ -70,7 +65,7 @@ public class ReadingService {
         }
     }
 
-    public ResponseEntity<Page<StoryResponse>> getUserStories(
+    public Page<StoryResponse> getUserStories(
             String userId, int page, int size) {
         try{
             log.info("Fetching stories for user: {}, page: {}, size: {}", userId, page, size);
@@ -91,7 +86,7 @@ public class ReadingService {
                             .build());
 
             log.info("Fetched {} stories for user {}", storyPage.getTotalElements(), userId);
-            return ResponseEntity.ok().body(storyPage);
+            return storyPage;
 
         }
         catch(Exception ex){
