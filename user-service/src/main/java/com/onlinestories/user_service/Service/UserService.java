@@ -8,6 +8,8 @@ import com.onlinestories.user_service.DTO.Request.UserUpdateRequest;
 import com.onlinestories.user_service.DTO.Response.UserResponse;
 import com.onlinestories.user_service.DTO.Response.WalletResponse;
 import com.onlinestories.user_service.Entity.User;
+import com.onlinestories.user_service.Exception.AppException;
+import com.onlinestories.user_service.Exception.ErrorCode;
 import com.onlinestories.user_service.Repository.UserRepository;
 import jakarta.ws.rs.core.Response;
 import lombok.AccessLevel;
@@ -20,9 +22,6 @@ import org.keycloak.admin.client.resource.UsersResource;
 import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -46,14 +45,14 @@ public class UserService {
 
 
     @Transactional
-    public ResponseEntity<UserResponse> createUser(UserCreateRequest request) {
+    public UserResponse createUser(UserCreateRequest request) {
         UsersResource usersResource = keycloak.realm(appRealm).users();
 
         // Check if user already exists in Keycloak
         List<UserRepresentation> existingUsers = usersResource.searchByUsername(request.getUsername(), true);
         if (!existingUsers.isEmpty()) {
             log.error("Username {} already exists in Keycloak", request.getUsername());
-            return ResponseEntity.status(HttpStatus.CONFLICT).build();
+            throw new AppException(ErrorCode.USER_EXISTED);
         }
         UserRepresentation userRepresentation = new UserRepresentation();
         userRepresentation.setUsername(request.getUsername());
@@ -67,12 +66,13 @@ public class UserService {
         userRepresentation.setCredentials(Collections.singletonList(credential));
 
         String userId = null;
+        String walletId = null;
 
         try (Response response = usersResource.create(userRepresentation)) {
 
             if (response.getStatus() != 201) {
                 log.error("Failed to create user in Keycloak. Status: {}, Body: {}", response.getStatus(), response.readEntity(String.class));
-                return ResponseEntity.status(response.getStatus()).build();
+                throw new AppException(ErrorCode.USER_CREATION_FAILED);
             }
 
             userId = CreatedResponseUtil.getCreatedId(response);
@@ -80,6 +80,7 @@ public class UserService {
 
             WalletResponse walletResponse = transactionClient.createWallet(userId);
             log.info("Wallet created for userId {}: walletId {}", userId, walletResponse.getWalletId());
+            walletId = walletResponse.getWalletId();
 
             User user = new User();
             user.setUserId(userId);
@@ -97,8 +98,9 @@ public class UserService {
             userResponse.setEmail(request.getEmail());
             userResponse.setDob(request.getDob());
             userResponse.setCreatedAt(user.getCreatedAt());
-            return ResponseEntity.status(HttpStatus.CREATED).body(userResponse);
-        } catch (Exception e) {
+            return userResponse;
+        }
+        catch (Exception e) {
             log.error("Exception while creating user (compensating actions will run): {}", e.getMessage(), e);
 
             // if Keycloak user was created, remove it to avoid orphaned entry
@@ -112,19 +114,28 @@ public class UserService {
 
             }
 
+            if(walletId != null){
+                try {
+                    transactionClient.deleteWallet(walletId);
+                    log.info("Deleted wallet {} during rollback", walletId);
+                } catch (Exception ex) {
+                    log.error("Failed to delete wallet {} during rollback: {}", walletId, ex.getMessage(), ex);
+                }
+            }
+
             // rethrow so @Transactional will roll back DB changes
-            throw new RuntimeException("Failed to create user", e);
+            throw new AppException(ErrorCode.USER_CREATION_FAILED);
         }
     }
 
     @Transactional
-    public ResponseEntity<UserResponse> createUserViaSocial(
+    public UserResponse createUserViaSocial(
             String userId, String email, SocialCreateRequest request){
         log.info("Creating user for social login with userId: {}", userId);
 
         if(userRepository.existsById(userId)){
             log.warn("User with userId {} already exists", userId);
-            return ResponseEntity.status(HttpStatus.CONFLICT).build();
+            throw new AppException(ErrorCode.USER_EXISTED);
         }
 
         try{
@@ -145,15 +156,15 @@ public class UserService {
             userResponse.setEmail(email);
             userResponse.setDob(request.getDob());
             userResponse.setCreatedAt(user.getCreatedAt());
-            return ResponseEntity.status(HttpStatus.CREATED).body(userResponse);
+            return userResponse;
         }
         catch (Exception e){
             log.error("Error creating user for social login: {}", e.getMessage());
-            throw new RuntimeException("Failed to create user for social login", e);
+            throw new AppException(ErrorCode.USER_CREATION_FAILED);
         }
     }
 
-    public ResponseEntity<UserResponse> getMyInfo(String userId) {
+    public UserResponse getMyInfo(String userId) {
         try{
             User user = findUserById(userId);
             UserRepresentation userRep = keycloak.realm(appRealm)
@@ -161,7 +172,7 @@ public class UserService {
                         .get(userId)
                         .toRepresentation();
 
-            UserResponse response = UserResponse.builder()
+            return UserResponse.builder()
                     .userId(user.getUserId())
                     .username(userRep.getUsername())
                     .nickname(user.getNickname())
@@ -170,15 +181,14 @@ public class UserService {
                     .img(user.getImg())
                     .createdAt(user.getCreatedAt())
                     .build();
-            return ResponseEntity.ok().body(response);
         }
         catch (Exception e){
-            log.error("Error retrieving user info for userId {}: {}", e.getMessage());
+            log.error("Error retrieving profile for userId {}: {}", userId, e.getMessage());
             throw e;
         }
     }
 
-    public ResponseEntity<UserResponse> getUserById(String id){
+    public UserResponse getUserById(String id){
         try{
             User user = findUserById(id);
             UserRepresentation userRep = keycloak.realm(appRealm)
@@ -186,22 +196,21 @@ public class UserService {
                     .get(id)
                     .toRepresentation();
 
-            UserResponse response = UserResponse.builder()
+            return UserResponse.builder()
                     .userId(user.getUserId())
                     .username(userRep.getUsername())
                     .email(userRep.getEmail())
                     .dob(user.getDob())
                     .img(user.getImg())
                     .build();
-            return ResponseEntity.ok().body(response);
         }
         catch (Exception e){
-            log.error("Error retrieving user info for userId {}: {}", id, e.getMessage());
+            log.error("Error retrieving profile for userId {}: {}", id, e.getMessage());
             throw e;
         }
     }
 
-    public ResponseEntity<UserResponse> updateProfile(String userId, MultipartFile file, UserUpdateRequest request){
+    public UserResponse updateProfile(String userId, MultipartFile file, UserUpdateRequest request){
         // Implementation for updating user profile goes here
         try{
             User user = findUserById(userId);
@@ -238,7 +247,7 @@ public class UserService {
 
             userRepository.save(user);
 
-            UserResponse response = UserResponse.builder()
+            return UserResponse.builder()
                     .userId(user.getUserId())
                     .username(userRep.getUsername())
                     .email(userRep.getEmail())
@@ -246,7 +255,6 @@ public class UserService {
                     .img(user.getImg())
                     .createdAt(user.getCreatedAt())
                     .build();
-            return ResponseEntity.ok().body(response);
         }
         catch (Exception e){
             log.error(e.getMessage());
@@ -254,12 +262,11 @@ public class UserService {
         }
     }
 
-    public ResponseEntity<String> deleteUser(String userId){
+    public void deleteUser(String userId){
         try{
             User user = findUserById(userId);
             keycloak.realm(appRealm).users().get(userId).remove();
             userRepository.delete(user);
-            return ResponseEntity.ok().body("User deleted successfully");
         }
         catch (Exception e){
             log.error(e.getMessage());
@@ -267,7 +274,8 @@ public class UserService {
         }
     }
 
-    public ResponseEntity<String> followUser(String userId, String followUserId){
+    @Transactional
+    public void followUser(String userId, String followUserId){
         try{
             User user = findUserById(userId);
             User followUser = findUserById(followUserId);
@@ -277,8 +285,7 @@ public class UserService {
 
             userRepository.save(user);
             userRepository.save(followUser);
-            
-            return ResponseEntity.ok().body("Followed user successfully");
+
         }
         catch (Exception e){
             log.error(e.getMessage());
@@ -286,7 +293,8 @@ public class UserService {
         }
     }
 
-    public ResponseEntity<String> unfollowUser(String userId, String followUserId){
+    @Transactional
+    public void unfollowUser(String userId, String followUserId){
         try{
             User user = findUserById(userId);
             User followUser = findUserById(followUserId);
@@ -297,7 +305,6 @@ public class UserService {
             userRepository.save(user);
             userRepository.save(followUser);
 
-            return ResponseEntity.ok().body("Unfollowed user successfully");
         }
         catch (Exception e){
             log.error(e.getMessage());
@@ -305,14 +312,14 @@ public class UserService {
         }
     }
 
-    public ResponseEntity<List<UserResponse>> getFollowers(String userId){
+    public List<UserResponse> getFollowers(String userId){
         try{
             User user = findUserById(userId);
             UserRepresentation userRep = keycloak.realm(appRealm)
                     .users()
                     .get(userId)
                     .toRepresentation();
-            List<UserResponse> followers = user.getFollowerIds().stream()
+            return user.getFollowerIds().stream()
                     .map(this::findUserById)
                     .map(follower -> UserResponse.builder()
                             .userId(follower.getUserId())
@@ -320,7 +327,6 @@ public class UserService {
                             .img(follower.getImg())
                             .build())
                     .toList();
-            return ResponseEntity.ok().body(followers);
         }
         catch (Exception e){
             log.error(e.getMessage());
@@ -328,14 +334,14 @@ public class UserService {
         }
     }
 
-    public ResponseEntity<List<UserResponse>> getFollowing(String userId){
+    public List<UserResponse> getFollowing(String userId){
         try{
             User user = findUserById(userId);
             UserRepresentation userRep = keycloak.realm(appRealm)
                     .users()
                     .get(userId)
                     .toRepresentation();
-            List<UserResponse> following = user.getFollowingIds().stream()
+            return user.getFollowingIds().stream()
                     .map(this::findUserById)
                     .map(follow -> UserResponse.builder()
                             .userId(follow.getUserId())
@@ -343,7 +349,6 @@ public class UserService {
                             .img(follow.getImg())
                             .build())
                     .toList();
-            return ResponseEntity.ok().body(following);
         }
         catch (Exception e){
             log.error(e.getMessage());
@@ -352,9 +357,9 @@ public class UserService {
     }
 
 
-    public ResponseEntity<Boolean> checkUserExistence(String userId){
+    public Boolean checkUserExistence(String userId){
         try{
-            return ResponseEntity.ok().body(userRepository.existsById(userId));
+            return userRepository.existsById(userId);
         }
         catch (Exception e){
             log.error(e.getMessage());
@@ -364,6 +369,6 @@ public class UserService {
 
     private User findUserById(String userId) {
         return userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
     }
 }

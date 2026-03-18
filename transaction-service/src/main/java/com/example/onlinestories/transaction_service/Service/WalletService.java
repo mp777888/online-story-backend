@@ -28,4 +28,10 @@ public class WalletService {
                 .build();
 
     }
+
+    public void deleteWallet(String userId) {
+        log.info("Deleting wallet for userId: {}", userId);
+        walletRepository.deleteByUserId(userId);
+        log.info("Wallet deleted for userId: {}", userId);
+    }
 }

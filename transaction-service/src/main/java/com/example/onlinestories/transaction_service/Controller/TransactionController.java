@@ -30,6 +30,13 @@ public class TransactionController {
         return ResponseEntity.ok(walletService.createWallet(userId));
     }
 
+    @DeleteMapping("/wallet")
+    public ResponseEntity<Void> deleteWallet(@RequestBody String userId){
+        log.info("Received request to delete wallet");
+        walletService.deleteWallet(userId);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/vn-pay")
     public ResponseEntity<String> createVNPayTransaction(HttpServletRequest request){
         log.info("Received request to create VNPay transaction");

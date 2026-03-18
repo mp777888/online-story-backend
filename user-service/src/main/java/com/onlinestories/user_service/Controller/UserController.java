@@ -4,13 +4,14 @@ import com.onlinestories.user_service.DTO.Request.SocialCreateRequest;
 import com.onlinestories.user_service.DTO.Request.UserCreateRequest;
 import com.onlinestories.user_service.DTO.Request.UserUpdateRequest;
 import com.onlinestories.user_service.DTO.Response.UserResponse;
+import com.onlinestories.user_service.Exception.ApiResponse;
 import com.onlinestories.user_service.Service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.AccessLevel;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -28,95 +29,129 @@ public class UserController {
     UserService userService;
 
     @PostMapping
-    public ResponseEntity<UserResponse> registerUser(@RequestBody UserCreateRequest request) {
+    public ApiResponse<UserResponse> registerUser(@RequestBody UserCreateRequest request) {
         log.info("Received registration request for username={}", request.getUsername());
-        return userService.createUser(request);
+        return ApiResponse.<UserResponse>builder()
+                .code(200)
+                .message("User registered successfully")
+                .result(userService.createUser(request))
+                .build();
     }
 
     @PostMapping("/social")
-    public ResponseEntity<UserResponse> registerUserViaSocial(
+    public ApiResponse<UserResponse> registerUserViaSocial(
             @AuthenticationPrincipal Jwt jwt,
             @RequestBody SocialCreateRequest request) {
         String userId = jwt.getSubject();
         String email = jwt.getClaimAsString("email");
 
         log.info("Received social registration request for userId={} with email={}", userId, email);
-        return userService.createUserViaSocial(userId,email,request);
+        return ApiResponse.<UserResponse>builder()
+                .code(200)
+                .message("User registered successfully via social login")
+                .result(userService.createUserViaSocial(userId, email, request))
+                .build();
     }
 
     @GetMapping
-    public ResponseEntity<UserResponse> getMyInfo(@AuthenticationPrincipal Jwt jwt) {
+    public ApiResponse<UserResponse> getMyInfo(@AuthenticationPrincipal Jwt jwt) {
         String userId = jwt.getSubject();
         log.info("Received request to get profile for userId={}", userId);
-        return userService.getMyInfo(userId);
+        return ApiResponse.<UserResponse>builder()
+                .code(200)
+                .result(userService.getMyInfo(userId))
+                .build();
     }
 
     @PutMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<UserResponse> updateUserProfile(
+    public ApiResponse<UserResponse> updateUserProfile(
             @AuthenticationPrincipal Jwt jwt,
             @RequestPart(value = "file", required = false) MultipartFile file,
             @RequestPart("data") UserUpdateRequest request) {
         String userId = jwt.getSubject();
         log.info("Received profile update request for userId={}", userId);
-        return userService.updateProfile(userId,file,request);
+        return ApiResponse.<UserResponse>builder()
+                .code(200)
+                .message("User profile updated successfully")
+                .result(userService.updateProfile(userId, file, request))
+                .build();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<UserResponse> getUserById(@PathVariable String id) {
+    public ApiResponse<UserResponse> getUserById(@PathVariable String id) {
         log.info("Received request to get user profile for userId={}", id);
-        return userService.getUserById(id);
+        return ApiResponse.<UserResponse>builder()
+                .code(200)
+                .result(userService.getUserById(id))
+                .build();
     }
 
     @DeleteMapping
-    public ResponseEntity<String> deleteUser(@AuthenticationPrincipal Jwt jwt) {
+    public ApiResponse<String> deleteUser(@AuthenticationPrincipal Jwt jwt) {
         String userId = jwt.getSubject();
         log.info("Received request to delete account for userId={}", userId);
-        return userService.deleteUser(userId);
+        userService.deleteUser(userId);
+        return ApiResponse.<String>builder()
+                .code(200)
+                .message("User account deleted successfully")
+                .build();
     }
 
     @PostMapping("/follow")
-    public ResponseEntity<String> followUser(
+    public ApiResponse<String> followUser(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam String followUserId
     ) {
         String userId = jwt.getSubject();
         log.info("Received follow request from userId={} to targetUserId={}",userId, followUserId);
-        return userService.followUser(userId, followUserId);
+        userService.followUser(userId, followUserId);
+        return ApiResponse.<String>builder()
+                .code(200)
+                .message("Successfully followed user with id: " + followUserId)
+                .build();
     }
 
     @PostMapping("/unfollow")
-    public ResponseEntity<String> unfollowUser(
+    public ApiResponse<String> unfollowUser(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam String followUserId
     ) {
         String userId = jwt.getSubject();
         log.info("Received unfollow request from userId={} to targetUserId={}",userId, followUserId);
-        return userService.unfollowUser(userId, followUserId);
+        userService.unfollowUser(userId, followUserId);
+        return ApiResponse.<String>builder()
+                .code(200)
+                .message("Successfully unfollowed user with id: " + followUserId)
+                .build();
     }
 
     @GetMapping("/follower")
-    public ResponseEntity<List<UserResponse>> getFollowers(@AuthenticationPrincipal Jwt jwt) {
+    public ApiResponse<List<UserResponse>> getFollowers(@AuthenticationPrincipal Jwt jwt) {
         String userId = jwt.getSubject();
         log.info("Received request to get followers for userId={}", userId);
-        return userService.getFollowers(userId);
+        return ApiResponse.<List<UserResponse>>builder()
+                .code(200)
+                .result(userService.getFollowers(userId))
+                .build();
     }
 
     @GetMapping("/following")
-    public ResponseEntity<List<UserResponse>> getFollowing(@AuthenticationPrincipal Jwt jwt) {
+    public ApiResponse<List<UserResponse>> getFollowing(@AuthenticationPrincipal Jwt jwt) {
         String userId = jwt.getSubject();
         log.info("Received request to get following for userId={}", userId);
-        return userService.getFollowing(userId);
-    }
-
-    @GetMapping("/ping")
-    public ResponseEntity<String> ping() {
-        return ResponseEntity.ok("user-service alive");
+        return ApiResponse.<List<UserResponse>>builder()
+                .code(200)
+                .result(userService.getFollowing(userId))
+                .build();
     }
 
     @GetMapping("/exists")
-    public ResponseEntity<Boolean> checkUserExistence(@RequestParam String userId) {
+    public ApiResponse<Boolean> checkUserExistence(@RequestParam String userId) {
         log.info("Received request to check existence for userId={}", userId);
-        return userService.checkUserExistence(userId);
+        return ApiResponse.<Boolean>builder()
+                .code(200)
+                .result(userService.checkUserExistence(userId))
+                .build();
     }
 
 }
