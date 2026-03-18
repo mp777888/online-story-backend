@@ -11,6 +11,7 @@ spring:
     mongodb:
       uri: ${MONGODB_URI}
       database: ${MONGODB_DB}
+      auto-index-creation: true
   security:
     oauth2:
       resourceserver:

@@ -16,7 +16,9 @@ public enum ErrorCode {
     CHAPTER_ALREADY_PUBLISHED(2007, "Chapter is already published", HttpStatus.BAD_REQUEST),
     NOT_AUTHOR_OF_STORY(2008, "User is not the author of the story", HttpStatus.FORBIDDEN),
     GENRE_NOT_FOUND(2009, "Genre not found", HttpStatus.NOT_FOUND),
-    GENRE_ALREADY_EXISTS(2010, "Genre already exists", HttpStatus.BAD_REQUEST)
+    GENRE_ALREADY_EXISTS(2010, "Genre already exists", HttpStatus.BAD_REQUEST),
+    PARENT_COMMENT_NOT_FOUND(2011, "Parent comment not found", HttpStatus.NOT_FOUND),
+    CHAPTER_IS_NOT_PUBLISHED(2012, "Chapter is not published", HttpStatus.BAD_REQUEST),
 
     ;
     private int code;
