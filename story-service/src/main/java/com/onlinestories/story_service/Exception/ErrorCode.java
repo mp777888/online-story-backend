@@ -18,7 +18,10 @@ public enum ErrorCode {
     GENRE_NOT_FOUND(2009, "Genre not found", HttpStatus.NOT_FOUND),
     GENRE_ALREADY_EXISTS(2010, "Genre already exists", HttpStatus.BAD_REQUEST),
     PARENT_COMMENT_NOT_FOUND(2011, "Parent comment not found", HttpStatus.NOT_FOUND),
-    CHAPTER_IS_NOT_PUBLISHED(2012, "Chapter is not published", HttpStatus.BAD_REQUEST),
+    STORY_IS_NOT_PUBLISHED(2012, "Story is not published", HttpStatus.BAD_REQUEST),
+    CHAPTER_IS_NOT_PUBLISHED(2013, "Chapter is not published", HttpStatus.BAD_REQUEST),
+    RATING_ALREADY_EXISTS(2014, "User has already rated this story", HttpStatus.BAD_REQUEST),
+    STORY_IS_COMPLETED(2015, "Story is already completed", HttpStatus.BAD_REQUEST)
 
     ;
     private int code;

@@ -8,7 +8,6 @@ import com.onlinestories.story_service.DTO.Response.ChapterResponse;
 import com.onlinestories.story_service.DTO.Response.StoryResponse;
 import com.onlinestories.story_service.DTO.Response.UserResponse;
 import com.onlinestories.story_service.Entity.Story;
-import com.onlinestories.story_service.Enum.ChapterStatus;
 import com.onlinestories.story_service.Enum.StoryStatus;
 import com.onlinestories.story_service.Exception.AppException;
 import com.onlinestories.story_service.Exception.ErrorCode;
@@ -104,6 +103,8 @@ public class StoryService {
                     .description(story.getDescription())
                     .img(story.getImg())
                     .status(story.getStatus().name())
+                    .averageRatingScore(story.getAverageRatingScore())
+                    .totalRatingCount(story.getTotalRatingCount())
                     .numberOfChapters(story.getNumberOfChapters())
                     .genres(story.getGenres().stream()
                             .map(Story.GenreSummary::getName)
@@ -130,6 +131,8 @@ public class StoryService {
                             .img(story.getImg())
                             .status(story.getStatus().name())
                             .numberOfChapters(story.getNumberOfChapters())
+                            .averageRatingScore(story.getAverageRatingScore())
+                            .totalRatingCount(story.getTotalRatingCount())
                             .genres(story.getGenres()
                                     .stream()
                                     .map(Story.GenreSummary::getName)
@@ -190,6 +193,8 @@ public class StoryService {
                     .img(story.getImg())
                     .status(story.getStatus().name())
                     .numberOfChapters(story.getNumberOfChapters())
+                    .averageRatingScore(story.getAverageRatingScore())
+                    .totalRatingCount(story.getTotalRatingCount())
                     .genres(story.getGenres().stream()
                             .map(Story.GenreSummary::getName)
                             .collect(Collectors.toSet()))
@@ -209,7 +214,9 @@ public class StoryService {
             log.info("Fetching chapters for story: {}, page: {}, size: {}", storyId, page, size);
 
             Story story = storyRepository.findById(storyId)
-                    .orElseThrow(() -> new RuntimeException("Story not found: " + storyId));
+                    .orElseThrow(() -> new AppException(ErrorCode.STORY_NOT_FOUND));
+
+
             if(!story.getAuthorId().equals(authorId)){
                 log.error("Unauthorized access: User {} is not the author of story {}", authorId, storyId);
                 throw new AppException(ErrorCode.NOT_AUTHOR_OF_STORY);

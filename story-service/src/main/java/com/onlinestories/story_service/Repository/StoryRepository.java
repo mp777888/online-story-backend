@@ -15,4 +15,9 @@ public interface StoryRepository extends MongoRepository<Story, String> {
     Page<Story> findByAuthorIdAndStatus(String authorId, StoryStatus status, Pageable pageable);
     Page<Story> findByStatus(String status, Pageable pageable);
     Page<Story> findByTitleContainingIgnoreCase(String title, Pageable pageable);
+    Page<Story> findByStatusNotAndAverageRatingScoreGreaterThan(
+            StoryStatus status,
+            double minAverageRatingScore,
+            Pageable pageable
+    );
 }

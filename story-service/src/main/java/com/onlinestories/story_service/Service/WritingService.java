@@ -12,6 +12,7 @@ import com.onlinestories.story_service.Entity.ChapterDraft;
 import com.onlinestories.story_service.Entity.ChapterVersion;
 import com.onlinestories.story_service.Entity.Story;
 import com.onlinestories.story_service.Enum.ChapterStatus;
+import com.onlinestories.story_service.Enum.StoryStatus;
 import com.onlinestories.story_service.Exception.AppException;
 import com.onlinestories.story_service.Exception.ErrorCode;
 import com.onlinestories.story_service.Repository.ChapterDraftRepository;
@@ -377,6 +378,16 @@ public class WritingService {
             log.info("Publishing chapter with ID: {}", request.getChapterId());
             Story story = storyRepository.findById(request.getStoryId())
                     .orElseThrow(() -> new AppException(ErrorCode.STORY_NOT_FOUND));
+
+            if(story.getStatus().equals(StoryStatus.DRAFT)){
+                log.warn("Story with ID: {} is in DRAFT status and cannot publish chapters", request.getStoryId());
+                throw new AppException(ErrorCode.STORY_IS_NOT_PUBLISHED);
+            }
+
+            if (story.getStatus().equals(StoryStatus.COMPLETED)) {
+                log.warn("Story with ID: {} is already completed and cannot publish new chapters", request.getStoryId());
+                throw new AppException(ErrorCode.STORY_IS_COMPLETED);
+            }
 
             Chapter chapter = chapterRepository.findById(request.getChapterId())
                     .orElseThrow(() -> new AppException(ErrorCode.CHAPTER_NOT_FOUND));
