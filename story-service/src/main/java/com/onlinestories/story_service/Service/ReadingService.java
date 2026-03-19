@@ -53,6 +53,7 @@ public class ReadingService {
                     .map(chapter -> ChapterResponse.builder()
                             .chapterId(chapter.getChapterId())
                             .title(chapter.getTitle())
+                            .img(chapter.getImg())
                             .createdAt(chapter.getCreatedAt())
                             .build());
 
@@ -185,11 +186,11 @@ public class ReadingService {
                     .findByUserId(userId, pageable)
                     .map(history -> {
                         String chapterName = chapterRepository.findById(history.getChapterId())
-                                .map(chapter -> chapter.getTitle())
-                                .orElse("Unknown Chapter");
+                                .map(Chapter::getTitle)
+                                .orElseThrow(() -> new AppException(ErrorCode.CHAPTER_NOT_FOUND));
                         String storyName = storyRepository.findById(history.getStoryId())
-                                .map(story -> story.getTitle())
-                                .orElse("Unknown Story");
+                                .map(Story::getTitle)
+                                .orElseThrow(() -> new AppException(ErrorCode.STORY_NOT_FOUND));
 
                         return ReadingHistoryResponse.builder()
                                 .historyId(history.getHistoryId())
