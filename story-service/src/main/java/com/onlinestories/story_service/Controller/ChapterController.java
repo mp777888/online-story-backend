@@ -15,11 +15,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
-import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("api/stories/chapters")
@@ -54,12 +53,15 @@ public class ChapterController {
     }
 
     @GetMapping("/details")
-    public ApiResponse<ChapterResponse> getChapterDetails(@RequestParam String chapterId){
+    public ApiResponse<ChapterResponse> getChapterDetails(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam String chapterId){
+        String userId = jwt.getSubject();
         log.info("Received request to fetch chapter details for chapter ID: {}", chapterId);
         return ApiResponse.<ChapterResponse>builder()
                 .code(200)
                 .message("Chapter details fetched successfully")
-                .result(writingService.getChapterDetails(chapterId))
+                .result(writingService.getChapterDetails(userId,chapterId))
                 .build();
     }
 
@@ -130,9 +132,13 @@ public class ChapterController {
     }
 
     @GetMapping("/read")
-    public ResponseEntity<VersionResponse> readChapter(@RequestParam String chapterId){
+    public ApiResponse<VersionResponse> readChapter(@RequestParam String chapterId){
         log.info("Received request to read chapter ID: {}", chapterId);
-        return readingService.getContentForReading(chapterId);
+        return ApiResponse.<VersionResponse>builder()
+                .code(200)
+                .message("Chapter read successfully")
+                .result(readingService.getContentForReading(chapterId))
+                .build();
     }
 
     @GetMapping("/version")
@@ -192,6 +198,20 @@ public class ChapterController {
                 .code(200)
                 .message("Chapter read and history updated successfully")
                 .result(readingService.readChapter(userId, storyId, chapterId))
+                .build();
+    }
+
+    @GetMapping("/reading-history")
+    public ApiResponse<Page<ReadingHistoryResponse>> getReadingHistory(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size){
+        String userId = jwt.getSubject();
+        log.info("Received request to fetch reading history for user ID: {}", userId);
+        return ApiResponse.<Page<ReadingHistoryResponse>>builder()
+                .code(200)
+                .message("Reading history fetched successfully")
+                .result(readingService.getReadingHistory(userId, page, size))
                 .build();
     }
 

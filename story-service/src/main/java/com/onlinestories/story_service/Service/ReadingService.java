@@ -21,7 +21,6 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,13 +39,19 @@ public class ReadingService {
     MongoTemplate mongoTemplate;
 
     public Page<ChapterResponse> getChaptersByStoryId(
-            String storyId, int page, int size) {
+            String userId, String storyId, int page, int size) {
         try{
             log.info("Fetching chapters for story: {}, page: {}, size: {}", storyId, page, size);
-            if(!storyRepository.existsById(storyId)){
-                log.error("Story with ID {} not found", storyId);
-                throw new AppException(ErrorCode.STORY_NOT_FOUND);
+
+            Story story = storyRepository.findById(storyId)
+                    .orElseThrow(() -> new AppException(ErrorCode.STORY_NOT_FOUND));
+
+
+            if(story.getStatus().equals(StoryStatus.DRAFT) && !story.getAuthorId().equals(userId)){
+                log.warn("Story {} is not published. Current status: {}", storyId, story.getStatus());
+                throw new AppException(ErrorCode.NOT_AUTHOR_OF_STORY);
             }
+
 
             Pageable pageable = PageRequest.of(page, size);
             Page<ChapterResponse> chapterPage = chapterRepository.findByStoryIdAndStatus(storyId, ChapterStatus.PUBLISHED, pageable)
@@ -106,9 +111,14 @@ public class ReadingService {
         Chapter chapter = chapterRepository.findById(chapterId)
                 .orElseThrow(() -> new RuntimeException("Chapter not found with ID: " + chapterId));
 
+        if(story.getStatus().equals(StoryStatus.DRAFT)){
+            log.warn("Story {} is not published. Current status: {}", storyId, story.getStatus());
+            throw new AppException(ErrorCode.STORY_IS_NOT_PUBLISHED);
+        }
+
         if(chapter.getStatus() != ChapterStatus.PUBLISHED){
             log.warn("Chapter {} is not published. Current status: {}", chapterId, chapter.getStatus());
-            throw new RuntimeException("Chapter is not available for reading");
+            throw new AppException(ErrorCode.CHAPTER_IS_NOT_PUBLISHED);
         }
 
         ReadingHistory history = readingHistoryRepository.findByUserIdAndStoryId(userId, storyId)
@@ -147,61 +157,52 @@ public class ReadingService {
         return ReadingHistoryResponse.builder()
                 .historyId(history.getHistoryId())
                 .userId(userId)
-                .storyName(story.getTitle())
-                .chapterName(chapter.getTitle())
+                .storyId(storyId)
+                .chapterId(chapterId)
                 .lastReadAt(readAt)
                 .build();
     }
 
-    public ResponseEntity<VersionResponse> getContentForReading(String chapterId) {
+    public VersionResponse getContentForReading(String chapterId) {
         try{
             log.info("Fetching chapter version details for chapterId: {}", chapterId);
             ChapterVersion version = chapterVersionRepository.findByChapterIdAndIsPublishedTrue(chapterId);
 
             if(version == null){
                 log.warn("Published chapter version not found for chapterId: {}", chapterId);
-                return ResponseEntity.status(404).build();
+                throw new AppException(ErrorCode.VERSION_NOT_FOUND);
             }
 
             log.info("Chapter version details fetched successfully for chapterId: {}", chapterId);
-            return ResponseEntity.ok().body(VersionResponse.builder()
+            return VersionResponse.builder()
                     .versionId(version.getChapterVersionId())
                     .chapterId(version.getChapterId())
                     .versionName(version.getVersionName())
                     .content(version.getContent())
                     .createdAt(version.getCreatedAt())
-                    .build());
+                    .build();
         } catch (Exception e){
             log.error("Error fetching chapter version details: {}", e.getMessage());
             throw e;
         }
     }
 
-    public ResponseEntity<Page<ReadingHistoryResponse>> getReadingHistory(
+    public Page<ReadingHistoryResponse> getReadingHistory(
             String userId, int page, int size){
         try{
             log.info("Fetching reading history for user: {}", userId);
             Pageable pageable = PageRequest.of(page, size);
             Page<ReadingHistoryResponse> historyPage = readingHistoryRepository
                     .findByUserId(userId, pageable)
-                    .map(history -> {
-                        String chapterName = chapterRepository.findById(history.getChapterId())
-                                .map(Chapter::getTitle)
-                                .orElseThrow(() -> new AppException(ErrorCode.CHAPTER_NOT_FOUND));
-                        String storyName = storyRepository.findById(history.getStoryId())
-                                .map(Story::getTitle)
-                                .orElseThrow(() -> new AppException(ErrorCode.STORY_NOT_FOUND));
-
-                        return ReadingHistoryResponse.builder()
-                                .historyId(history.getHistoryId())
-                                .userId(history.getUserId())
-                                .storyName(storyName)
-                                .chapterName(chapterName)
-                                .lastReadAt(history.getLastReadAt())
-                                .build();
-                    });
+                    .map(history -> ReadingHistoryResponse.builder()
+                            .historyId(history.getHistoryId())
+                            .userId(history.getUserId())
+                            .storyId(history.getStoryId())
+                            .chapterId(history.getChapterId())
+                            .lastReadAt(history.getLastReadAt())
+                            .build());
             log.info("Reading history fetched successfully, total records: {}", historyPage.getTotalElements());
-            return ResponseEntity.ok().body(historyPage);
+            return historyPage;
         }
         catch(Exception e){
             log.error("Error fetching reading history: {}", e.getMessage());

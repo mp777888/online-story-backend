@@ -7,7 +7,6 @@ import com.onlinestories.story_service.DTO.Response.StoryResponse;
 import com.onlinestories.story_service.Exception.ApiResponse;
 import com.onlinestories.story_service.Service.ReadingService;
 import com.onlinestories.story_service.Service.StoryService;
-import com.onlinestories.story_service.Service.WritingService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -26,7 +25,6 @@ import org.springframework.web.multipart.MultipartFile;
 public class StoryController {
     StoryService storyService;
     ReadingService readingService;
-    private final WritingService writingService;
 
     @PostMapping
     public ApiResponse<StoryResponse> createNewStory(
@@ -43,12 +41,15 @@ public class StoryController {
     }
 
     @GetMapping("/details")
-    public ApiResponse<StoryResponse> getStoryDetails(@RequestParam String storyId) {
+    public ApiResponse<StoryResponse> getStoryDetails(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam String storyId) {
+        String userId = jwt.getSubject();
         log.info("Received request to fetch story details for story ID: {}", storyId);
         return ApiResponse.<StoryResponse>builder()
                 .code(200)
                 .message("Story details fetched successfully")
-                .result(storyService.getStoryDetails(storyId))
+                .result(storyService.getStoryDetails(userId,storyId))
                 .build();
     }
 
@@ -81,29 +82,16 @@ public class StoryController {
 
     @GetMapping("/list-chapters")
     public ApiResponse<Page<ChapterResponse>> getStoryWithChapters(
-            @RequestParam String storyId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        log.info("Received request to fetch story with chapters for story ID: {}", storyId);
-        return ApiResponse.<Page<ChapterResponse>>builder()
-                .code(200)
-                .message("Story with chapters fetched successfully")
-                .result(readingService.getChaptersByStoryId(storyId, page, size))
-                .build();
-    }
-
-    @GetMapping("/my-story/list-chapters")
-    public ApiResponse<Page<ChapterResponse>> getMyStoryWithChapters(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam String storyId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        String authorId = jwt.getSubject();
-        log.info("Received request to fetch my story with chapters for story ID: {}", storyId);
+        String userId = jwt.getSubject();
+        log.info("Received request to fetch story with chapters for story ID: {}", storyId);
         return ApiResponse.<Page<ChapterResponse>>builder()
                 .code(200)
-                .message("My story with chapters fetched successfully")
-                .result(storyService.getChaptersForManagement(authorId, storyId, page, size))
+                .message("Story with chapters fetched successfully")
+                .result(readingService.getChaptersByStoryId(userId,storyId, page, size))
                 .build();
     }
 

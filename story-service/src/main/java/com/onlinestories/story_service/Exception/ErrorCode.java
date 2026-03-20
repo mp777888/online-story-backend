@@ -21,7 +21,8 @@ public enum ErrorCode {
     STORY_IS_NOT_PUBLISHED(2012, "Story is not published", HttpStatus.BAD_REQUEST),
     CHAPTER_IS_NOT_PUBLISHED(2013, "Chapter is not published", HttpStatus.BAD_REQUEST),
     RATING_ALREADY_EXISTS(2014, "User has already rated this story", HttpStatus.BAD_REQUEST),
-    STORY_IS_COMPLETED(2015, "Story is already completed", HttpStatus.BAD_REQUEST)
+    STORY_IS_COMPLETED(2015, "Story is already completed", HttpStatus.BAD_REQUEST),
+    ACCESS_DENIED(2900, "Access denied", HttpStatus.FORBIDDEN)
 
     ;
     private int code;

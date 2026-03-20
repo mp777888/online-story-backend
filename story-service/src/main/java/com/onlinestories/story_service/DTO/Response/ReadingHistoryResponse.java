@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 public class ReadingHistoryResponse {
     String historyId;
     String userId;
-    String storyName;
-    String chapterName;
+    String storyId;
+    String chapterId;
     LocalDateTime lastReadAt;
 }

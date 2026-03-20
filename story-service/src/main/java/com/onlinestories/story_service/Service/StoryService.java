@@ -4,7 +4,6 @@ import com.onlinestories.story_service.Client.MediaClient;
 import com.onlinestories.story_service.Client.UserClient;
 import com.onlinestories.story_service.DTO.Request.CreateStoryRequest;
 import com.onlinestories.story_service.DTO.Request.UpdateStoryRequest;
-import com.onlinestories.story_service.DTO.Response.ChapterResponse;
 import com.onlinestories.story_service.DTO.Response.StoryResponse;
 import com.onlinestories.story_service.DTO.Response.UserResponse;
 import com.onlinestories.story_service.Entity.Story;
@@ -90,11 +89,16 @@ public class StoryService {
     }
 
     // Get story details
-    public StoryResponse getStoryDetails(String storyId) {
+    public StoryResponse getStoryDetails(String userId, String storyId) {
         try{
             log.info("Fetching details for story: {}", storyId);
             Story story = storyRepository.findById(storyId)
                     .orElseThrow(() -> new AppException(ErrorCode.STORY_NOT_FOUND));
+
+            if(story.getStatus() == StoryStatus.DRAFT && !story.getAuthorId().equals(userId)){
+                log.error("Unauthorized access: User {} is not the author of story {} and story is in DRAFT status", userId, storyId);
+                throw new AppException(ErrorCode.NOT_AUTHOR_OF_STORY);
+            }
 
             return StoryResponse.builder()
                     .storyId(story.getStoryId())
@@ -207,37 +211,7 @@ public class StoryService {
     }
 
 
-    // Get chapters for authors to manage
-    public Page<ChapterResponse> getChaptersForManagement(
-            String authorId, String storyId, int page, int size) {
-        try{
-            log.info("Fetching chapters for story: {}, page: {}, size: {}", storyId, page, size);
 
-            Story story = storyRepository.findById(storyId)
-                    .orElseThrow(() -> new AppException(ErrorCode.STORY_NOT_FOUND));
-
-
-            if(!story.getAuthorId().equals(authorId)){
-                log.error("Unauthorized access: User {} is not the author of story {}", authorId, storyId);
-                throw new AppException(ErrorCode.NOT_AUTHOR_OF_STORY);
-            }
-
-            Pageable pageable = PageRequest.of(page, size);
-            Page<ChapterResponse> chapterPage = chapterRepository.findByStoryId(storyId, pageable)
-                    .map(chapter -> ChapterResponse.builder()
-                            .chapterId(chapter.getChapterId())
-                            .title(chapter.getTitle())
-                            .createdAt(chapter.getCreatedAt())
-                            .build());
-
-            log.info("Fetched {} chapters for story {}", chapterPage.getTotalElements(), storyId);
-            return chapterPage;
-        }
-        catch (Exception ex){
-            logger.error("Error fetching chapters for story {}: {}", storyId, ex.getMessage(), ex);
-            throw ex;
-        }
-    }
 
     // Get stories by filters: genre, author, status
     public ResponseEntity<?> getStoriesBy(){

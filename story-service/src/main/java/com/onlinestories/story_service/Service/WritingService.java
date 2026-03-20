@@ -89,11 +89,20 @@ public class WritingService {
     }
 
     // Get chapter details
-    public ChapterResponse getChapterDetails(String chapterId) {
+    public ChapterResponse getChapterDetails(String userId, String chapterId) {
         try {
             log.info("Fetching chapter details for chapterId: {}", chapterId);
             Chapter chapter = chapterRepository.findById(chapterId)
                     .orElseThrow(() -> new AppException(ErrorCode.CHAPTER_NOT_FOUND));
+
+            if(!chapter.getStatus().equals(ChapterStatus.PUBLISHED)){
+                Story story = storyRepository.findById(chapter.getStoryId())
+                        .orElseThrow(() -> new AppException(ErrorCode.STORY_NOT_FOUND));
+                if(!story.getAuthorId().equals(userId)){
+                    log.warn("User with ID: {} is not the author of the story and cannot access draft chapter details", userId);
+                    throw new AppException(ErrorCode.ACCESS_DENIED);
+                }
+            }
 
             return ChapterResponse.builder()
                     .chapterId(chapter.getChapterId())
