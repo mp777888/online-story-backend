@@ -48,11 +48,8 @@ public class ReadingService {
 
             Pageable pageable = PageRequest.of(page, size);
             Page<ChapterResponse> chapterPage;
-            if(story.getStatus().equals(StoryStatus.DRAFT)) {
-                if (!story.getAuthorId().equals(userId)) {
-                    log.warn("User {} is not the author of story {}. Access denied.", userId, storyId);
-                    throw new AppException(ErrorCode.NOT_AUTHOR_OF_STORY);
-                }
+            if(story.getAuthorId().equals(userId)) {
+                log.info("User {} is the author of story {}, fetching all chapters including drafts", userId, storyId);
                 chapterPage = chapterRepository.findByStoryId(storyId, pageable)
                         .map(chapter -> ChapterResponse.builder()
                                 .chapterId(chapter.getChapterId())
@@ -62,6 +59,7 @@ public class ReadingService {
                                 .build());
             }
             else{
+                log.info("User {} is not the author of story {}, fetching only published chapters", userId, storyId);
                 chapterPage = chapterRepository.findByStoryIdAndStatus(storyId, ChapterStatus.PUBLISHED, pageable)
                         .map(chapter -> ChapterResponse.builder()
                                 .chapterId(chapter.getChapterId())
