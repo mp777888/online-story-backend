@@ -46,22 +46,30 @@ public class ReadingService {
             Story story = storyRepository.findById(storyId)
                     .orElseThrow(() -> new AppException(ErrorCode.STORY_NOT_FOUND));
 
-
-            if(story.getStatus().equals(StoryStatus.DRAFT) && !story.getAuthorId().equals(userId)){
-                log.warn("Story {} is not published. Current status: {}", storyId, story.getStatus());
-                throw new AppException(ErrorCode.NOT_AUTHOR_OF_STORY);
-            }
-
-
             Pageable pageable = PageRequest.of(page, size);
-            Page<ChapterResponse> chapterPage = chapterRepository.findByStoryIdAndStatus(storyId, ChapterStatus.PUBLISHED, pageable)
-                    .map(chapter -> ChapterResponse.builder()
-                            .chapterId(chapter.getChapterId())
-                            .title(chapter.getTitle())
-                            .img(chapter.getImg())
-                            .createdAt(chapter.getCreatedAt())
-                            .build());
-
+            Page<ChapterResponse> chapterPage;
+            if(story.getStatus().equals(StoryStatus.DRAFT)) {
+                if (!story.getAuthorId().equals(userId)) {
+                    log.warn("User {} is not the author of story {}. Access denied.", userId, storyId);
+                    throw new AppException(ErrorCode.NOT_AUTHOR_OF_STORY);
+                }
+                chapterPage = chapterRepository.findByStoryId(storyId, pageable)
+                        .map(chapter -> ChapterResponse.builder()
+                                .chapterId(chapter.getChapterId())
+                                .title(chapter.getTitle())
+                                .img(chapter.getImg())
+                                .createdAt(chapter.getCreatedAt())
+                                .build());
+            }
+            else{
+                chapterPage = chapterRepository.findByStoryIdAndStatus(storyId, ChapterStatus.PUBLISHED, pageable)
+                        .map(chapter -> ChapterResponse.builder()
+                                .chapterId(chapter.getChapterId())
+                                .title(chapter.getTitle())
+                                .img(chapter.getImg())
+                                .createdAt(chapter.getCreatedAt())
+                                .build());
+            }
             log.info("Fetched {} chapters for story {}", chapterPage.getTotalElements(), storyId);
             return chapterPage;
         }
@@ -209,4 +217,6 @@ public class ReadingService {
             throw e;
         }
     }
+
+
 }
