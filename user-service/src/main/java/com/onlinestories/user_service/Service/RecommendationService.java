@@ -26,18 +26,18 @@ public class RecommendationService {
         return user.getCategories() == null || user.getCategories().isEmpty();
     }
 
-    public ResponseEntity<String> addCategories(String userId, List<String> categories) {
+    public String addCategories(String userId, List<String> categoryIds) {
         User user = userRepository.findById(userId).orElseThrow(()
                 -> new RuntimeException("User not found"));
-        user.getCategories().addAll(categories);
+        user.getCategories().addAll(categoryIds);
         userRepository.save(user);
-        return ResponseEntity.ok("Categories added successfully");
+        return "Categories added successfully";
     }
 
-    public ResponseEntity<List<String>> getUserCategories(String userId) {
+    public List<String> getUserCategories(String userId) {
         User user = userRepository.findById(userId).orElseThrow(()
                 -> new RuntimeException("User not found"));
-        return ResponseEntity.ok(user.getCategories().stream().toList());
+        return user.getCategories().stream().toList();
     }
 
 }

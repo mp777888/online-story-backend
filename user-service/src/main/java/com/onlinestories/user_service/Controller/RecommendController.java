@@ -2,6 +2,7 @@ package com.onlinestories.user_service.Controller;
 
 import com.onlinestories.user_service.DTO.Request.PackageRegisterRequest;
 import com.onlinestories.user_service.DTO.Response.PackageResponse;
+import com.onlinestories.user_service.Exception.ApiResponse;
 import com.onlinestories.user_service.Service.PackageService;
 import com.onlinestories.user_service.Service.RecommendationService;
 import lombok.AccessLevel;
@@ -24,26 +25,38 @@ public class RecommendController {
     RecommendationService recommendationService;
 
     @PostMapping("/categories")
-    public ResponseEntity<String> addCategories(
+    public ApiResponse<String> addCategories(
             @AuthenticationPrincipal Jwt jwt,
             @RequestBody List<String> categories) {
         String userId = jwt.getSubject();
         log.info("Received request to add categories for userId={}, categories={}", userId, categories);
-        return recommendationService.addCategories(userId, categories);
+        return ApiResponse.<String>builder()
+                .code(200)
+                .message("Categories added successfully")
+                .result(recommendationService.addCategories(userId, categories))
+                .build();
     }
 
     @GetMapping("/categories")
-    public ResponseEntity<Boolean> isCategoriesEmpty(@AuthenticationPrincipal Jwt jwt) {
+    public ApiResponse<Boolean> isCategoriesEmpty(@AuthenticationPrincipal Jwt jwt) {
         String userId = jwt.getSubject();
         log.info("Received request to check if categories are empty for userId={}", userId);
         Boolean isEmpty = recommendationService.isCategoriesEmpty(userId);
-        return ResponseEntity.ok(isEmpty);
+        return ApiResponse.<Boolean>builder()
+                .code(200)
+                .message("Categories empty check completed successfully")
+                .result(isEmpty)
+                .build();
     }
 
     @GetMapping("/categories/list")
-    public ResponseEntity<List<String>> getUserCategories(@AuthenticationPrincipal Jwt jwt) {
+    public ApiResponse<List<String>> getUserCategories(@AuthenticationPrincipal Jwt jwt) {
         String userId = jwt.getSubject();
         log.info("Received request to get user categories for userId={}", userId);
-        return recommendationService.getUserCategories(userId);
+        return ApiResponse.<List<String>>builder()
+                .code(200)
+                .message("User categories retrieved successfully")
+                .result(recommendationService.getUserCategories(userId))
+                .build();
     }
 }
