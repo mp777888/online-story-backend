@@ -200,6 +200,7 @@ public class UserService {
                     .userId(user.getUserId())
                     .username(userRep.getUsername())
                     .email(userRep.getEmail())
+                    .nickname(user.getNickname())
                     .dob(user.getDob())
                     .img(user.getImg())
                     .build();
@@ -251,6 +252,7 @@ public class UserService {
                     .userId(user.getUserId())
                     .username(userRep.getUsername())
                     .email(userRep.getEmail())
+                    .nickname(user.getNickname())
                     .dob(user.getDob())
                     .img(user.getImg())
                     .createdAt(user.getCreatedAt())
