@@ -1,6 +1,7 @@
 package com.onlinestories.authentication_service.Controller;
 
 import com.onlinestories.authentication_service.DTO.AuthRequest;
+import com.onlinestories.authentication_service.Exception.ApiResponse;
 import com.onlinestories.authentication_service.Service.AuthService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -20,36 +21,56 @@ public class AuthController {
     AuthService authService;
 
     @PostMapping
-    public ResponseEntity<Map<String, Object>> authentication(@RequestBody AuthRequest request){
+    public ApiResponse<Map<String, Object>> authentication(@RequestBody AuthRequest request){
         log.info("Received authentication request for username={}", request.getUsername());
-        return authService.authenticate(request);
+        return ApiResponse.<Map<String, Object>>builder()
+                .code(200)
+                .message("Authentication successful")
+                .result(authService.authenticate(request))
+                .build();
     }
 
     @PostMapping("/social")
-    public ResponseEntity<Map<String, Object>> socialAuthentication(
+    public ApiResponse<Map<String, Object>> socialAuthentication(
             @RequestParam String code,
             @RequestParam String redirectUri
     ){
         log.info("Received Social authentication request with code={} and redirectUri={}", code, redirectUri);
-        return authService.authenticateBySocial(code, redirectUri);
+        return ApiResponse.<Map<String, Object>>builder()
+                .code(200)
+                .message("Social authentication successful")
+                .result(authService.authenticateBySocial(code, redirectUri))
+                .build();
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<Map<String, Object>> refreshToken(@RequestParam String refreshToken){
+    public ApiResponse<Map<String, Object>> refreshToken(@RequestParam String refreshToken){
         log.info("Received token refresh request");
-        return authService.refreshToken(refreshToken);
+        return ApiResponse.<Map<String, Object>>builder()
+                .code(200)
+                .message("Token refreshed successfully")
+                .result(authService.refreshToken(refreshToken))
+                .build();
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<String> logout(@RequestParam String refreshToken){
+    public ApiResponse<String> logout(@RequestParam String refreshToken){
         log.info("Received logout request with token={}", refreshToken);
-        return authService.logout(refreshToken);
+        return ApiResponse.<String>builder()
+                .code(200)
+                .message("Logout successful")
+                .result(authService.logout(refreshToken))
+                .build();
     }
 
     @PostMapping("/forgot-password")
-    public ResponseEntity<Map<String,Object>> forgotPassword(@RequestParam String email){
+    public ApiResponse<Map<String,Object>> forgotPassword(@RequestParam String email){
         log.info("Received forgot password request for email={}", email);
-        return authService.forgotPassword(email);
+        return ApiResponse.<Map<String, Object>>builder()
+                .code(200)
+                .message("Password reset email sent successfully")
+                .result(authService.forgotPassword(email))
+                .build();
     }
 
     @GetMapping("/ping")

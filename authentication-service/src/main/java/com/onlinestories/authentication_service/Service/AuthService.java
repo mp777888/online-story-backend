@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.onlinestories.authentication_service.Client.UserClient;
 import com.onlinestories.authentication_service.DTO.AuthRequest;
+import com.onlinestories.authentication_service.Exception.AppException;
+import com.onlinestories.authentication_service.Exception.ErrorCode;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -14,7 +16,6 @@ import org.keycloak.admin.client.resource.UsersResource;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -48,7 +49,7 @@ public class AuthService {
     final WebClient.Builder webClient;
     final UserClient userClient;
 
-    public ResponseEntity<Map<String, Object>> authenticate(AuthRequest request) {
+    public Map<String, Object> authenticate(AuthRequest request) {
         try {
             log.info("Requesting token for user: {}", request.getUsername());
 
@@ -74,14 +75,14 @@ public class AuthService {
             // Block và lấy kết quả
             Map<String, Object> responseMap = responseMono.block();
             log.info("Received token for user: {}", request.getUsername());
-            return ResponseEntity.ok(responseMap);
+            return responseMap;
         } catch (Exception e) {
             log.error("Error during authentication for user {}: {}", request.getUsername(), e.getMessage());
-            return ResponseEntity.status(401).body(Map.of("error", "Authentication failed"));
+            throw new AppException(ErrorCode.INVALID_CREDENTIALS);
         }
     }
 
-    public ResponseEntity<Map<String, Object>> refreshToken(String refreshToken) {
+    public Map<String, Object> refreshToken(String refreshToken) {
         try {
             log.info("Requesting token refresh with refresh token: {}", refreshToken);
             String url = authServerUrl + "/realms/" + realm + "/protocol/openid-connect/token";
@@ -101,14 +102,14 @@ public class AuthService {
 
             Map<String, Object> responseMap = responseMono.block();
             log.info("Received refreshed token");
-            return ResponseEntity.ok(responseMap);
+            return responseMap;
         } catch (Exception e) {
             log.error("Error during token refresh: {}", e.getMessage());
-            return ResponseEntity.status(401).body(Map.of("error", "Token refresh failed"));
+            throw new AppException(ErrorCode.REFRESH_ERROR);
         }
     }
 
-    public ResponseEntity<String> logout(String refreshToken) {
+    public String logout(String refreshToken) {
         try {
             log.info("Logging out with refresh token: {}", refreshToken);
             String url = authServerUrl + "/realms/" + realm + "/protocol/openid-connect/logout";
@@ -127,14 +128,14 @@ public class AuthService {
 
             String response = responseMono.block();
             log.info("Logout response: {}", response);
-            return ResponseEntity.ok(response);
+            return "Logout successful";
         } catch (Exception e) {
             log.error("Error during logout: {}", e.getMessage());
-            return ResponseEntity.status(400).body("Logout failed");
+            return "Logout failed";
         }
     }
 
-    public ResponseEntity<Map<String, Object>> authenticateBySocial(String code, String redirectUri) {
+    public Map<String, Object> authenticateBySocial(String code, String redirectUri) {
         try {
             log.info("Authenticating with Social, code: {}, redirectUri: {}", code, redirectUri);
             String url = authServerUrl + "/realms/" + realm + "/protocol/openid-connect/token";
@@ -157,7 +158,7 @@ public class AuthService {
             log.info("Received token from Social authentication");
             if (responseMap == null || !responseMap.containsKey("access_token")) {
                 log.error("Invalid response from Social authentication: {}", responseMap);
-                return ResponseEntity.status(401).body(Map.of("error", "Social authentication failed"));
+                throw new AppException(ErrorCode.SOCIAL_LOGIN_ERROR);
             }
 
             String accessToken = (String) responseMap.get("access_token");
@@ -167,8 +168,7 @@ public class AuthService {
 
             JsonNode payloadNode = new ObjectMapper().readTree(payloadJson);
             String userId = payloadNode.get("sub").asText();
-
-            Boolean isUserExist = userClient.checkUserExistence(userId);
+            boolean isUserExist = userClient.checkUserExistence(userId);
 
             Map<String, Object> finalResponse = new HashMap<>(responseMap);
 
@@ -178,18 +178,18 @@ public class AuthService {
                 log.info("User {} needs onboarding. Flag set to true.", userId);
             }
 
-            return ResponseEntity.ok(finalResponse);
+            return finalResponse;
         } catch (WebClientResponseException e) {
             log.error("Keycloak rejected the request. Status: {}, Error Body: {}",
                     e.getStatusCode(), e.getResponseBodyAsString());
-            return ResponseEntity.status(401).body(Map.of("error", "Social authentication failed"));
+            throw new AppException(ErrorCode.SOCIAL_LOGIN_ERROR);
         } catch (Exception e) {
             log.error("Error during Social authentication: {}", e.getMessage());
-            return ResponseEntity.status(401).body(Map.of("error", "Social authentication failed"));
+            throw new AppException(ErrorCode.SOCIAL_LOGIN_ERROR);
         }
     }
 
-    public ResponseEntity<Map<String, Object>> forgotPassword(String email) {
+    public Map<String, Object> forgotPassword(String email) {
         try {
             log.info("Initiating forgot password flow for email: {}", email);
             Keycloak keycloakAdmin = KeycloakBuilder.builder()
@@ -204,7 +204,8 @@ public class AuthService {
             List<UserRepresentation> users = usersResource.searchByEmail(email, true);
 
             if (users.isEmpty()) {
-                return ResponseEntity.ok(Map.of("message", "If an account with that email exists, a password reset link has been sent"));
+                log.warn("No user found with email: {}", email);
+                return Map.of("message", "If an account with that email exists, a password reset email has been sent");
             }
 
 
@@ -213,10 +214,10 @@ public class AuthService {
             usersResource.get(keycloakUserId).executeActionsEmail(List.of("UPDATE_PASSWORD"));
 
             log.info("Forgot password email sent successfully to: {}", email);
-            return ResponseEntity.ok(Map.of("message", "Password reset initiated"));
+            return Map.of("message", "Password reset initiated");
         } catch (Exception e) {
             log.error("Error during forgot password flow for email {}: {}", email, e.getMessage());
-            return ResponseEntity.status(500).body(Map.of("error", "Failed to initiate password reset"));
+            throw new AppException(ErrorCode.RESET_PASSWORD_ERROR);
         }
     }
 }
