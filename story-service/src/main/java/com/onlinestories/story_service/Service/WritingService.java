@@ -88,35 +88,7 @@ public class WritingService {
         }
     }
 
-    // Get chapter details
-    public ChapterResponse getChapterDetails(String userId, String chapterId) {
-        try {
-            log.info("Fetching chapter details for chapterId: {}", chapterId);
-            Chapter chapter = chapterRepository.findById(chapterId)
-                    .orElseThrow(() -> new AppException(ErrorCode.CHAPTER_NOT_FOUND));
 
-            if(!chapter.getStatus().equals(ChapterStatus.PUBLISHED)){
-                Story story = storyRepository.findById(chapter.getStoryId())
-                        .orElseThrow(() -> new AppException(ErrorCode.STORY_NOT_FOUND));
-                if(!story.getAuthorId().equals(userId)){
-                    log.warn("User with ID: {} is not the author of the story and cannot access draft chapter details", userId);
-                    throw new AppException(ErrorCode.ACCESS_DENIED);
-                }
-            }
-
-            return ChapterResponse.builder()
-                    .chapterId(chapter.getChapterId())
-                    .storyId(chapter.getStoryId())
-                    .title(chapter.getTitle())
-                    .status(chapter.getStatus().name())
-                    .img(chapter.getImg())
-                    .createdAt(chapter.getCreatedAt())
-                    .build();
-        }catch (Exception e){
-            log.error("Error fetching chapter details: {}", e.getMessage());
-            throw e;
-        }
-    }
 
     public ChapterResponse updateChapter(String userId,UpdateChapterRequest request, MultipartFile img) {
         try{
@@ -480,6 +452,7 @@ public class WritingService {
                 log.info("Old chapter audio deleted successfully: {}", message);
             }
             chapter.setAudioUrl(getAudioUrl(version.getContent(), "vn-VN"));
+            chapter.setPublishedAt(LocalDateTime.now());
             chapterRepository.save(chapter);
 
             version.setIsPublished(true);
@@ -496,6 +469,7 @@ public class WritingService {
                     .img(chapter.getImg())
                     .status(chapter.getStatus().name())
                     .createdAt(chapter.getCreatedAt())
+                    .publishedAt(chapter.getPublishedAt())
                     .build();
 
         } catch (Exception e){
