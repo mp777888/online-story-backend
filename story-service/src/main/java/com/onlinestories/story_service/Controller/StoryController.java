@@ -4,6 +4,7 @@ import com.onlinestories.story_service.DTO.Request.CreateStoryRequest;
 import com.onlinestories.story_service.DTO.Request.UpdateStoryRequest;
 import com.onlinestories.story_service.DTO.Response.ChapterResponse;
 import com.onlinestories.story_service.DTO.Response.StoryResponse;
+import com.onlinestories.story_service.Enum.Period;
 import com.onlinestories.story_service.Exception.ApiResponse;
 import com.onlinestories.story_service.Service.ReadingService;
 import com.onlinestories.story_service.Service.StoryService;
@@ -104,6 +105,32 @@ public class StoryController {
                 .code(200)
                 .message("Story updated successfully")
                 .result(storyService.updateStory(request, img))
+                .build();
+    }
+
+    @GetMapping("/top-rating-stories")
+    public ApiResponse<Page<StoryResponse>> getTopRatedStories(
+            @RequestParam(defaultValue = "ALL_TIME") Period period,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        log.info("Received get top rated stories request for page: {}, size: {}", page, size);
+        return ApiResponse.<Page<StoryResponse>>builder()
+                .code(200)
+                .message("Top rated stories retrieved successfully")
+                .result(readingService.getTopRatingStories(period, page, size))
+                .build();
+    }
+
+    @GetMapping("/top-viewed-stories")
+    public ApiResponse<Page<StoryResponse>> getTopViewedStories(
+            @RequestParam(defaultValue = "ALL_TIME") Period period,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        log.info("Received get top viewed stories request for page: {}, size: {}", page, size);
+        return ApiResponse.<Page<StoryResponse>>builder()
+                .code(200)
+                .message("Top viewed stories retrieved successfully")
+                .result(readingService.getTopViewedStories(period, page, size))
                 .build();
     }
 }

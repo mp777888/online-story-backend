@@ -223,35 +223,4 @@ public class ChapterController {
                 .build();
     }
 
-    @GetMapping("/top-rating-stories")
-    public ApiResponse<Page<StoryResponse>> getTopRatedStories(
-            @RequestParam(defaultValue = "ALL_TIME") Period period,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        log.info("Received get top rated stories request for page: {}, size: {}", page, size);
-        return ApiResponse.<Page<StoryResponse>>builder()
-                .code(200)
-                .message("Top rated stories retrieved successfully")
-                .result(readingService.getTopRatingStories(period, page, size))
-                .build();
-    }
-
-    @GetMapping("/top-viewed-stories")
-    public ApiResponse<Page<StoryResponse>> getTopViewedStories(
-            @RequestParam(defaultValue = "ALL_TIME") Period period,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        log.info("Received get top viewed stories request for page: {}, size: {}", page, size);
-        return ApiResponse.<Page<StoryResponse>>builder()
-                .code(200)
-                .message("Top viewed stories retrieved successfully")
-                .result(readingService.getTopViewedStories(period, page, size))
-                .build();
-    }
-//    @GetMapping
-//    public String getAudioUrl(@RequestParam String text, @RequestParam String language){
-//        log.info("Received request to get audio URL for text in language: {}", language);
-//        return chapterService.getAudioUrl(text,language); // Placeholder
-//    }
-
 }
