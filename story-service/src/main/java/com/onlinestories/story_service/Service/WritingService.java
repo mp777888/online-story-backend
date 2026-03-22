@@ -118,11 +118,19 @@ public class WritingService {
         }
     }
 
-    public ChapterResponse updateChapter(UpdateChapterRequest request, MultipartFile img) {
+    public ChapterResponse updateChapter(String userId,UpdateChapterRequest request, MultipartFile img) {
         try{
             log.info("Updating chapter: {}", request.getChapterId());
             Chapter chapter = chapterRepository.findById(request.getChapterId())
                     .orElseThrow(() -> new AppException(ErrorCode.CHAPTER_NOT_FOUND));
+
+            Story story = storyRepository.findById(chapter.getStoryId())
+                    .orElseThrow(() -> new AppException(ErrorCode.STORY_NOT_FOUND));
+
+            if(!story.getAuthorId().equals(userId)){
+                log.warn("User with ID: {} is not the author of the story and cannot update chapter details", userId);
+                throw new AppException(ErrorCode.ACCESS_DENIED);
+            }
 
             if(request.getTitle() != null && !request.getTitle().isEmpty()) {
                 chapter.setTitle(request.getTitle());
@@ -132,8 +140,6 @@ public class WritingService {
                 String status = request.getStatus().toUpperCase();
                 if(status.equals("TAKEN_DOWN")) {
                     if (chapter.getStatus() == ChapterStatus.PUBLISHED) {
-                        Story story = storyRepository.findById(chapter.getStoryId())
-                                .orElseThrow(() -> new AppException(ErrorCode.STORY_NOT_FOUND));
 
                         story.setNumberOfChapters(story.getNumberOfChapters() - 1);
                         storyRepository.save(story);
@@ -380,13 +386,71 @@ public class WritingService {
         }
     }
 
+    public VersionResponse importFile(String userId, String chapterId, MultipartFile file) {
+        try {
+            if (file == null || file.isEmpty()) {
+                throw new AppException(ErrorCode.INVALID_FILE);
+            }
+
+            String filename = file.getOriginalFilename() == null ? "" : file.getOriginalFilename().toLowerCase();
+            if (!filename.endsWith(".docx")) {
+                throw new AppException(ErrorCode.UNSUPPORTED_FILE_TYPE);
+            }
+
+            Chapter chapter = chapterRepository.findById(chapterId)
+                    .orElseThrow(() -> new AppException(ErrorCode.CHAPTER_NOT_FOUND));
+
+            Story story = storyRepository.findById(chapter.getStoryId())
+                    .orElseThrow(() -> new AppException(ErrorCode.STORY_NOT_FOUND));
+
+            if (!story.getAuthorId().equals(userId)) {
+                throw new AppException(ErrorCode.ACCESS_DENIED);
+            }
+
+            String importedContent = extractDocxAsHtml(file);
+            if (importedContent == null || importedContent.trim().isEmpty()) {
+                throw new AppException(ErrorCode.EMPTY_IMPORT_CONTENT);
+            }
+
+            // sanitize the imported HTML content to prevent XSS attacks
+            String safeContent = Jsoup.clean(importedContent, org.jsoup.safety.Safelist.basic());
+
+            ChapterVersion version = ChapterVersion.builder()
+                    .chapterId(chapterId)
+                    .versionName("Imported from " + filename)
+                    .content(safeContent)
+                    .createdAt(LocalDateTime.now())
+                    .build();
+            chapterVersionRepository.save(version);
+
+            log.info("Word file imported successfully for chapterId: {}, versionId: {}", chapterId, version.getChapterVersionId());
+            return VersionResponse.builder()
+                    .versionId(version.getChapterVersionId())
+                    .chapterId(version.getChapterId())
+                    .versionName(version.getVersionName())
+                    .content(version.getContent())
+                    .createdAt(version.getCreatedAt())
+                    .build();
+        } catch (Exception e) {
+            log.error("Error importing Word file to draft: {}", e.getMessage());
+            throw e;
+        }
+    }
+
+
+
     // Publish chapter
     @Transactional
-    public ChapterResponse publishChapter(PublishRequest request) {
+    public ChapterResponse publishChapter(String userId, PublishRequest request) {
         try{
             log.info("Publishing chapter with ID: {}", request.getChapterId());
             Story story = storyRepository.findById(request.getStoryId())
                     .orElseThrow(() -> new AppException(ErrorCode.STORY_NOT_FOUND));
+
+            if(!story.getAuthorId().equals(userId)){
+                log.warn("User with ID: {} is not the author of the story and cannot publish chapters", userId);
+                throw new AppException(ErrorCode.ACCESS_DENIED);
+            }
 
             if(story.getStatus().equals(StoryStatus.DRAFT)){
                 log.warn("Story with ID: {} is in DRAFT status and cannot publish chapters", request.getStoryId());
@@ -463,5 +527,30 @@ public class WritingService {
             throw e;
         }
     }
+
+    private String extractDocxAsHtml(MultipartFile file) {
+        try (var is = file.getInputStream();
+             var doc = new org.apache.poi.xwpf.usermodel.XWPFDocument(is)) {
+
+            StringBuilder html = new StringBuilder();
+
+            for (var p : doc.getParagraphs()) {
+                String text = p.getText();
+                if (text == null || text.trim().isEmpty()) continue;
+
+                String style = p.getStyle();
+                if (style != null && style.toLowerCase().contains("heading")) {
+                    html.append("<h3>").append(org.jsoup.parser.Parser.unescapeEntities(text, false)).append("</h3>");
+                } else {
+                    html.append("<p>").append(org.jsoup.parser.Parser.unescapeEntities(text, false)).append("</p>");
+                }
+            }
+
+            return html.toString();
+        } catch (Exception ex) {
+            throw new AppException(ErrorCode.FILE_IMPORT_FAILED);
+        }
+    }
+
 
 }

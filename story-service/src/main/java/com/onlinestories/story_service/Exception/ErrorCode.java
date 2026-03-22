@@ -22,6 +22,10 @@ public enum ErrorCode {
     CHAPTER_IS_NOT_PUBLISHED(2013, "Chapter is not published", HttpStatus.BAD_REQUEST),
     RATING_ALREADY_EXISTS(2014, "User has already rated this story", HttpStatus.BAD_REQUEST),
     STORY_IS_COMPLETED(2015, "Story is already completed", HttpStatus.BAD_REQUEST),
+    INVALID_FILE(2016, "File is empty or missing", HttpStatus.BAD_REQUEST),
+    UNSUPPORTED_FILE_TYPE(2017, "Only .docx files are supported", HttpStatus.BAD_REQUEST),
+    EMPTY_IMPORT_CONTENT(2018, "Imported content is empty", HttpStatus.BAD_REQUEST),
+    FILE_IMPORT_FAILED(2019, "Failed to import Word file", HttpStatus.INTERNAL_SERVER_ERROR),
     ACCESS_DENIED(2900, "Access denied", HttpStatus.FORBIDDEN)
 
     ;

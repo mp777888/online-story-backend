@@ -20,4 +20,9 @@ public interface StoryRepository extends MongoRepository<Story, String> {
             double minAverageRatingScore,
             Pageable pageable
     );
+    Page<Story> findByStatusNotAndNumberOfViewsGreaterThan(
+            StoryStatus status,
+            int minNumberOfViews,
+            Pageable pageable
+    );
 }

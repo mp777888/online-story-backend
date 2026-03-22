@@ -43,12 +43,14 @@ public class ChapterController {
 
     @PostMapping("/publish")
     public ApiResponse<ChapterResponse> publishChapter(
+            @AuthenticationPrincipal Jwt jwt,
             @RequestBody PublishRequest request){
+        String userId = jwt.getSubject();
         log.info("Received request to publish chapter ID: {}", request.getChapterId());
         return ApiResponse.<ChapterResponse>builder()
                 .code(200)
                 .message("Chapter published successfully")
-                .result(writingService.publishChapter(request))
+                .result(writingService.publishChapter(userId, request))
                 .build();
     }
 
@@ -67,13 +69,15 @@ public class ChapterController {
 
     @PutMapping("/update")
     public ApiResponse<ChapterResponse> updateChapter(
+            @AuthenticationPrincipal Jwt jwt,
             @RequestPart UpdateChapterRequest request,
             @RequestPart(value = "file", required = false) MultipartFile img){
+        String userId = jwt.getSubject();
         log.info("Received request to update chapter: {}", request.getChapterId());
         return ApiResponse.<ChapterResponse>builder()
                 .code(200)
                 .message("Chapter updated successfully")
-                .result(writingService.updateChapter(request, img))
+                .result(writingService.updateChapter(userId, request, img))
                 .build();
     }
 
@@ -130,6 +134,21 @@ public class ChapterController {
                 .result(writingService.createChapterVersionSnapshot(chapterId, versionName))
                 .build();
     }
+
+    @PostMapping("/import-word")
+    public ApiResponse<VersionResponse> importWordToDraft(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam String chapterId,
+            @RequestPart("file") MultipartFile file) {
+
+        String userId = jwt.getSubject();
+        return ApiResponse.<VersionResponse>builder()
+                .code(200)
+                .message("Word imported to draft successfully")
+                .result(writingService.importFile(userId, chapterId, file))
+                .build();
+    }
+
 
     @GetMapping("/read")
     public ApiResponse<VersionResponse> readChapter(@RequestParam String chapterId){
