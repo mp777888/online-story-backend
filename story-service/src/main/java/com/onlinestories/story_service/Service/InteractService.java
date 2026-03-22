@@ -1,14 +1,22 @@
 package com.onlinestories.story_service.Service;
 
 import com.onlinestories.story_service.DTO.Request.CommentRequest;
+import com.onlinestories.story_service.DTO.Request.RatingRequest;
 import com.onlinestories.story_service.DTO.Response.CommentResponse;
+import com.onlinestories.story_service.DTO.Response.RatingResponse;
+import com.onlinestories.story_service.DTO.Response.StoryResponse;
 import com.onlinestories.story_service.Entity.Chapter;
 import com.onlinestories.story_service.Entity.Comment;
+import com.onlinestories.story_service.Entity.Rating;
+import com.onlinestories.story_service.Entity.Story;
 import com.onlinestories.story_service.Enum.ChapterStatus;
+import com.onlinestories.story_service.Enum.StoryStatus;
 import com.onlinestories.story_service.Exception.AppException;
 import com.onlinestories.story_service.Exception.ErrorCode;
 import com.onlinestories.story_service.Repository.ChapterRepository;
 import com.onlinestories.story_service.Repository.CommentRepository;
+import com.onlinestories.story_service.Repository.RatingRepository;
+import com.onlinestories.story_service.Repository.StoryRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -16,6 +24,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.FindAndModifyOptions;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -28,8 +42,12 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class InteractService {
+    StoryRepository storyRepository;
     ChapterRepository chapterRepository;
     CommentRepository commentRepository;
+    RatingRepository ratingRepository;
+
+    MongoTemplate mongoTemplate;
 
     public CommentResponse addComment(String userId,CommentRequest request){
         log.info("Adding comment for chapterId: {}, userId: {}"
@@ -139,6 +157,87 @@ public class InteractService {
 
     }
 
+    public RatingResponse ratingStory(String userId, RatingRequest request){
+        log.info("Rating story by userId: {}, storyId: {}, ratingScore: {}"
+                , userId, request.getStoryId(), request.getRatingScore());
+
+        if (!storyRepository.existsById(request.getStoryId())) {
+            throw new AppException(ErrorCode.STORY_NOT_FOUND);
+        }
+
+        if(ratingRepository.existsByUserIdAndStoryId(userId, request.getStoryId())) {
+            throw new AppException(ErrorCode.RATING_ALREADY_EXISTS);
+        }
+
+        Rating rating = Rating.builder()
+                .userId(userId)
+                .storyId(request.getStoryId())
+                .ratingScore(request.getRatingScore())
+                .comment(request.getComment())
+                .ratedAt(LocalDateTime.now())
+                .build();
+
+        rating = ratingRepository.save(rating);
+
+        Query query = new Query(Criteria.where("_id").is(request.getStoryId()));
+
+        Update updateTotals = new Update()
+                .inc("totalRatingScore", request.getRatingScore())
+                .inc("totalRatingCount", 1);
+
+        FindAndModifyOptions options = new FindAndModifyOptions().returnNew(true);
+        Story updatedStory = mongoTemplate.findAndModify(query, updateTotals, options, Story.class);
+
+        if (updatedStory != null && updatedStory.getTotalRatingCount() > 0) {
+            double newAverage = updatedStory.getTotalRatingScore() / (double) updatedStory.getTotalRatingCount();
+
+            // Làm tròn 1 chữ số thập phân
+            newAverage = Math.round(newAverage * 10.0) / 10.0;
+
+            Update updateAvg = new Update().set("averageRatingScore", newAverage);
+            mongoTemplate.updateFirst(query, updateAvg, Story.class);
+        }
+
+        return RatingResponse.builder()
+                .voteId(rating.getVoteId())
+                .userId(userId)
+                .storyId(request.getStoryId())
+                .ratingScore(request.getRatingScore())
+                .comment(request.getComment())
+                .ratedAt(rating.getRatedAt())
+                .build();
+    }
+
+    public RatingResponse getStoryRating(String storyId) {
+        log.info("Getting story rating by storyId: {}", storyId);
+
+        Story story = storyRepository.findById(storyId)
+                .orElseThrow(() -> new AppException(ErrorCode.STORY_NOT_FOUND));
+
+        return RatingResponse.builder()
+                .storyId(storyId)
+                .ratingScore(story.getAverageRatingScore())
+                .build();
+    }
+
+
+
+    public Page<StoryResponse> getTopRatingStories(int page, int size){
+        log.info("Getting top rating stories, page: {}, size: {}", page, size);
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "averageRatingScore"));
+
+        Page<Story> stories = storyRepository.findByStatusNotAndAverageRatingScoreGreaterThan(
+                StoryStatus.DRAFT, 0.0, pageable
+        );
+
+        return stories.map(story -> StoryResponse.builder()
+                .storyId(story.getStoryId())
+                .title(story.getTitle())
+                .authorId(story.getAuthorId())
+                .numberOfChapters(story.getNumberOfChapters())
+                .averageRatingScore(story.getAverageRatingScore())
+                .build());
+    }
 
 
     private CommentResponse mapToResponse(Comment comment) {

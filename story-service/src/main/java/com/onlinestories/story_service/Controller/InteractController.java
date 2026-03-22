@@ -1,7 +1,10 @@
 package com.onlinestories.story_service.Controller;
 
 import com.onlinestories.story_service.DTO.Request.CommentRequest;
+import com.onlinestories.story_service.DTO.Request.RatingRequest;
 import com.onlinestories.story_service.DTO.Response.CommentResponse;
+import com.onlinestories.story_service.DTO.Response.RatingResponse;
+import com.onlinestories.story_service.DTO.Response.StoryResponse;
 import com.onlinestories.story_service.Exception.ApiResponse;
 import com.onlinestories.story_service.Service.InteractService;
 import lombok.AccessLevel;
@@ -66,6 +69,41 @@ public class InteractController {
                 .code(200)
                 .message("Comment deleted successfully")
                 .result("Comment with id " + commentId + " has been deleted")
+                .build();
+    }
+
+    @PostMapping("/rating")
+    public ApiResponse<RatingResponse> addRating(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestBody RatingRequest request) {
+        String userId = jwt.getSubject();
+        log.info("Received add rating request: {}", request);
+        return ApiResponse.<RatingResponse>builder()
+                .code(200)
+                .message("Rating added successfully")
+                .result(interactService.ratingStory(userId,request))
+                .build();
+    }
+
+    @GetMapping("/rating")
+    public ApiResponse<RatingResponse> getRating(@RequestParam String storyId){
+        log.info("Received get rating request for storyId: {}", storyId);
+        return ApiResponse.<RatingResponse>builder()
+                .code(200)
+                .message("Rating retrieved successfully")
+                .result(interactService.getStoryRating(storyId))
+                .build();
+    }
+
+    @GetMapping("/top-rating-stories")
+    public ApiResponse<Page<StoryResponse>> getTopRatedStories(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        log.info("Received get top rated stories request for page: {}, size: {}", page, size);
+        return ApiResponse.<Page<StoryResponse>>builder()
+                .code(200)
+                .message("Top rated stories retrieved successfully")
+                .result(interactService.getTopRatingStories(page, size))
                 .build();
     }
 }
