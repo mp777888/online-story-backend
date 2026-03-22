@@ -386,7 +386,7 @@ public class WritingService {
         }
     }
 
-    public VersionResponse importFile(String userId, String chapterId, MultipartFile file) {
+    public VersionResponse importFile(String userId, String versionName, String chapterId, MultipartFile file) {
         try {
             if (file == null || file.isEmpty()) {
                 throw new AppException(ErrorCode.INVALID_FILE);
@@ -417,7 +417,7 @@ public class WritingService {
 
             ChapterVersion version = ChapterVersion.builder()
                     .chapterId(chapterId)
-                    .versionName("Imported from " + filename)
+                    .versionName(versionName)
                     .content(safeContent)
                     .createdAt(LocalDateTime.now())
                     .build();

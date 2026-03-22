@@ -3,10 +3,7 @@ package com.onlinestories.story_service.Controller;
 import com.onlinestories.story_service.DTO.Request.CreateChapterRequest;
 import com.onlinestories.story_service.DTO.Request.PublishRequest;
 import com.onlinestories.story_service.DTO.Request.UpdateChapterRequest;
-import com.onlinestories.story_service.DTO.Response.ChapterResponse;
-import com.onlinestories.story_service.DTO.Response.DraftResponse;
-import com.onlinestories.story_service.DTO.Response.ReadingHistoryResponse;
-import com.onlinestories.story_service.DTO.Response.VersionResponse;
+import com.onlinestories.story_service.DTO.Response.*;
 import com.onlinestories.story_service.Exception.ApiResponse;
 import com.onlinestories.story_service.Service.ReadingService;
 import com.onlinestories.story_service.Service.WritingService;
@@ -138,6 +135,7 @@ public class ChapterController {
     @PostMapping("/import-word")
     public ApiResponse<VersionResponse> importWordToDraft(
             @AuthenticationPrincipal Jwt jwt,
+            @RequestParam String versionName,
             @RequestParam String chapterId,
             @RequestPart("file") MultipartFile file) {
 
@@ -145,7 +143,7 @@ public class ChapterController {
         return ApiResponse.<VersionResponse>builder()
                 .code(200)
                 .message("Word imported to draft successfully")
-                .result(writingService.importFile(userId, chapterId, file))
+                .result(writingService.importFile(userId, versionName, chapterId, file))
                 .build();
     }
 
