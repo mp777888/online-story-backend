@@ -17,7 +17,8 @@ public class StoryResponse {
     String description;
     String status;
     String img;
-    Integer numberOfChapters;
+    int numberOfChapters;
+    int numberOfViews;
     double averageRatingScore;
     int totalRatingCount;
     Set<String> genres;

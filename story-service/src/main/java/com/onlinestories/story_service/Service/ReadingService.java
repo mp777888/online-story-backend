@@ -6,6 +6,7 @@ import com.onlinestories.story_service.DTO.Response.StoryResponse;
 import com.onlinestories.story_service.DTO.Response.VersionResponse;
 import com.onlinestories.story_service.Entity.*;
 import com.onlinestories.story_service.Enum.ChapterStatus;
+import com.onlinestories.story_service.Enum.Period;
 import com.onlinestories.story_service.Enum.StoryStatus;
 import com.onlinestories.story_service.Exception.AppException;
 import com.onlinestories.story_service.Exception.ErrorCode;
@@ -14,17 +15,25 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.bson.Document;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.aggregation.Aggregation;
+import org.springframework.data.mongodb.core.aggregation.AggregationResults;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.temporal.TemporalAdjusters;
 import java.util.stream.Collectors;
 
 @Service
@@ -36,6 +45,7 @@ public class ReadingService {
     StoryRepository storyRepository;
     ChapterRepository chapterRepository;
     ChapterVersionRepository chapterVersionRepository;
+    StoryDailyViewRepository storyDailyViewRepository;
     MongoTemplate mongoTemplate;
 
     public Page<ChapterResponse> getChaptersByStoryId(
@@ -91,6 +101,9 @@ public class ReadingService {
                             .img(story.getImg())
                             .status(story.getStatus().name())
                             .numberOfChapters(story.getNumberOfChapters())
+                            .numberOfViews(story.getNumberOfViews())
+                            .averageRatingScore(story.getAverageRatingScore())
+                            .totalRatingCount(story.getTotalRatingCount())
                             .genres(story.getGenres()
                                     .stream()
                                     .map(Story.GenreSummary::getName)
@@ -106,6 +119,42 @@ public class ReadingService {
             throw ex;
         }
     }
+
+    // Get chapter details
+    public ChapterResponse getChapterDetails(String userId, String chapterId) {
+        try {
+            log.info("Fetching chapter details for chapterId: {}", chapterId);
+            Chapter chapter = chapterRepository.findById(chapterId)
+                    .orElseThrow(() -> new AppException(ErrorCode.CHAPTER_NOT_FOUND));
+
+            if(!chapter.getStatus().equals(ChapterStatus.PUBLISHED)){
+                Story story = storyRepository.findById(chapter.getStoryId())
+                        .orElseThrow(() -> new AppException(ErrorCode.STORY_NOT_FOUND));
+                if(!story.getAuthorId().equals(userId)){
+                    log.warn("User with ID: {} is not the author of the story and cannot access draft chapter details", userId);
+                    throw new AppException(ErrorCode.ACCESS_DENIED);
+                }
+            }
+
+            String content = getContentForReading(chapterId);
+
+            return ChapterResponse.builder()
+                    .chapterId(chapter.getChapterId())
+                    .storyId(chapter.getStoryId())
+                    .title(chapter.getTitle())
+                    .status(chapter.getStatus().name())
+                    .content(content)
+                    .img(chapter.getImg())
+                    .createdAt(chapter.getCreatedAt())
+                    .publishedAt(chapter.getPublishedAt())
+                    .build();
+        }catch (Exception e){
+            log.error("Error fetching chapter details: {}", e.getMessage());
+            throw e;
+        }
+    }
+
+
 
     @Transactional
     public ReadingHistoryResponse readChapter(String userId, String storyId, String chapterId) {
@@ -130,6 +179,9 @@ public class ReadingService {
         ReadingHistory history = readingHistoryRepository.findByUserIdAndStoryId(userId, storyId)
                 .orElse(null);
 
+        StoryDailyView dailyView = storyDailyViewRepository.findByStoryIdAndDate(storyId, LocalDate.now().toString())
+                .orElse(null);
+
         boolean shouldIncreaseView = false;
         LocalDateTime readAt = LocalDateTime.now();
 
@@ -149,7 +201,7 @@ public class ReadingService {
 
         if (shouldIncreaseView) {
             Query query = new Query().addCriteria(Criteria.where("storyId").is(storyId));
-            Update update = new Update().inc("views", 1);
+            Update update = new Update().inc("numberOfViews", 1);
             mongoTemplate.updateFirst(query, update, Story.class);
             log.info("Increased view count for story: {}", storyId);
         }
@@ -169,28 +221,17 @@ public class ReadingService {
                 .build();
     }
 
-    public VersionResponse getContentForReading(String chapterId) {
-        try{
-            log.info("Fetching chapter version details for chapterId: {}", chapterId);
-            ChapterVersion version = chapterVersionRepository.findByChapterIdAndIsPublishedTrue(chapterId);
+    private String getContentForReading(String chapterId) {
+        log.info("Fetching chapter version details for chapterId: {}", chapterId);
+        ChapterVersion version = chapterVersionRepository.findByChapterIdAndIsPublishedTrue(chapterId);
 
-            if(version == null){
-                log.warn("Published chapter version not found for chapterId: {}", chapterId);
-                throw new AppException(ErrorCode.VERSION_NOT_FOUND);
-            }
-
-            log.info("Chapter version details fetched successfully for chapterId: {}", chapterId);
-            return VersionResponse.builder()
-                    .versionId(version.getChapterVersionId())
-                    .chapterId(version.getChapterId())
-                    .versionName(version.getVersionName())
-                    .content(version.getContent())
-                    .createdAt(version.getCreatedAt())
-                    .build();
-        } catch (Exception e){
-            log.error("Error fetching chapter version details: {}", e.getMessage());
-            throw e;
+        if(version == null){
+            log.warn("Published chapter version not found for chapterId: {}", chapterId);
+            throw new AppException(ErrorCode.VERSION_NOT_FOUND);
         }
+
+        log.info("Chapter version details fetched successfully for chapterId: {}", chapterId);
+        return version.getContent();
     }
 
     public Page<ReadingHistoryResponse> getReadingHistory(
@@ -216,5 +257,14 @@ public class ReadingService {
         }
     }
 
+    private LocalDateTime resolveStartTime(Period period, ZoneId zoneId) {
+        LocalDate today = LocalDate.now(zoneId);
+        return switch (period) {
+            case TODAY -> today.atStartOfDay();
+            case WEEK -> today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)).atStartOfDay();
+            case MONTH -> today.withDayOfMonth(1).atStartOfDay();
+            case ALL_TIME -> LocalDateTime.MIN;
+        };
+    }
 
 }

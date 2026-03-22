@@ -4,6 +4,7 @@ import com.onlinestories.story_service.DTO.Request.CreateChapterRequest;
 import com.onlinestories.story_service.DTO.Request.PublishRequest;
 import com.onlinestories.story_service.DTO.Request.UpdateChapterRequest;
 import com.onlinestories.story_service.DTO.Response.*;
+import com.onlinestories.story_service.Enum.Period;
 import com.onlinestories.story_service.Exception.ApiResponse;
 import com.onlinestories.story_service.Service.ReadingService;
 import com.onlinestories.story_service.Service.WritingService;
@@ -60,7 +61,7 @@ public class ChapterController {
         return ApiResponse.<ChapterResponse>builder()
                 .code(200)
                 .message("Chapter details fetched successfully")
-                .result(writingService.getChapterDetails(userId,chapterId))
+                .result(readingService.getChapterDetails(userId,chapterId))
                 .build();
     }
 
@@ -147,16 +148,6 @@ public class ChapterController {
                 .build();
     }
 
-
-    @GetMapping("/read")
-    public ApiResponse<VersionResponse> readChapter(@RequestParam String chapterId){
-        log.info("Received request to read chapter ID: {}", chapterId);
-        return ApiResponse.<VersionResponse>builder()
-                .code(200)
-                .message("Chapter read successfully")
-                .result(readingService.getContentForReading(chapterId))
-                .build();
-    }
 
     @GetMapping("/version")
     public ApiResponse<VersionResponse> getChapterVersion(@RequestParam String versionId){

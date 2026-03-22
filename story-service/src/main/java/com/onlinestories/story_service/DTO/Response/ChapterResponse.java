@@ -17,6 +17,8 @@ public class ChapterResponse {
     String title;
     String summary;
     String status;
+    String content;
     String img;
     LocalDateTime createdAt;
+    LocalDateTime publishedAt;
 }
