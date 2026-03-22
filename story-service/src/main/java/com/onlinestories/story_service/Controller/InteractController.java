@@ -4,7 +4,6 @@ import com.onlinestories.story_service.DTO.Request.CommentRequest;
 import com.onlinestories.story_service.DTO.Request.RatingRequest;
 import com.onlinestories.story_service.DTO.Response.CommentResponse;
 import com.onlinestories.story_service.DTO.Response.RatingResponse;
-import com.onlinestories.story_service.DTO.Response.StoryResponse;
 import com.onlinestories.story_service.Exception.ApiResponse;
 import com.onlinestories.story_service.Service.InteractService;
 import lombok.AccessLevel;
@@ -95,15 +94,16 @@ public class InteractController {
                 .build();
     }
 
-    @GetMapping("/top-rating-stories")
-    public ApiResponse<Page<StoryResponse>> getTopRatedStories(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        log.info("Received get top rated stories request for page: {}, size: {}", page, size);
-        return ApiResponse.<Page<StoryResponse>>builder()
+    @GetMapping("/my-rating")
+    public ApiResponse<RatingResponse> getMyRating(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam String storyId) {
+        String userId = jwt.getSubject();
+        log.info("Received get my rating request for storyId: {}, userId: {}", storyId, userId);
+        return ApiResponse.<RatingResponse>builder()
                 .code(200)
-                .message("Top rated stories retrieved successfully")
-                .result(interactService.getTopRatingStories(page, size))
+                .message("My rating retrieved successfully")
+                .result(interactService.getMyRating(userId, storyId))
                 .build();
     }
 }

@@ -24,5 +24,6 @@ public class Rating {
     String storyId;
     double ratingScore;
     String comment;
+    @Indexed
     LocalDateTime ratedAt;
 }

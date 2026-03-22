@@ -4,13 +4,11 @@ import com.onlinestories.story_service.DTO.Request.CommentRequest;
 import com.onlinestories.story_service.DTO.Request.RatingRequest;
 import com.onlinestories.story_service.DTO.Response.CommentResponse;
 import com.onlinestories.story_service.DTO.Response.RatingResponse;
-import com.onlinestories.story_service.DTO.Response.StoryResponse;
 import com.onlinestories.story_service.Entity.Chapter;
 import com.onlinestories.story_service.Entity.Comment;
 import com.onlinestories.story_service.Entity.Rating;
 import com.onlinestories.story_service.Entity.Story;
 import com.onlinestories.story_service.Enum.ChapterStatus;
-import com.onlinestories.story_service.Enum.StoryStatus;
 import com.onlinestories.story_service.Exception.AppException;
 import com.onlinestories.story_service.Exception.ErrorCode;
 import com.onlinestories.story_service.Repository.ChapterRepository;
@@ -24,7 +22,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.FindAndModifyOptions;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -220,24 +217,30 @@ public class InteractService {
                 .build();
     }
 
+    public RatingResponse getMyRating(String userId, String storyId) {
+        log.info("Getting my rating for storyId: {}, userId: {}", storyId, userId);
 
+        if (!storyRepository.existsById(storyId)) {
+            throw new AppException(ErrorCode.STORY_NOT_FOUND);
+        }
 
-    public Page<StoryResponse> getTopRatingStories(int page, int size){
-        log.info("Getting top rating stories, page: {}, size: {}", page, size);
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "averageRatingScore"));
+        Rating rating = ratingRepository.findByUserIdAndStoryId(userId, storyId);
 
-        Page<Story> stories = storyRepository.findByStatusNotAndAverageRatingScoreGreaterThan(
-                StoryStatus.DRAFT, 0.0, pageable
-        );
+        if (rating == null) {
+            throw new AppException(ErrorCode.RATING_NOT_FOUND);
+        }
 
-        return stories.map(story -> StoryResponse.builder()
-                .storyId(story.getStoryId())
-                .title(story.getTitle())
-                .authorId(story.getAuthorId())
-                .numberOfChapters(story.getNumberOfChapters())
-                .averageRatingScore(story.getAverageRatingScore())
-                .build());
+        return RatingResponse.builder()
+                .voteId(rating.getVoteId())
+                .userId(userId)
+                .storyId(storyId)
+                .ratingScore(rating.getRatingScore())
+                .comment(rating.getComment())
+                .ratedAt(rating.getRatedAt())
+                .build();
     }
+
+
 
 
     private CommentResponse mapToResponse(Comment comment) {

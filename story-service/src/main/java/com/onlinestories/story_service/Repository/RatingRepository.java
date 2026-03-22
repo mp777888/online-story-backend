@@ -10,4 +10,5 @@ import java.util.List;
 public interface RatingRepository extends MongoRepository<Rating, String> {
     boolean existsByUserIdAndStoryId(String userId, String storyId);
     List<Rating> findByStoryId(String storyId);
+    Rating findByUserIdAndStoryId(String userId, String storyId);
 }
