@@ -19,6 +19,7 @@ public class ChapterResponse {
     String status;
     String content;
     String img;
+    String audioUrl;
     LocalDateTime createdAt;
     LocalDateTime publishedAt;
 }

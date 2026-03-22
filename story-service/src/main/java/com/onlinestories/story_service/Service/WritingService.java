@@ -448,7 +448,7 @@ public class WritingService {
             chapter.setStatus(ChapterStatus.PUBLISHED);
 
             if(chapter.getAudioUrl() != null && !chapter.getAudioUrl().isEmpty()){
-                String message = mediaClient.deleteFile(chapter.getAudioUrl(), "audio");
+                String message = mediaClient.deleteFile(chapter.getAudioUrl(), "video");
                 log.info("Old chapter audio deleted successfully: {}", message);
             }
             chapter.setAudioUrl(getAudioUrl(version.getContent(), "vn-VN"));

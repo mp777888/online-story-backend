@@ -3,7 +3,6 @@ package com.onlinestories.story_service.Service;
 import com.onlinestories.story_service.DTO.Response.ChapterResponse;
 import com.onlinestories.story_service.DTO.Response.ReadingHistoryResponse;
 import com.onlinestories.story_service.DTO.Response.StoryResponse;
-import com.onlinestories.story_service.DTO.Response.VersionResponse;
 import com.onlinestories.story_service.Entity.*;
 import com.onlinestories.story_service.Enum.ChapterStatus;
 import com.onlinestories.story_service.Enum.Period;
@@ -145,6 +144,7 @@ public class ReadingService {
                     .status(chapter.getStatus().name())
                     .content(content)
                     .img(chapter.getImg())
+                    .audioUrl(chapter.getAudioUrl())
                     .createdAt(chapter.getCreatedAt())
                     .publishedAt(chapter.getPublishedAt())
                     .build();
@@ -154,7 +154,202 @@ public class ReadingService {
         }
     }
 
+    public Page<StoryResponse> getTopViewedStories(Period period, int page, int size) {
+        log.info("Getting top viewed stories for period: {}, page: {}, size: {}", period, page, size);
 
+        Period effectivePeriod = (period == null) ? Period.ALL_TIME : period;
+
+        // 1. XỬ LÝ TRƯỜNG HỢP ALL_TIME (Lấy thẳng từ bảng Story cho nhanh)
+        if (effectivePeriod == Period.ALL_TIME) {
+            Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "numberOfViews"));
+            Page<Story> stories = storyRepository.findByStatusNotAndNumberOfViewsGreaterThan(
+                    StoryStatus.DRAFT, 0, pageable
+            );
+
+            return stories.map(story -> StoryResponse.builder()
+                    .storyId(story.getStoryId())
+                    .title(story.getTitle())
+                    .authorId(story.getAuthorId())
+                    .numberOfChapters(story.getNumberOfChapters())
+                    .numberOfViews(story.getNumberOfViews())
+                    .build());
+        }
+
+        // 2. XỬ LÝ TRƯỜNG HỢP NGÀY/TUẦN/THÁNG (Dùng Aggregation với StoryDailyView)
+        ZoneId zone = ZoneId.of("Asia/Ho_Chi_Minh");
+        LocalDateTime from = resolveStartTime(effectivePeriod, zone);
+        LocalDateTime to = LocalDateTime.now(zone);
+
+        // BƯỚC 1: Lọc các record trong khoảng thời gian
+        var dateMatch = Aggregation.match(
+                Criteria.where("date").gte(from).lte(to)
+        );
+
+        // BƯỚC 2: Gom nhóm theo storyId và TÍNH TỔNG viewCount
+        var groupByStory = Aggregation.group("storyId")
+                .sum("viewCount").as("periodViews");
+
+        // BƯỚC 3: Join với bảng Story để lấy thông tin chi tiết
+        var joinStory = Aggregation.lookup("story", "_id", "_id", "storyDetails");
+        var unwindStory = Aggregation.unwind("storyDetails");
+
+        // BƯỚC 4: Lọc bỏ truyện DRAFT
+        var onlyPublishedStories = Aggregation.match(
+                Criteria.where("storyDetails.status").ne(StoryStatus.DRAFT.name())
+        );
+
+        // BƯỚC 5: Sắp xếp theo tổng view giảm dần
+        var sortByViews = Aggregation.sort(Sort.Direction.DESC, "periodViews");
+
+        // BƯỚC 6: Pipeline chính để phân trang và map dữ liệu
+        var paginate = Aggregation.newAggregation(
+                dateMatch,
+                groupByStory,
+                joinStory,
+                unwindStory,
+                onlyPublishedStories,
+                sortByViews,
+                Aggregation.skip((long) page * size),
+                Aggregation.limit(size),
+                Aggregation.project()
+                        .and("_id").as("storyId")
+                        .and("storyDetails.title").as("title")
+                        .and("storyDetails.authorId").as("authorId")
+                        .and("storyDetails.numberOfChapters").as("numberOfChapters")
+                        // Trả về số view của kỳ này (Tuần/Tháng) thay vì All-time
+                        .and("periodViews").as("numberOfViews")
+        );
+
+        AggregationResults<Document> pageResults =
+                mongoTemplate.aggregate(paginate, "storyDailyView", Document.class); // Tên collection của StoryDailyView
+
+        var content = pageResults.getMappedResults().stream()
+                .map(doc -> StoryResponse.builder()
+                        .storyId(doc.getString("storyId"))
+                        .authorId(doc.getString("authorId"))
+                        .title(doc.getString("title"))
+                        .numberOfChapters(doc.getInteger("numberOfChapters", 0))
+                        .numberOfViews(doc.getInteger("numberOfViews", 0))
+                        .build())
+                .toList();
+
+        // BƯỚC 7: Pipeline đếm tổng số bản ghi (Phục vụ cho đối tượng Page)
+        var countAgg = Aggregation.newAggregation(
+                dateMatch,
+                groupByStory,
+                joinStory,
+                unwindStory,
+                onlyPublishedStories,
+                Aggregation.count().as("total")
+        );
+
+        AggregationResults<Document> countResults =
+                mongoTemplate.aggregate(countAgg, "storyDailyView", Document.class);
+
+        long total = countResults.getMappedResults().isEmpty()
+                ? 0L
+                : countResults.getMappedResults().get(0).getInteger("total", 0);
+
+        return new org.springframework.data.domain.PageImpl<>(content, PageRequest.of(page, size), total);
+    }
+
+    public Page<StoryResponse> getTopRatingStories(Period period, int page, int size){
+        log.info("Getting top rating stories, page: {}, size: {}", page, size);
+
+
+        Period effectivePeriod = (period == null) ? Period.ALL_TIME : period;
+        if (effectivePeriod == Period.ALL_TIME) {
+            Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "averageRatingScore"));
+            Page<Story> stories = storyRepository.findByStatusNotAndAverageRatingScoreGreaterThan(
+                    StoryStatus.DRAFT, 0.0, pageable
+            );
+
+            return stories.map(story -> StoryResponse.builder()
+                    .storyId(story.getStoryId())
+                    .title(story.getTitle())
+                    .authorId(story.getAuthorId())
+                    .numberOfChapters(story.getNumberOfChapters())
+                    .averageRatingScore(story.getAverageRatingScore())
+                    .totalRatingCount(story.getTotalRatingCount())
+                    .build());
+        }
+
+        ZoneId zone = ZoneId.of("Asia/Ho_Chi_Minh");
+        LocalDateTime from = resolveStartTime(effectivePeriod, zone);
+        LocalDateTime to = LocalDateTime.now(zone);
+
+        var dateMatch = Aggregation.match(
+                Criteria.where("ratedAt").gte(from).lt(to)
+        );
+        var groupByStory = Aggregation.group("storyId")
+                .avg("ratingScore").as("averageRatingScore")
+                .count().as("totalRatingCount");
+
+        var joinStory = Aggregation.lookup("story", "_id", "_id", "story");
+        var unwindStory = Aggregation.unwind("story");
+
+        // status enum thường lưu dạng String trong Mongo
+        var onlyPublishedStories = Aggregation.match(
+                Criteria.where("story.status").ne(StoryStatus.DRAFT.name())
+        );
+
+        var sortByScore = Aggregation.sort(
+                Sort.by(
+                        Sort.Order.desc("averageRatingScore"),
+                        Sort.Order.desc("totalRatingCount")
+                )
+        );
+
+        var paginate = Aggregation.newAggregation(
+                dateMatch,
+                groupByStory,
+                joinStory,
+                unwindStory,
+                onlyPublishedStories,
+                sortByScore,
+                Aggregation.skip((long) page * size),
+                Aggregation.limit(size),
+                Aggregation.project()
+                        .and("_id").as("storyId")
+                        .and("story.authorId").as("authorId")
+                        .and("story.title").as("title")
+                        .and("story.numberOfChapters").as("numberOfChapters")
+                        .and("averageRatingScore").as("averageRatingScore")
+                        .and("totalRatingCount").as("totalRatingCount")
+        );
+
+        AggregationResults<Document> pageResults =
+                mongoTemplate.aggregate(paginate, "rating", Document.class);
+
+        var content = pageResults.getMappedResults().stream()
+                .map(doc -> StoryResponse.builder()
+                        .storyId(doc.getString("storyId"))
+                        .authorId(doc.getString("authorId"))
+                        .title(doc.getString("title"))
+                        .numberOfChapters(doc.getInteger("numberOfChapters", 0))
+                        .averageRatingScore(doc.getDouble("averageRatingScore") == null ? 0.0 : doc.getDouble("averageRatingScore"))
+                        .totalRatingCount(doc.getInteger("totalRatingCount", 0))
+                        .build())
+                .toList();
+
+        var countAgg = Aggregation.newAggregation(
+                dateMatch,
+                groupByStory,
+                joinStory,
+                unwindStory,
+                onlyPublishedStories,
+                Aggregation.count().as("total")
+        );
+
+        AggregationResults<Document> countResults =
+                mongoTemplate.aggregate(countAgg, "rating", Document.class);
+
+        long total = countResults.getMappedResults().isEmpty()
+                ? 0L
+                : countResults.getMappedResults().getFirst().getInteger("total", 0);
+
+        return new org.springframework.data.domain.PageImpl<>(content, PageRequest.of(page, size), total);
+    }
 
     @Transactional
     public ReadingHistoryResponse readChapter(String userId, String storyId, String chapterId) {
@@ -179,8 +374,6 @@ public class ReadingService {
         ReadingHistory history = readingHistoryRepository.findByUserIdAndStoryId(userId, storyId)
                 .orElse(null);
 
-        StoryDailyView dailyView = storyDailyViewRepository.findByStoryIdAndDate(storyId, LocalDate.now().toString())
-                .orElse(null);
 
         boolean shouldIncreaseView = false;
         LocalDateTime readAt = LocalDateTime.now();
@@ -203,6 +396,12 @@ public class ReadingService {
             Query query = new Query().addCriteria(Criteria.where("storyId").is(storyId));
             Update update = new Update().inc("numberOfViews", 1);
             mongoTemplate.updateFirst(query, update, Story.class);
+
+            LocalDate today = LocalDate.now();
+            Query dailyViewQuery = new Query(Criteria.where("storyId").is(storyId).and("date").is(today));
+            Update dailyViewUpdate = new Update().inc("viewCount", 1);
+            mongoTemplate.upsert(dailyViewQuery, dailyViewUpdate, StoryDailyView.class);
+
             log.info("Increased view count for story: {}", storyId);
         }
 
