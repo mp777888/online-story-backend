@@ -4,7 +4,6 @@ import com.onlinestories.story_service.DTO.Request.CreateChapterRequest;
 import com.onlinestories.story_service.DTO.Request.PublishRequest;
 import com.onlinestories.story_service.DTO.Request.UpdateChapterRequest;
 import com.onlinestories.story_service.DTO.Response.*;
-import com.onlinestories.story_service.Enum.Period;
 import com.onlinestories.story_service.Exception.ApiResponse;
 import com.onlinestories.story_service.Service.ReadingService;
 import com.onlinestories.story_service.Service.WritingService;
@@ -198,14 +197,16 @@ public class ChapterController {
 
     @PostMapping("/read")
     public ApiResponse<ReadingHistoryResponse> readChapterAndUpdateHistory(
-            @RequestParam String userId,
+            @AuthenticationPrincipal Jwt jwt,
             @RequestParam String storyId,
-            @RequestParam String chapterId){
+            @RequestParam String chapterId,
+            @RequestParam Float progress){
+        String userId = jwt.getSubject();
         log.info("Received request to read chapter ID: {} for user ID: {}", chapterId, userId);
         return ApiResponse.<ReadingHistoryResponse>builder()
                 .code(200)
                 .message("Chapter read and history updated successfully")
-                .result(readingService.readChapter(userId, storyId, chapterId))
+                .result(readingService.readChapter(userId, storyId, chapterId, progress))
                 .build();
     }
 

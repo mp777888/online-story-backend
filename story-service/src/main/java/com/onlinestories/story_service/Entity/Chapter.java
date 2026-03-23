@@ -27,5 +27,5 @@ public class Chapter {
     LocalDateTime publishedAt;
     ChapterStatus status;
     String audioUrl;
-
+    int numberOfViews;
 }

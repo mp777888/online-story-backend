@@ -20,6 +20,7 @@ public class ChapterResponse {
     String content;
     String img;
     String audioUrl;
+    int numberOfViews;
     LocalDateTime createdAt;
     LocalDateTime publishedAt;
 }

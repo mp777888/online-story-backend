@@ -15,5 +15,6 @@ public class ReadingHistoryResponse {
     String userId;
     String storyId;
     String chapterId;
+    Float percentageRead;
     LocalDateTime lastReadAt;
 }

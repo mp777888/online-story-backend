@@ -1,5 +1,6 @@
 package com.onlinestories.story_service.Service;
 
+import com.mongodb.client.result.UpdateResult;
 import com.onlinestories.story_service.DTO.Response.ChapterResponse;
 import com.onlinestories.story_service.DTO.Response.ReadingHistoryResponse;
 import com.onlinestories.story_service.DTO.Response.StoryResponse;
@@ -15,12 +16,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.Document;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.*;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
+import org.springframework.data.mongodb.core.aggregation.AggregationOperation;
 import org.springframework.data.mongodb.core.aggregation.AggregationResults;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -33,6 +32,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.temporal.TemporalAdjusters;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -159,9 +161,9 @@ public class ReadingService {
 
         Period effectivePeriod = (period == null) ? Period.ALL_TIME : period;
 
-        // 1. XỬ LÝ TRƯỜNG HỢP ALL_TIME (Lấy thẳng từ bảng Story cho nhanh)
+        // ALL_TIME: đọc trực tiếp từ Story
         if (effectivePeriod == Period.ALL_TIME) {
-            Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "numberOfViews"));
+            Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Order.desc("numberOfViews"), Sort.Order.asc("storyId")));
             Page<Story> stories = storyRepository.findByStatusNotAndNumberOfViewsGreaterThan(
                     StoryStatus.DRAFT, 0, pageable
             );
@@ -175,69 +177,83 @@ public class ReadingService {
                     .build());
         }
 
-        // 2. XỬ LÝ TRƯỜNG HỢP NGÀY/TUẦN/THÁNG (Dùng Aggregation với StoryDailyView)
         ZoneId zone = ZoneId.of("Asia/Ho_Chi_Minh");
-        LocalDateTime from = resolveStartTime(effectivePeriod, zone);
-        LocalDateTime to = LocalDateTime.now(zone);
+        LocalDate fromDate = resolveStartTime(effectivePeriod, zone).toLocalDate();
+        LocalDate toDate = LocalDate.now(zone);
 
-        // BƯỚC 1: Lọc các record trong khoảng thời gian
         var dateMatch = Aggregation.match(
-                Criteria.where("date").gte(from).lte(to)
+                Criteria.where("date").gte(fromDate).lte(toDate)
         );
 
-        // BƯỚC 2: Gom nhóm theo storyId và TÍNH TỔNG viewCount
         var groupByStory = Aggregation.group("storyId")
                 .sum("viewCount").as("periodViews");
 
-        // BƯỚC 3: Join với bảng Story để lấy thông tin chi tiết
-        var joinStory = Aggregation.lookup("story", "_id", "_id", "storyDetails");
+        // Đổi _id -> storyId (string) trước khi lookup
+        var normalizeKey = Aggregation.project()
+                .and("_id").as("storyId")
+                .and("periodViews").as("periodViews");
+
+        // Lookup bằng cách so sánh string của story._id với storyId
+        AggregationOperation lookupStory = context -> new Document("$lookup",
+                new Document("from", "story")
+                        .append("let", new Document("sid", "$storyId"))
+                        .append("pipeline", List.of(
+                                new Document("$match", new Document("$expr",
+                                        new Document("$eq", List.of(
+                                                new Document("$toString", "$_id"),
+                                                "$$sid"
+                                        ))
+                                ))
+                        ))
+                        .append("as", "storyDetails")
+        );
+
         var unwindStory = Aggregation.unwind("storyDetails");
 
-        // BƯỚC 4: Lọc bỏ truyện DRAFT
         var onlyPublishedStories = Aggregation.match(
                 Criteria.where("storyDetails.status").ne(StoryStatus.DRAFT.name())
         );
 
-        // BƯỚC 5: Sắp xếp theo tổng view giảm dần
-        var sortByViews = Aggregation.sort(Sort.Direction.DESC, "periodViews");
+        var sortByViews = Aggregation.sort(
+                Sort.by(Sort.Order.desc("periodViews"), Sort.Order.asc("storyId"))
+        );
 
-        // BƯỚC 6: Pipeline chính để phân trang và map dữ liệu
-        var paginate = Aggregation.newAggregation(
+        var pageAgg = Aggregation.newAggregation(
                 dateMatch,
                 groupByStory,
-                joinStory,
+                normalizeKey,
+                lookupStory,
                 unwindStory,
                 onlyPublishedStories,
                 sortByViews,
                 Aggregation.skip((long) page * size),
                 Aggregation.limit(size),
                 Aggregation.project()
-                        .and("_id").as("storyId")
+                        .and("storyId").as("storyId")
                         .and("storyDetails.title").as("title")
                         .and("storyDetails.authorId").as("authorId")
                         .and("storyDetails.numberOfChapters").as("numberOfChapters")
-                        // Trả về số view của kỳ này (Tuần/Tháng) thay vì All-time
                         .and("periodViews").as("numberOfViews")
         );
 
         AggregationResults<Document> pageResults =
-                mongoTemplate.aggregate(paginate, "storyDailyView", Document.class); // Tên collection của StoryDailyView
+                mongoTemplate.aggregate(pageAgg, "storyDailyView", Document.class);
 
         var content = pageResults.getMappedResults().stream()
                 .map(doc -> StoryResponse.builder()
                         .storyId(doc.getString("storyId"))
                         .authorId(doc.getString("authorId"))
                         .title(doc.getString("title"))
-                        .numberOfChapters(doc.getInteger("numberOfChapters", 0))
-                        .numberOfViews(doc.getInteger("numberOfViews", 0))
+                        .numberOfChapters(doc.get("numberOfChapters") instanceof Number n ? n.intValue() : 0)
+                        .numberOfViews(doc.get("numberOfViews") instanceof Number n ? n.intValue() : 0)
                         .build())
                 .toList();
 
-        // BƯỚC 7: Pipeline đếm tổng số bản ghi (Phục vụ cho đối tượng Page)
         var countAgg = Aggregation.newAggregation(
                 dateMatch,
                 groupByStory,
-                joinStory,
+                normalizeKey,
+                lookupStory,
                 unwindStory,
                 onlyPublishedStories,
                 Aggregation.count().as("total")
@@ -248,18 +264,20 @@ public class ReadingService {
 
         long total = countResults.getMappedResults().isEmpty()
                 ? 0L
-                : countResults.getMappedResults().get(0).getInteger("total", 0);
+                : countResults.getMappedResults().get(0).get("total") instanceof Number n ? n.longValue() : 0L;
 
-        return new org.springframework.data.domain.PageImpl<>(content, PageRequest.of(page, size), total);
+        return new PageImpl<>(content, PageRequest.of(page, size), total);
     }
 
-    public Page<StoryResponse> getTopRatingStories(Period period, int page, int size){
-        log.info("Getting top rating stories, page: {}, size: {}", page, size);
 
+    public Page<StoryResponse> getTopRatingStories(Period period, int page, int size) {
+        log.info("Getting top rating stories for period: {}, page: {}, size: {}", period, page, size);
 
         Period effectivePeriod = (period == null) ? Period.ALL_TIME : period;
+
+        // ALL_TIME: đọc trực tiếp từ Story
         if (effectivePeriod == Period.ALL_TIME) {
-            Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "averageRatingScore"));
+            Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Order.desc("averageRatingScore"), Sort.Order.desc("totalRatingCount"), Sort.Order.asc("storyId")));
             Page<Story> stories = storyRepository.findByStatusNotAndAverageRatingScoreGreaterThan(
                     StoryStatus.DRAFT, 0.0, pageable
             );
@@ -281,14 +299,32 @@ public class ReadingService {
         var dateMatch = Aggregation.match(
                 Criteria.where("ratedAt").gte(from).lt(to)
         );
+
         var groupByStory = Aggregation.group("storyId")
                 .avg("ratingScore").as("averageRatingScore")
                 .count().as("totalRatingCount");
 
-        var joinStory = Aggregation.lookup("story", "_id", "_id", "story");
+        var normalizeKey = Aggregation.project()
+                .and("_id").as("storyId")
+                .and("averageRatingScore").as("averageRatingScore")
+                .and("totalRatingCount").as("totalRatingCount");
+
+        AggregationOperation lookupStory = context -> new Document("$lookup",
+                new Document("from", "story")
+                        .append("let", new Document("sid", "$storyId"))
+                        .append("pipeline", List.of(
+                                new Document("$match", new Document("$expr",
+                                        new Document("$eq", List.of(
+                                                new Document("$toString", "$_id"),
+                                                "$$sid"
+                                        ))
+                                ))
+                        ))
+                        .append("as", "story")
+        );
+
         var unwindStory = Aggregation.unwind("story");
 
-        // status enum thường lưu dạng String trong Mongo
         var onlyPublishedStories = Aggregation.match(
                 Criteria.where("story.status").ne(StoryStatus.DRAFT.name())
         );
@@ -296,21 +332,23 @@ public class ReadingService {
         var sortByScore = Aggregation.sort(
                 Sort.by(
                         Sort.Order.desc("averageRatingScore"),
-                        Sort.Order.desc("totalRatingCount")
+                        Sort.Order.desc("totalRatingCount"),
+                        Sort.Order.asc("storyId")
                 )
         );
 
-        var paginate = Aggregation.newAggregation(
+        var pageAgg = Aggregation.newAggregation(
                 dateMatch,
                 groupByStory,
-                joinStory,
+                normalizeKey,
+                lookupStory,
                 unwindStory,
                 onlyPublishedStories,
                 sortByScore,
                 Aggregation.skip((long) page * size),
                 Aggregation.limit(size),
                 Aggregation.project()
-                        .and("_id").as("storyId")
+                        .and("storyId").as("storyId")
                         .and("story.authorId").as("authorId")
                         .and("story.title").as("title")
                         .and("story.numberOfChapters").as("numberOfChapters")
@@ -319,23 +357,24 @@ public class ReadingService {
         );
 
         AggregationResults<Document> pageResults =
-                mongoTemplate.aggregate(paginate, "rating", Document.class);
+                mongoTemplate.aggregate(pageAgg, "rating", Document.class);
 
         var content = pageResults.getMappedResults().stream()
                 .map(doc -> StoryResponse.builder()
                         .storyId(doc.getString("storyId"))
                         .authorId(doc.getString("authorId"))
                         .title(doc.getString("title"))
-                        .numberOfChapters(doc.getInteger("numberOfChapters", 0))
-                        .averageRatingScore(doc.getDouble("averageRatingScore") == null ? 0.0 : doc.getDouble("averageRatingScore"))
-                        .totalRatingCount(doc.getInteger("totalRatingCount", 0))
+                        .numberOfChapters(doc.get("numberOfChapters") instanceof Number n ? n.intValue() : 0)
+                        .averageRatingScore(doc.get("averageRatingScore") instanceof Number n ? n.doubleValue() : 0.0)
+                        .totalRatingCount(doc.get("totalRatingCount") instanceof Number n ? n.intValue() : 0)
                         .build())
                 .toList();
 
         var countAgg = Aggregation.newAggregation(
                 dateMatch,
                 groupByStory,
-                joinStory,
+                normalizeKey,
+                lookupStory,
                 unwindStory,
                 onlyPublishedStories,
                 Aggregation.count().as("total")
@@ -346,13 +385,14 @@ public class ReadingService {
 
         long total = countResults.getMappedResults().isEmpty()
                 ? 0L
-                : countResults.getMappedResults().getFirst().getInteger("total", 0);
+                : countResults.getMappedResults().get(0).get("total") instanceof Number n ? n.longValue() : 0L;
 
-        return new org.springframework.data.domain.PageImpl<>(content, PageRequest.of(page, size), total);
+        return new PageImpl<>(content, PageRequest.of(page, size), total);
     }
 
+
     @Transactional
-    public ReadingHistoryResponse readChapter(String userId, String storyId, String chapterId) {
+    public ReadingHistoryResponse readChapter(String userId, String storyId, String chapterId, Float progress) {
         log.info("Processing reading chapter for user: {}, story: {}, chapter: {}", userId, storyId, chapterId);
 
         Story story = storyRepository.findById(storyId)
@@ -372,41 +412,58 @@ public class ReadingService {
         }
 
         ReadingHistory history = readingHistoryRepository.findByUserIdAndStoryId(userId, storyId)
-                .orElse(null);
+                .orElseGet(() -> ReadingHistory.builder()
+                        .userId(userId)
+                        .storyId(storyId)
+                        .build());
 
-
-        boolean shouldIncreaseView = false;
         LocalDateTime readAt = LocalDateTime.now();
 
-        if (history == null) {
-            history = ReadingHistory.builder()
-                    .userId(userId)
-                    .storyId(storyId)
-                    .lastView(readAt)
-                    .build();
-            shouldIncreaseView = true;
-        } else {
-            if (history.getLastView() == null || history.getLastView().plusMinutes(30).isBefore(readAt)) {
-                shouldIncreaseView = true;
-                history.setLastView(readAt);
-            }
+        boolean shouldIncreaseStoryView = history.getLastView() == null ||
+                history.getLastView().plusMinutes(30).isBefore(readAt);
+
+        Map<String, LocalDateTime> viewTimes = history.getChapterViewTimes();
+        if (viewTimes == null) {
+            viewTimes = new HashMap<>();
         }
 
-        if (shouldIncreaseView) {
-            Query query = new Query().addCriteria(Criteria.where("storyId").is(storyId));
-            Update update = new Update().inc("numberOfViews", 1);
-            mongoTemplate.updateFirst(query, update, Story.class);
+        LocalDateTime lastChapterView = viewTimes.get(chapterId);
+        boolean shouldIncreaseChapterView = lastChapterView == null ||
+                lastChapterView.plusMinutes(30).isBefore(readAt);
 
-            LocalDate today = LocalDate.now();
-            Query dailyViewQuery = new Query(Criteria.where("storyId").is(storyId).and("date").is(today));
-            Update dailyViewUpdate = new Update().inc("viewCount", 1);
-            mongoTemplate.upsert(dailyViewQuery, dailyViewUpdate, StoryDailyView.class);
 
-            log.info("Increased view count for story: {}", storyId);
+
+        if (shouldIncreaseStoryView) {
+            // story views
+            UpdateResult storyUpdate = mongoTemplate.updateFirst(
+                    new Query(Criteria.where("_id").is(storyId)),
+                    new Update().inc("numberOfViews", 1),
+                    Story.class
+            );
+            log.info("Story view update - matched: {}, modified: {}",
+                    storyUpdate.getMatchedCount(), storyUpdate.getModifiedCount());
+            history.setLastView(readAt);
         }
 
-        history.setChapterId(chapterId);
+        if (shouldIncreaseChapterView) {
+            // chapter views
+            UpdateResult chapterUpdate = mongoTemplate.updateFirst(
+                    new Query(Criteria.where("_id").is(chapterId)),
+                    new Update().inc("numberOfViews", 1),
+                    Chapter.class
+            );
+            log.info("Chapter view update - matched: {}, modified: {}",
+                    chapterUpdate.getMatchedCount(), chapterUpdate.getModifiedCount());
+            viewTimes.put(chapterId, readAt);
+            history.setChapterViewTimes(viewTimes);
+        }
+
         history.setLastReadAt(readAt);
+        if (progress != null) {
+            log.info("Updating reading progress for user: {}, story: {}, chapter: {} to {}%",
+                    userId, storyId, chapterId, progress);
+            history.setPercentageRead(progress);
+        }
         readingHistoryRepository.save(history);
 
         log.info("Updated reading history for user: {}, story: {}, chapter: {}", userId, storyId, chapterId);
@@ -416,6 +473,7 @@ public class ReadingService {
                 .userId(userId)
                 .storyId(storyId)
                 .chapterId(chapterId)
+                .percentageRead(history.getPercentageRead())
                 .lastReadAt(readAt)
                 .build();
     }
@@ -437,6 +495,8 @@ public class ReadingService {
             String userId, int page, int size){
         try{
             log.info("Fetching reading history for user: {}", userId);
+
+
             Pageable pageable = PageRequest.of(page, size);
             Page<ReadingHistoryResponse> historyPage = readingHistoryRepository
                     .findByUserId(userId, pageable)
@@ -444,7 +504,13 @@ public class ReadingService {
                             .historyId(history.getHistoryId())
                             .userId(history.getUserId())
                             .storyId(history.getStoryId())
-                            .chapterId(history.getChapterId())
+                            .chapterId(history.getChapterViewTimes() != null && !history.getChapterViewTimes().isEmpty()
+                                    ? history.getChapterViewTimes().entrySet().stream()
+                                    .max(Map.Entry.comparingByValue())
+                                    .map(Map.Entry::getKey)
+                                    .orElse(null)
+                                    : null)
+                            .percentageRead(history.getPercentageRead())
                             .lastReadAt(history.getLastReadAt())
                             .build());
             log.info("Reading history fetched successfully, total records: {}", historyPage.getTotalElements());

@@ -4,11 +4,10 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.CompoundIndex;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
+import java.time.LocalDate;
 
 @Document
 @Setter
@@ -16,17 +15,14 @@ import java.util.Map;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@CompoundIndex(name = "user_story_idx", def = "{'userId': 1, 'storyId': 1}", unique = true)
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class ReadingHistory {
+@CompoundIndex(name = "chapter_date_idx", def = "{'chapterId': 1, 'date': 1}", unique = true)
+public class ChapterDailyView {
     @Id
-    String historyId;
-    String userId;
+    String id;
+    @Indexed
     String storyId;
-    Float percentageRead;
-    LocalDateTime lastView;
-    LocalDateTime lastReadAt;
-
-    @Builder.Default
-    Map<String, LocalDateTime> chapterViewTimes = new HashMap<>();
+    String chapterId;
+    LocalDate date;
+    int viewCount;
 }
