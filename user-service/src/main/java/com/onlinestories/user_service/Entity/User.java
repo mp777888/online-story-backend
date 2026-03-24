@@ -4,6 +4,7 @@ package com.onlinestories.user_service.Entity;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDate;
@@ -22,6 +23,7 @@ import java.util.Set;
 public class User {
     @Id
     String userId;
+    @Indexed(unique = true)
     String nickname;
     String img;
     LocalDate dob;

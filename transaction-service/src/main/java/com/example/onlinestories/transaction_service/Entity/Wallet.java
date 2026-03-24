@@ -17,8 +17,6 @@ public class Wallet {
     @Id
     String walletId;
     String userId;
-    Double balance;
-    String bankCode;
-    String accountNumber;
-
+    int readingTokens;
+    int writingTokens;
 }

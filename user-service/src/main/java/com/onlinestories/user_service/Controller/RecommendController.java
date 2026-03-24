@@ -1,15 +1,11 @@
 package com.onlinestories.user_service.Controller;
 
-import com.onlinestories.user_service.DTO.Request.PackageRegisterRequest;
-import com.onlinestories.user_service.DTO.Response.PackageResponse;
 import com.onlinestories.user_service.Exception.ApiResponse;
-import com.onlinestories.user_service.Service.PackageService;
 import com.onlinestories.user_service.Service.RecommendationService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
