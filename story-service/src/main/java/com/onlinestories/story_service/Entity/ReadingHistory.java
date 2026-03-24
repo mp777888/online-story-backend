@@ -23,6 +23,7 @@ public class ReadingHistory {
     String historyId;
     String userId;
     String storyId;
+    String lastChapterId;
     Float percentageRead;
     LocalDateTime lastView;
     LocalDateTime lastReadAt;

@@ -128,6 +128,7 @@ public class ReadingService {
             Chapter chapter = chapterRepository.findById(chapterId)
                     .orElseThrow(() -> new AppException(ErrorCode.CHAPTER_NOT_FOUND));
 
+            String content = null;
             if(!chapter.getStatus().equals(ChapterStatus.PUBLISHED)){
                 Story story = storyRepository.findById(chapter.getStoryId())
                         .orElseThrow(() -> new AppException(ErrorCode.STORY_NOT_FOUND));
@@ -136,8 +137,9 @@ public class ReadingService {
                     throw new AppException(ErrorCode.ACCESS_DENIED);
                 }
             }
-
-            String content = getContentForReading(chapterId);
+            else {
+                content = getContentForReading(chapterId);
+            }
 
             return ChapterResponse.builder()
                     .chapterId(chapter.getChapterId())
@@ -411,6 +413,17 @@ public class ReadingService {
             throw new AppException(ErrorCode.CHAPTER_IS_NOT_PUBLISHED);
         }
 
+        if(story.getAuthorId().equals(userId)){
+            log.info("User {} is the author of the story {}, allowing access to read chapter without view count increment", userId, storyId);
+            return ReadingHistoryResponse.builder()
+                    .userId(userId)
+                    .storyId(storyId)
+                    .chapterId(chapterId)
+                    .percentageRead(progress)
+                    .lastReadAt(LocalDateTime.now())
+                    .build();
+        }
+
         ReadingHistory history = readingHistoryRepository.findByUserIdAndStoryId(userId, storyId)
                 .orElseGet(() -> ReadingHistory.builder()
                         .userId(userId)
@@ -458,6 +471,7 @@ public class ReadingService {
             history.setChapterViewTimes(viewTimes);
         }
 
+        history.setLastChapterId(chapterId);
         history.setLastReadAt(readAt);
         if (progress != null) {
             log.info("Updating reading progress for user: {}, story: {}, chapter: {} to {}%",
@@ -504,12 +518,7 @@ public class ReadingService {
                             .historyId(history.getHistoryId())
                             .userId(history.getUserId())
                             .storyId(history.getStoryId())
-                            .chapterId(history.getChapterViewTimes() != null && !history.getChapterViewTimes().isEmpty()
-                                    ? history.getChapterViewTimes().entrySet().stream()
-                                    .max(Map.Entry.comparingByValue())
-                                    .map(Map.Entry::getKey)
-                                    .orElse(null)
-                                    : null)
+                            .chapterId(history.getLastChapterId())
                             .percentageRead(history.getPercentageRead())
                             .lastReadAt(history.getLastReadAt())
                             .build());
