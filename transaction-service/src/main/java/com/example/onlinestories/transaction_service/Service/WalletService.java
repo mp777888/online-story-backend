@@ -18,7 +18,8 @@ public class WalletService {
     public WalletResponse createWallet(String userId){
         log.info("Creating wallet for userId: {}", userId);
         Wallet wallet = Wallet.builder()
-                .balance(0.0)
+                .readingTokens(0)
+                .writingTokens(0)
                 .userId(userId)
                 .build();
         var savedWallet = walletRepository.save(wallet);
