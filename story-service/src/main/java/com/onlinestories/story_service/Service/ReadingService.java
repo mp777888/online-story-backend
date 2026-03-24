@@ -444,7 +444,7 @@ public class ReadingService {
         boolean shouldIncreaseChapterView = lastChapterView == null ||
                 lastChapterView.plusMinutes(30).isBefore(readAt);
 
-
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh"));
 
         if (shouldIncreaseStoryView) {
             // story views
@@ -455,6 +455,15 @@ public class ReadingService {
             );
             log.info("Story view update - matched: {}, modified: {}",
                     storyUpdate.getMatchedCount(), storyUpdate.getModifiedCount());
+
+            UpdateResult dailyStoryUpdate = mongoTemplate.upsert(
+                    new Query(Criteria.where("storyId").is(storyId).and("date").is(today)),
+                    new Update().inc("viewCount", 1),
+                    StoryDailyView.class
+            );
+            log.info("Story daily view update - matched: {}, modified: {}, upsertedId: {}",
+                    dailyStoryUpdate.getMatchedCount(), dailyStoryUpdate.getModifiedCount(), dailyStoryUpdate.getUpsertedId());
+
             history.setLastView(readAt);
         }
 
