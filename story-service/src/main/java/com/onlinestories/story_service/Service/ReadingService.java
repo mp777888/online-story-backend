@@ -141,6 +141,9 @@ public class ReadingService {
                 content = getContentForReading(chapterId);
             }
 
+            ReadingHistory history = readingHistoryRepository.findByUserIdAndStoryId(userId, chapter.getStoryId())
+                    .orElse(null);
+
             return ChapterResponse.builder()
                     .chapterId(chapter.getChapterId())
                     .storyId(chapter.getStoryId())
@@ -149,6 +152,7 @@ public class ReadingService {
                     .content(content)
                     .img(chapter.getImg())
                     .audioUrl(chapter.getAudioUrl())
+                    .percentageRead(history != null ? history.getPercentageRead() : null)
                     .createdAt(chapter.getCreatedAt())
                     .publishedAt(chapter.getPublishedAt())
                     .build();
