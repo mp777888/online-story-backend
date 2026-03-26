@@ -146,12 +146,9 @@ public class UserController {
     }
 
     @GetMapping("/exists")
-    public ApiResponse<Boolean> checkUserExistence(@RequestParam String userId) {
+    public Boolean checkUserExistence(@RequestParam String userId) {
         log.info("Received request to check existence for userId={}", userId);
-        return ApiResponse.<Boolean>builder()
-                .code(200)
-                .result(userService.checkUserExistence(userId))
-                .build();
+        return userService.checkUserExistence(userId);
     }
 
 }
