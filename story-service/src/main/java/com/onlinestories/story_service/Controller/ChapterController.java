@@ -79,9 +79,12 @@ public class ChapterController {
     }
 
     @DeleteMapping
-    public ApiResponse<String> deleteChapter(@RequestParam String chapterId){
+    public ApiResponse<String> deleteChapter(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam String chapterId){
+        String userId = jwt.getSubject();
         log.info("Received request to delete chapter ID: {}", chapterId);
-        writingService.deleteChapter(chapterId);
+        writingService.deleteChapter(userId,chapterId);
         return ApiResponse.<String>builder()
                 .code(200)
                 .message("Chapter deleted successfully")
@@ -221,6 +224,19 @@ public class ChapterController {
                 .code(200)
                 .message("Reading history fetched successfully")
                 .result(readingService.getReadingHistory(userId, page, size))
+                .build();
+    }
+
+    @GetMapping("/latest-chapter")
+    public ApiResponse<ReadingHistoryResponse> getLatestChapter(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam String storyId){
+        String userId = jwt.getSubject();
+        log.info("Received request to fetch latest chapter for story ID: {}", storyId);
+        return ApiResponse.<ReadingHistoryResponse>builder()
+                .code(200)
+                .message("Latest chapter fetched successfully")
+                .result(readingService.getLatestChapter(userId,storyId))
                 .build();
     }
 

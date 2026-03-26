@@ -153,26 +153,28 @@ public class WritingService {
     }
 
     @Transactional
-    public void deleteChapter(String chapterId) {
-        try{
-            log.info("Deleting chapter with ID: {}", chapterId);
-            if(!chapterRepository.existsByChapterId(chapterId)){
-                log.warn("Chapter not found with ID: {}", chapterId);
-                throw new AppException(ErrorCode.CHAPTER_NOT_FOUND);
-            }
-            chapterRepository.deleteById(chapterId);
-            log.info("Chapter with ID: {} deleted successfully", chapterId);
+    public void deleteChapter(String userId, String chapterId) {
+        log.info("Deleting chapter with ID: {}", chapterId);
+        Story story = storyRepository.findById(chapterRepository.findById(chapterId)
+                        .orElseThrow(() -> new AppException(ErrorCode.CHAPTER_NOT_FOUND))
+                        .getStoryId())
+                .orElseThrow(() -> new AppException(ErrorCode.STORY_NOT_FOUND));
 
-            chapterDraftRepository.deleteByChapterId(chapterId);
-            log.info("Chapter draft for chapterId: {} deleted successfully", chapterId);
+        if (!story.getAuthorId().equals(userId)) {
+            log.warn("User with ID: {} is not the author of the story and cannot delete chapters", userId);
+            throw new AppException(ErrorCode.ACCESS_DENIED);
+        }
 
-            chapterVersionRepository.deleteByChapterId(chapterId);
-            log.info("Chapter versions for chapterId: {} deleted successfully", chapterId);
-        }
-        catch (Exception e){
-            log.error("Error deleting chapter: {}", e.getMessage());
-            throw e;
-        }
+
+        /* Delete comment, rating, ... do later */
+        chapterRepository.deleteById(chapterId);
+        log.info("Chapter with ID: {} deleted successfully", chapterId);
+
+        chapterDraftRepository.deleteByChapterId(chapterId);
+        log.info("Chapter draft for chapterId: {} deleted successfully", chapterId);
+
+        chapterVersionRepository.deleteByChapterId(chapterId);
+        log.info("Chapter versions for chapterId: {} deleted successfully", chapterId);
     }
 
     // Create chapter drafts

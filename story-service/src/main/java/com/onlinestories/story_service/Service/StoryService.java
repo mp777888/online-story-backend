@@ -6,6 +6,7 @@ import com.onlinestories.story_service.DTO.Request.CreateStoryRequest;
 import com.onlinestories.story_service.DTO.Request.UpdateStoryRequest;
 import com.onlinestories.story_service.DTO.Response.StoryResponse;
 import com.onlinestories.story_service.DTO.Response.UserResponse;
+import com.onlinestories.story_service.Entity.Chapter;
 import com.onlinestories.story_service.Entity.Story;
 import com.onlinestories.story_service.Enum.StoryStatus;
 import com.onlinestories.story_service.Exception.AppException;
@@ -24,8 +25,10 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -36,6 +39,7 @@ import java.util.stream.Collectors;
 public class StoryService {
     StoryRepository storyRepository;
     ChapterRepository chapterRepository;
+    WritingService writingService;
     GenreRepository genreRepository;
     UserClient userClient;
     MediaClient mediaClient;
@@ -212,7 +216,28 @@ public class StoryService {
         }
     }
 
+    @Transactional
+    public void deleteStory(String userId, String storyId){
+        log.info("Deleting story: {}", storyId);
+        Story story = storyRepository.findById(storyId)
+                .orElseThrow(() -> new AppException(ErrorCode.STORY_NOT_FOUND));
 
+        try{
+            List<Chapter> chapters = chapterRepository.findByStoryId(storyId);
+            for(Chapter chapter : chapters){
+                writingService.deleteChapter(userId, chapter.getChapterId());
+            }
+
+            String message = mediaClient.deleteFile(story.getImg(), "image");
+            log.info("Deleted image for story {}: {}", storyId, message);
+            storyRepository.delete(story);
+            log.info("Story {} deleted successfully", storyId);
+        }
+        catch (Exception ex){
+            logger.error("Error deleting story {}: {}", storyId, ex.getMessage(), ex);
+            throw ex;
+        }
+    }
 
 
     // Get stories by filters: genre, author, status

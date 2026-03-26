@@ -54,6 +54,19 @@ public class StoryController {
                 .build();
     }
 
+    @DeleteMapping
+    public ApiResponse<Void> deleteStory(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam String storyId) {
+        String authorId = jwt.getSubject();
+        log.info("Received request to delete story with ID: {}", storyId);
+        storyService.deleteStory(authorId, storyId);
+        return ApiResponse.<Void>builder()
+                .code(200)
+                .message("Story deleted successfully")
+                .build();
+    }
+
     @GetMapping("/my-stories")
     public ApiResponse<Page<StoryResponse>> getMyStories(
             @AuthenticationPrincipal Jwt jwt,

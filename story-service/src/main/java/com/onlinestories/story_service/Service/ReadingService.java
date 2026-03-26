@@ -153,6 +153,7 @@ public class ReadingService {
                     .img(chapter.getImg())
                     .audioUrl(chapter.getAudioUrl())
                     .percentageRead(history != null ? history.getPercentageRead() : null)
+                    .numberOfViews(chapter.getNumberOfViews())
                     .createdAt(chapter.getCreatedAt())
                     .publishedAt(chapter.getPublishedAt())
                     .build();
@@ -542,6 +543,18 @@ public class ReadingService {
             log.error("Error fetching reading history: {}", e.getMessage());
             throw e;
         }
+    }
+
+    public ReadingHistoryResponse getLatestChapter(
+            String userId, String storyId){
+        log.info("Fetching latest chapter read for user: {}, story: {}", userId, storyId);
+        return readingHistoryRepository.findByUserIdAndStoryId(userId, storyId)
+                .map(history -> ReadingHistoryResponse.builder()
+                        .historyId(history.getHistoryId())
+                        .chapterId(history.getLastChapterId())
+                        .percentageRead(history.getPercentageRead())
+                        .build())
+                .orElse(null);
     }
 
     private LocalDateTime resolveStartTime(Period period, ZoneId zoneId) {
