@@ -201,6 +201,7 @@ public class UserService {
                     .username(userRep.getUsername())
                     .email(userRep.getEmail())
                     .nickname(user.getNickname())
+                    .description(user.getDescription())
                     .dob(user.getDob())
                     .img(user.getImg())
                     .build();
@@ -246,6 +247,10 @@ public class UserService {
 
             if (request.getDob() != null) {
                 user.setDob(request.getDob());
+            }
+
+            if (request.getDescription() != null) {
+                user.setDescription(request.getDescription());
             }
 
             userRepository.save(user);
@@ -353,6 +358,17 @@ public class UserService {
                             .img(follow.getImg())
                             .build())
                     .toList();
+        }
+        catch (Exception e){
+            log.error(e.getMessage());
+            throw e;
+        }
+    }
+
+    public Boolean isFollowing(String userId, String targetUserId){
+        try{
+            User user = findUserById(userId);
+            return user.getFollowingIds().contains(targetUserId);
         }
         catch (Exception e){
             log.error(e.getMessage());

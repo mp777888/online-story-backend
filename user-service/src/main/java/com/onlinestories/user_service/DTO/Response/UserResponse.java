@@ -17,6 +17,7 @@ public class UserResponse {
     String nickname;
     String email;
     String img;
+    String description;
     LocalDateTime createdAt;
     LocalDate dob;
 }

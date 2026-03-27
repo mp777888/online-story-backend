@@ -145,6 +145,19 @@ public class UserController {
                 .build();
     }
 
+    @GetMapping("/is-following")
+    public ApiResponse<Boolean> isFollowing(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam String targetUserId
+    ) {
+        String userId = jwt.getSubject();
+        log.info("Received request to check if userId={} is following targetUserId={}", userId, targetUserId);
+        return ApiResponse.<Boolean>builder()
+                .code(200)
+                .result(userService.isFollowing(userId, targetUserId))
+                .build();
+    }
+
     @GetMapping("/exists")
     public Boolean checkUserExistence(@RequestParam String userId) {
         log.info("Received request to check existence for userId={}", userId);

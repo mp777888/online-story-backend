@@ -14,4 +14,5 @@ public class UserUpdateRequest {
     String password;
     String nickname;
     LocalDate dob;
+    String description;
 }
