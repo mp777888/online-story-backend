@@ -2,6 +2,7 @@ package com.onlinestories.story_service.Service;
 
 import com.mongodb.client.result.UpdateResult;
 import com.onlinestories.story_service.DTO.Response.ChapterResponse;
+import com.onlinestories.story_service.DTO.Response.FavoriteResponse;
 import com.onlinestories.story_service.DTO.Response.ReadingHistoryResponse;
 import com.onlinestories.story_service.DTO.Response.StoryResponse;
 import com.onlinestories.story_service.Entity.*;
@@ -45,6 +46,7 @@ public class ReadingService {
     ReadingHistoryRepository readingHistoryRepository;
     StoryRepository storyRepository;
     ChapterRepository chapterRepository;
+    FavoriteRepository favoriteRepository;
     ChapterVersionRepository chapterVersionRepository;
     StoryDailyViewRepository storyDailyViewRepository;
     MongoTemplate mongoTemplate;
@@ -555,6 +557,16 @@ public class ReadingService {
                         .percentageRead(history.getPercentageRead())
                         .build())
                 .orElse(null);
+    }
+
+    public Page<FavoriteResponse> getFavoriteStories(String userId, int page, int size){
+        log.info("Fetching favorite stories for user: {}, page: {}, size: {}", userId, page, size);
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Favorite> favoritePage = favoriteRepository.findByUserId(userId, pageable);
+
+        return favoritePage.map(favorite -> FavoriteResponse.builder()
+                .storyId(favorite.getStoryId())
+                .build());
     }
 
     private LocalDateTime resolveStartTime(Period period, ZoneId zoneId) {

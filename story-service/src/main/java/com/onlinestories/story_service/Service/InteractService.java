@@ -4,17 +4,11 @@ import com.onlinestories.story_service.DTO.Request.CommentRequest;
 import com.onlinestories.story_service.DTO.Request.RatingRequest;
 import com.onlinestories.story_service.DTO.Response.CommentResponse;
 import com.onlinestories.story_service.DTO.Response.RatingResponse;
-import com.onlinestories.story_service.Entity.Chapter;
-import com.onlinestories.story_service.Entity.Comment;
-import com.onlinestories.story_service.Entity.Rating;
-import com.onlinestories.story_service.Entity.Story;
+import com.onlinestories.story_service.Entity.*;
 import com.onlinestories.story_service.Enum.ChapterStatus;
 import com.onlinestories.story_service.Exception.AppException;
 import com.onlinestories.story_service.Exception.ErrorCode;
-import com.onlinestories.story_service.Repository.ChapterRepository;
-import com.onlinestories.story_service.Repository.CommentRepository;
-import com.onlinestories.story_service.Repository.RatingRepository;
-import com.onlinestories.story_service.Repository.StoryRepository;
+import com.onlinestories.story_service.Repository.*;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -43,6 +37,7 @@ public class InteractService {
     ChapterRepository chapterRepository;
     CommentRepository commentRepository;
     RatingRepository ratingRepository;
+    FavoriteRepository favoriteRepository;
 
     MongoTemplate mongoTemplate;
 
@@ -240,7 +235,54 @@ public class InteractService {
                 .build();
     }
 
+    public void addingStoryToFavoriteList(String userId, String storyId) {
+        log.info("Adding story to favorite list by userId: {}, storyId: {}", userId, storyId);
 
+        if (!storyRepository.existsById(storyId)) {
+            throw new AppException(ErrorCode.STORY_NOT_FOUND);
+        }
+
+        if (favoriteRepository.existsByUserIdAndStoryId(userId, storyId)) {
+            throw new AppException(ErrorCode.FAVORITE_ALREADY_EXISTS);
+        }
+        try {
+            favoriteRepository.save(Favorite.builder()
+                    .userId(userId)
+                    .storyId(storyId)
+                    .build());
+        }
+        catch (Exception e) {
+            log.error("Error while adding like for userId: {}, storyId: {}, error: {}", userId, storyId, e.getMessage());
+        }
+    }
+
+    public void removeStoryFromFavoriteList(String userId, String storyId) {
+        log.info("Removing story from favorite list by userId: {}, storyId: {}", userId, storyId);
+
+        if (!storyRepository.existsById(storyId)) {
+            throw new AppException(ErrorCode.STORY_NOT_FOUND);
+        }
+
+        if (!favoriteRepository.existsByUserIdAndStoryId(userId, storyId)) {
+            throw new AppException(ErrorCode.FAVORITE_NOT_FOUND);
+        }
+        try {
+            favoriteRepository.deleteByUserIdAndStoryId(userId, storyId);
+        }
+        catch (Exception e) {
+            log.error("Error while removing like for userId: {}, storyId: {}, error: {}", userId, storyId, e.getMessage());
+        }
+    }
+
+    public Boolean isStoryInFavoriteList(String userId, String storyId) {
+        log.info("Checking if story is in favorite list by userId: {}, storyId: {}", userId, storyId);
+
+        if (!storyRepository.existsById(storyId)) {
+            throw new AppException(ErrorCode.STORY_NOT_FOUND);
+        }
+
+        return favoriteRepository.existsByUserIdAndStoryId(userId, storyId);
+    }
 
 
     private CommentResponse mapToResponse(Comment comment) {

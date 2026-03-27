@@ -106,4 +106,46 @@ public class InteractController {
                 .result(interactService.getMyRating(userId, storyId))
                 .build();
     }
+
+    @PostMapping("/favorite")
+    public ApiResponse<String> addFavorite(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam String storyId) {
+        String userId = jwt.getSubject();
+        log.info("Received add favorite request for storyId: {}, userId: {}", storyId, userId);
+        interactService.addingStoryToFavoriteList(userId, storyId);
+        return ApiResponse.<String>builder()
+                .code(200)
+                .message("Story added to favorites successfully")
+                .result("Story has been added to favorites")
+                .build();
+    }
+
+    @GetMapping("/favorite")
+    public ApiResponse<Boolean> isFavorite(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam String storyId) {
+        String userId = jwt.getSubject();
+        log.info("Received check favorite request for storyId: {}, userId: {}", storyId, userId);
+        boolean isFavorite = interactService.isStoryInFavoriteList(userId, storyId);
+        return ApiResponse.<Boolean>builder()
+                .code(200)
+                .message("Favorite status retrieved successfully")
+                .result(isFavorite)
+                .build();
+    }
+
+    @DeleteMapping("/favorite")
+    public ApiResponse<String> removeFavorite(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam String storyId) {
+        String userId = jwt.getSubject();
+        log.info("Received remove favorite request for storyId: {}, userId: {}", storyId, userId);
+        interactService.removeStoryFromFavoriteList(userId, storyId);
+        return ApiResponse.<String>builder()
+                .code(200)
+                .message("Story removed from favorites successfully")
+                .result("Story has been removed from favorites")
+                .build();
+    }
 }

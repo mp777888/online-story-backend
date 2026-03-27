@@ -27,6 +27,8 @@ public enum ErrorCode {
     EMPTY_IMPORT_CONTENT(2018, "Imported content is empty", HttpStatus.BAD_REQUEST),
     FILE_IMPORT_FAILED(2019, "Failed to import Word file", HttpStatus.INTERNAL_SERVER_ERROR),
     RATING_NOT_FOUND(2020, "Rating not found", HttpStatus.NOT_FOUND),
+    FAVORITE_ALREADY_EXISTS(2021, "User has already liked this story", HttpStatus.BAD_REQUEST),
+    FAVORITE_NOT_FOUND(2022, "Favorite not found", HttpStatus.NOT_FOUND),
     ACCESS_DENIED(2900, "Access denied", HttpStatus.FORBIDDEN)
 
     ;

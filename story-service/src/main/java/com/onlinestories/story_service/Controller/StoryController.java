@@ -3,6 +3,7 @@ package com.onlinestories.story_service.Controller;
 import com.onlinestories.story_service.DTO.Request.CreateStoryRequest;
 import com.onlinestories.story_service.DTO.Request.UpdateStoryRequest;
 import com.onlinestories.story_service.DTO.Response.ChapterResponse;
+import com.onlinestories.story_service.DTO.Response.FavoriteResponse;
 import com.onlinestories.story_service.DTO.Response.StoryResponse;
 import com.onlinestories.story_service.Enum.Period;
 import com.onlinestories.story_service.Exception.ApiResponse;
@@ -118,6 +119,20 @@ public class StoryController {
                 .code(200)
                 .message("Story updated successfully")
                 .result(storyService.updateStory(request, img))
+                .build();
+    }
+
+    @GetMapping("/favorite-stories")
+    public ApiResponse<Page<FavoriteResponse>> getFavoriteStories(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        String userId = jwt.getSubject();
+        log.info("Received request to fetch favorite stories for user: {}", userId);
+        return ApiResponse.<Page<FavoriteResponse>>builder()
+                .code(200)
+                .message("Favorite stories fetched successfully")
+                .result(readingService.getFavoriteStories(userId, page, size))
                 .build();
     }
 
