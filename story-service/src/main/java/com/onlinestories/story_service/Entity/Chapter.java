@@ -28,6 +28,7 @@ public class Chapter {
     LocalDateTime createdAt;
     LocalDateTime publishedAt;
     ChapterStatus status;
+    String scheduledVersionId;
     String audioUrl;
     int numberOfViews;
 }

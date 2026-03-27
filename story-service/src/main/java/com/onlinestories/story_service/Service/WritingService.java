@@ -15,6 +15,8 @@ import com.onlinestories.story_service.Enum.ChapterStatus;
 import com.onlinestories.story_service.Enum.StoryStatus;
 import com.onlinestories.story_service.Exception.AppException;
 import com.onlinestories.story_service.Exception.ErrorCode;
+import com.onlinestories.story_service.Kafka.Event.chapter.ChapterPublishedEvent;
+import com.onlinestories.story_service.Kafka.Producer.ChapterEventProducer;
 import com.onlinestories.story_service.Repository.ChapterDraftRepository;
 import com.onlinestories.story_service.Repository.ChapterRepository;
 import com.onlinestories.story_service.Repository.ChapterVersionRepository;
@@ -38,6 +40,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 @Service
 @Slf4j
@@ -48,6 +51,7 @@ public class WritingService {
     ChapterRepository chapterRepository;
     ChapterVersionRepository chapterVersionRepository;
     ChapterDraftRepository chapterDraftRepository;
+    ChapterEventProducer chapterEventProducer;
     AzureTtsService azureTtsService;
     MediaClient mediaClient;
     MongoTemplate mongoTemplate;
@@ -439,46 +443,74 @@ public class WritingService {
             Chapter chapter = chapterRepository.findById(request.getChapterId())
                     .orElseThrow(() -> new AppException(ErrorCode.CHAPTER_NOT_FOUND));
 
-            ChapterVersion version = chapterVersionRepository.findById(request.getChapterVersionId())
-                    .orElseThrow(() -> new AppException(ErrorCode.VERSION_NOT_FOUND));
-
             if(chapter.getStatus() == ChapterStatus.PUBLISHED){
                 log.warn("Chapter with ID: {} is already published", request.getChapterId());
                 throw new AppException(ErrorCode.CHAPTER_ALREADY_PUBLISHED);
             }
 
-            chapter.setStatus(ChapterStatus.PUBLISHED);
+            ChapterVersion version = chapterVersionRepository.findById(request.getChapterVersionId())
+                    .orElseThrow(() -> new AppException(ErrorCode.VERSION_NOT_FOUND));
 
-            if(chapter.getAudioUrl() != null && !chapter.getAudioUrl().isEmpty()){
-                String message = mediaClient.deleteFile(chapter.getAudioUrl(), "video");
-                log.info("Old chapter audio deleted successfully: {}", message);
+            LocalDateTime publishDate = request.getPublishDate();
+            if(publishDate != null && publishDate.isAfter(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")))){
+                chapter.setStatus(ChapterStatus.SCHEDULED);
+                chapter.setPublishedAt(publishDate);
+                chapter.setScheduledVersionId(version.getChapterVersionId());
+                chapterRepository.save(chapter);
+
+                log.info("Chapter {} scheduled to be published at {}", chapter.getChapterId(), publishDate);
+                return ChapterResponse.builder()
+                        .chapterId(chapter.getChapterId())
+                        .status(chapter.getStatus().name())
+                        .publishedAt(chapter.getPublishedAt())
+                        .build();
             }
-            chapter.setAudioUrl(getAudioUrl(version.getContent(), "vn-VN"));
-            chapter.setPublishedAt(LocalDateTime.now());
-            chapterRepository.save(chapter);
 
-            version.setIsPublished(true);
-            chapterVersionRepository.save(version);
 
-            story.setNumberOfChapters(story.getNumberOfChapters() + 1);
-            storyRepository.save(story);
-            log.info("Chapter with ID: {} published successfully", request.getChapterId());
-
-            return  ChapterResponse.builder()
-                    .chapterId(chapter.getChapterId())
-                    .storyId(chapter.getStoryId())
-                    .title(chapter.getTitle())
-                    .img(chapter.getImg())
-                    .status(chapter.getStatus().name())
-                    .createdAt(chapter.getCreatedAt())
-                    .publishedAt(chapter.getPublishedAt())
-                    .build();
-
+            return doPublishChapter(story, chapter, version);
         } catch (Exception e){
             log.error("Error publishing chapter: {}", e.getMessage());
             throw e;
         }
 
+    }
+
+    @Transactional
+    public ChapterResponse doPublishChapter(Story story, Chapter chapter, ChapterVersion version) {
+        chapter.setStatus(ChapterStatus.PUBLISHED);
+        if(chapter.getAudioUrl() != null && !chapter.getAudioUrl().isEmpty()){
+            mediaClient.deleteFile(chapter.getAudioUrl(), "video");
+        }
+        chapter.setAudioUrl(getAudioUrl(version.getContent(), "vn-VN"));
+        chapter.setPublishedAt(LocalDateTime.now());
+        chapterRepository.save(chapter);
+
+        version.setIsPublished(true);
+        chapterVersionRepository.save(version);
+
+        story.setNumberOfChapters(story.getNumberOfChapters() + 1);
+        storyRepository.save(story);
+
+        ChapterPublishedEvent event = ChapterPublishedEvent.builder()
+                .chapterId(chapter.getChapterId())
+                .storyId(chapter.getStoryId())
+                .title(chapter.getTitle())
+                .authorId(story.getAuthorId())
+                .eventType("CHAPTER_PUBLISHED")
+                .build();
+        chapterEventProducer.publishChapterCreatedEvent(event);
+
+        log.info("Chapter with ID: {} published automatically/immediately success", chapter.getChapterId());
+
+        return ChapterResponse.builder()
+                .chapterId(chapter.getChapterId())
+                .storyId(chapter.getStoryId())
+                .title(chapter.getTitle())
+                .img(chapter.getImg())
+                .status(chapter.getStatus().name())
+                .createdAt(chapter.getCreatedAt())
+                .publishedAt(chapter.getPublishedAt())
+                .build();
     }
 
     private String getAudioUrl(String content, String language){
