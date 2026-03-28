@@ -16,14 +16,14 @@ import java.util.Map;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@CompoundIndex(name = "user_story_idx", def = "{'userId': 1, 'storyId': 1}", unique = true)
+@CompoundIndex(name = "user_chapter_idx", def = "{'userId': 1, 'chapterId': 1}", unique = true)
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class ReadingHistory {
+public class ProgressReading {
     @Id
-    String historyId;
+    String progressId;
     String userId;
-    String storyId;
-    String lastChapterId;
-    LocalDateTime lastView;
+    String chapterId;
+    Float percentageRead;
     LocalDateTime lastReadAt;
+    LocalDateTime lastView;
 }

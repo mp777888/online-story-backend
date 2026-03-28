@@ -34,9 +34,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.temporal.TemporalAdjusters;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -48,6 +46,7 @@ public class ReadingService {
     StoryRepository storyRepository;
     ChapterRepository chapterRepository;
     FavoriteRepository favoriteRepository;
+    ProgressReadingRepository progressReadingRepository;
     ChapterVersionRepository chapterVersionRepository;
     StoryDailyViewRepository storyDailyViewRepository;
     MongoTemplate mongoTemplate;
@@ -144,7 +143,7 @@ public class ReadingService {
                 content = getContentForReading(chapterId);
             }
 
-            ReadingHistory history = readingHistoryRepository.findByUserIdAndStoryId(userId, chapter.getStoryId())
+            ProgressReading progressReading = progressReadingRepository.findByUserIdAndChapterId(userId, chapterId)
                     .orElse(null);
 
             return ChapterResponse.builder()
@@ -155,7 +154,7 @@ public class ReadingService {
                     .content(content)
                     .img(chapter.getImg())
                     .audioUrl(chapter.getAudioUrl())
-                    .percentageRead(history != null ? history.getPercentageRead() : null)
+                    .percentageRead(progressReading != null ? progressReading.getPercentageRead() : null)
                     .numberOfViews(chapter.getNumberOfViews())
                     .createdAt(chapter.getCreatedAt())
                     .publishedAt(chapter.getPublishedAt())
@@ -428,31 +427,22 @@ public class ReadingService {
                     .storyId(storyId)
                     .chapterId(chapterId)
                     .percentageRead(progress)
-                    .lastReadAt(LocalDateTime.now())
+                    .lastReadAt(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")))
                     .build();
         }
 
+        LocalDateTime readAt = LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh"));
+
+        // view and history for story
         ReadingHistory history = readingHistoryRepository.findByUserIdAndStoryId(userId, storyId)
                 .orElseGet(() -> ReadingHistory.builder()
                         .userId(userId)
                         .storyId(storyId)
                         .build());
 
-        LocalDateTime readAt = LocalDateTime.now();
-
         boolean shouldIncreaseStoryView = history.getLastView() == null ||
                 history.getLastView().plusMinutes(30).isBefore(readAt);
-
-        Map<String, LocalDateTime> viewTimes = history.getChapterViewTimes();
-        if (viewTimes == null) {
-            viewTimes = new HashMap<>();
-        }
-
-        LocalDateTime lastChapterView = viewTimes.get(chapterId);
-        boolean shouldIncreaseChapterView = lastChapterView == null ||
-                lastChapterView.plusMinutes(30).isBefore(readAt);
-
-        LocalDate today = LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh"));
 
         if (shouldIncreaseStoryView) {
             // story views
@@ -475,6 +465,21 @@ public class ReadingService {
             history.setLastView(readAt);
         }
 
+        history.setLastChapterId(chapterId);
+        history.setLastReadAt(readAt);
+        readingHistoryRepository.save(history);
+
+
+        //view and progress for chapter
+        ProgressReading progressReading = progressReadingRepository.findByUserIdAndChapterId(userId, chapterId)
+                .orElseGet(() -> ProgressReading.builder()
+                        .userId(userId)
+                        .chapterId(chapterId)
+                        .build());
+
+        boolean shouldIncreaseChapterView = progressReading.getLastView() == null ||
+                progressReading.getLastView().plusMinutes(30).isBefore(readAt);
+
         if (shouldIncreaseChapterView) {
             // chapter views
             UpdateResult chapterUpdate = mongoTemplate.updateFirst(
@@ -482,20 +487,20 @@ public class ReadingService {
                     new Update().inc("numberOfViews", 1),
                     Chapter.class
             );
+            progressReading.setLastView(readAt);
             log.info("Chapter view update - matched: {}, modified: {}",
                     chapterUpdate.getMatchedCount(), chapterUpdate.getModifiedCount());
-            viewTimes.put(chapterId, readAt);
-            history.setChapterViewTimes(viewTimes);
         }
 
-        history.setLastChapterId(chapterId);
-        history.setLastReadAt(readAt);
         if (progress != null) {
             log.info("Updating reading progress for user: {}, story: {}, chapter: {} to {}%",
                     userId, storyId, chapterId, progress);
-            history.setPercentageRead(progress);
+            if(progressReading.getPercentageRead() == null || progress > progressReading.getPercentageRead()){
+                progressReading.setPercentageRead(progress);
+            }
         }
-        readingHistoryRepository.save(history);
+        progressReading.setLastReadAt(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")));
+        progressReadingRepository.save(progressReading);
 
         log.info("Updated reading history for user: {}, story: {}, chapter: {}", userId, storyId, chapterId);
 
@@ -504,7 +509,7 @@ public class ReadingService {
                 .userId(userId)
                 .storyId(storyId)
                 .chapterId(chapterId)
-                .percentageRead(history.getPercentageRead())
+                .percentageRead(progressReading.getPercentageRead())
                 .lastReadAt(readAt)
                 .build();
     }
@@ -527,20 +532,30 @@ public class ReadingService {
         try{
             log.info("Fetching reading history for user: {}", userId);
 
+            Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Order.desc("lastReadAt")));
+            Page<ReadingHistory> historyPage = readingHistoryRepository.findByUserId(userId, pageable);
 
-            Pageable pageable = PageRequest.of(page, size);
-            Page<ReadingHistoryResponse> historyPage = readingHistoryRepository
-                    .findByUserId(userId, pageable)
-                    .map(history -> ReadingHistoryResponse.builder()
-                            .historyId(history.getHistoryId())
-                            .userId(history.getUserId())
-                            .storyId(history.getStoryId())
-                            .chapterId(history.getLastChapterId())
-                            .percentageRead(history.getPercentageRead())
-                            .lastReadAt(history.getLastReadAt())
-                            .build());
-            log.info("Reading history fetched successfully, total records: {}", historyPage.getTotalElements());
-            return historyPage;
+            Page<ReadingHistoryResponse> responsePage = historyPage.map(history -> {
+                Float percentage = null;
+                if (history.getLastChapterId() != null) {
+                    percentage = progressReadingRepository
+                            .findByUserIdAndChapterId(userId, history.getLastChapterId())
+                            .map(ProgressReading::getPercentageRead)
+                            .orElse(null);
+                }
+
+                return ReadingHistoryResponse.builder()
+                        .historyId(history.getHistoryId())
+                        .userId(history.getUserId())
+                        .storyId(history.getStoryId())
+                        .chapterId(history.getLastChapterId())
+                        .percentageRead(percentage)
+                        .lastReadAt(history.getLastReadAt())
+                        .build();
+            });
+
+            log.info("Reading history fetched successfully, total records: {}", responsePage.getTotalElements());
+            return responsePage;
         }
         catch(Exception e){
             log.error("Error fetching reading history: {}", e.getMessage());
@@ -552,11 +567,23 @@ public class ReadingService {
             String userId, String storyId){
         log.info("Fetching latest chapter read for user: {}, story: {}", userId, storyId);
         return readingHistoryRepository.findByUserIdAndStoryId(userId, storyId)
-                .map(history -> ReadingHistoryResponse.builder()
-                        .historyId(history.getHistoryId())
-                        .chapterId(history.getLastChapterId())
-                        .percentageRead(history.getPercentageRead())
-                        .build())
+                .map(history -> {
+                    // Get percentage read for the last chapter if available
+                    Float percentage = null;
+                    if (history.getLastChapterId() != null) {
+                        percentage = progressReadingRepository
+                                .findByUserIdAndChapterId(userId, history.getLastChapterId())
+                                .map(ProgressReading::getPercentageRead)
+                                .orElse(null);
+                    }
+
+
+                    return ReadingHistoryResponse.builder()
+                            .historyId(history.getHistoryId())
+                            .chapterId(history.getLastChapterId())
+                            .percentageRead(percentage)
+                            .build();
+                })
                 .orElse(null);
     }
 
