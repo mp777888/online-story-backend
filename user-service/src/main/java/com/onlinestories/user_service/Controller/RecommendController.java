@@ -1,6 +1,6 @@
 package com.onlinestories.user_service.Controller;
 
-import com.onlinestories.user_service.Exception.ApiResponse;
+import com.onlinestories.common.exception.ApiResponse;
 import com.onlinestories.user_service.Service.RecommendationService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;

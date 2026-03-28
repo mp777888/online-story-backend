@@ -1,8 +1,9 @@
 package com.onlinestories.authentication_service.Controller;
 
 import com.onlinestories.authentication_service.DTO.AuthRequest;
-import com.onlinestories.authentication_service.Exception.ApiResponse;
+
 import com.onlinestories.authentication_service.Service.AuthService;
+import com.onlinestories.common.exception.ApiResponse;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;

@@ -1,10 +1,11 @@
 package com.onlinestories.story_service.Controller;
 
+import com.onlinestories.common.exception.ApiResponse;
 import com.onlinestories.story_service.DTO.Request.CommentRequest;
 import com.onlinestories.story_service.DTO.Request.RatingRequest;
 import com.onlinestories.story_service.DTO.Response.CommentResponse;
 import com.onlinestories.story_service.DTO.Response.RatingResponse;
-import com.onlinestories.story_service.Exception.ApiResponse;
+
 import com.onlinestories.story_service.Service.InteractService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;

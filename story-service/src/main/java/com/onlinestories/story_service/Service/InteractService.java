@@ -1,13 +1,14 @@
 package com.onlinestories.story_service.Service;
 
+import com.onlinestories.common.exception.AppException;
+import com.onlinestories.common.exception.ErrorCode;
 import com.onlinestories.story_service.DTO.Request.CommentRequest;
 import com.onlinestories.story_service.DTO.Request.RatingRequest;
 import com.onlinestories.story_service.DTO.Response.CommentResponse;
 import com.onlinestories.story_service.DTO.Response.RatingResponse;
 import com.onlinestories.story_service.Entity.*;
 import com.onlinestories.story_service.Enum.ChapterStatus;
-import com.onlinestories.story_service.Exception.AppException;
-import com.onlinestories.story_service.Exception.ErrorCode;
+
 import com.onlinestories.story_service.Repository.*;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;

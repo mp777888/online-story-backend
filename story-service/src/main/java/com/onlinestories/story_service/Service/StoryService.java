@@ -1,5 +1,7 @@
 package com.onlinestories.story_service.Service;
 
+import com.onlinestories.common.exception.AppException;
+import com.onlinestories.common.exception.ErrorCode;
 import com.onlinestories.story_service.Client.MediaClient;
 import com.onlinestories.story_service.Client.UserClient;
 import com.onlinestories.story_service.DTO.Request.CreateStoryRequest;
@@ -9,8 +11,7 @@ import com.onlinestories.story_service.DTO.Response.UserResponse;
 import com.onlinestories.story_service.Entity.Chapter;
 import com.onlinestories.story_service.Entity.Story;
 import com.onlinestories.story_service.Enum.StoryStatus;
-import com.onlinestories.story_service.Exception.AppException;
-import com.onlinestories.story_service.Exception.ErrorCode;
+
 import com.onlinestories.story_service.Repository.ChapterRepository;
 import com.onlinestories.story_service.Repository.GenreRepository;
 import com.onlinestories.story_service.Repository.StoryRepository;

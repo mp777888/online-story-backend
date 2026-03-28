@@ -1,5 +1,7 @@
 package com.onlinestories.user_service.Service;
 
+import com.onlinestories.common.exception.AppException;
+import com.onlinestories.common.exception.ErrorCode;
 import com.onlinestories.user_service.Client.MediaClient;
 import com.onlinestories.user_service.Client.TransactionClient;
 import com.onlinestories.user_service.DTO.Request.SocialCreateRequest;
@@ -8,8 +10,7 @@ import com.onlinestories.user_service.DTO.Request.UserUpdateRequest;
 import com.onlinestories.user_service.DTO.Response.UserResponse;
 import com.onlinestories.user_service.DTO.Response.WalletResponse;
 import com.onlinestories.user_service.Entity.User;
-import com.onlinestories.user_service.Exception.AppException;
-import com.onlinestories.user_service.Exception.ErrorCode;
+
 import com.onlinestories.user_service.Repository.UserRepository;
 import jakarta.ws.rs.core.Response;
 import lombok.AccessLevel;
@@ -52,7 +53,7 @@ public class UserService {
         List<UserRepresentation> existingUsers = usersResource.searchByUsername(request.getUsername(), true);
         if (!existingUsers.isEmpty()) {
             log.error("Username {} already exists in Keycloak", request.getUsername());
-            throw new AppException(ErrorCode.USER_EXISTED);
+            throw new AppException(ErrorCode.USER_NOT_FOUND);
         }
         UserRepresentation userRepresentation = new UserRepresentation();
         userRepresentation.setUsername(request.getUsername());

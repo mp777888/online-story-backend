@@ -4,8 +4,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.onlinestories.authentication_service.Client.UserClient;
 import com.onlinestories.authentication_service.DTO.AuthRequest;
-import com.onlinestories.authentication_service.Exception.AppException;
-import com.onlinestories.authentication_service.Exception.ErrorCode;
+
+import com.onlinestories.common.exception.AppException;
+import com.onlinestories.common.exception.ErrorCode;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;

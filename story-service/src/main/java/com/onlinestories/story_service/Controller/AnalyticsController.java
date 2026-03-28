@@ -1,8 +1,9 @@
 package com.onlinestories.story_service.Controller;
 
+import com.onlinestories.common.exception.ApiResponse;
 import com.onlinestories.story_service.DTO.Response.ChapterStatsResponse;
 import com.onlinestories.story_service.DTO.Response.StoryDailyViewResponse;
-import com.onlinestories.story_service.Exception.ApiResponse;
+
 import com.onlinestories.story_service.Service.AnalyticsService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;

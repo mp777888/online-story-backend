@@ -1,6 +1,8 @@
 package com.onlinestories.story_service.Service;
 
 import com.mongodb.client.result.UpdateResult;
+import com.onlinestories.common.exception.AppException;
+import com.onlinestories.common.exception.ErrorCode;
 import com.onlinestories.story_service.DTO.Response.ChapterResponse;
 import com.onlinestories.story_service.DTO.Response.FavoriteResponse;
 import com.onlinestories.story_service.DTO.Response.ReadingHistoryResponse;
@@ -9,8 +11,7 @@ import com.onlinestories.story_service.Entity.*;
 import com.onlinestories.story_service.Enum.ChapterStatus;
 import com.onlinestories.story_service.Enum.Period;
 import com.onlinestories.story_service.Enum.StoryStatus;
-import com.onlinestories.story_service.Exception.AppException;
-import com.onlinestories.story_service.Exception.ErrorCode;
+
 import com.onlinestories.story_service.Repository.*;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;

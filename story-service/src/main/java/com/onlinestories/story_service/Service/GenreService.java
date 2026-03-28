@@ -1,12 +1,13 @@
 package com.onlinestories.story_service.Service;
 
+import com.onlinestories.common.exception.AppException;
+import com.onlinestories.common.exception.ErrorCode;
 import com.onlinestories.story_service.DTO.Request.AddGenreRequest;
 import com.onlinestories.story_service.DTO.Response.GenreResponse;
 import com.onlinestories.story_service.DTO.Response.StoryResponse;
 import com.onlinestories.story_service.Entity.Genre;
 import com.onlinestories.story_service.Entity.Story;
-import com.onlinestories.story_service.Exception.AppException;
-import com.onlinestories.story_service.Exception.ErrorCode;
+
 import com.onlinestories.story_service.Repository.GenreRepository;
 import com.onlinestories.story_service.Repository.StoryRepository;
 import lombok.AccessLevel;

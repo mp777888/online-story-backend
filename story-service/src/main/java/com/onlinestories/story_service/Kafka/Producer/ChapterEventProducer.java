@@ -1,7 +1,9 @@
 package com.onlinestories.story_service.Kafka.Producer;
 
-import com.onlinestories.story_service.Kafka.Event.chapter.ChapterPublishedEvent;
-import com.onlinestories.story_service.Kafka.Topic.KafkaTopics;
+import com.onlinestories.common.chapter.event.ChapterPublishedEvent;
+import com.onlinestories.common.kafka.KafkaTopics;
+
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;

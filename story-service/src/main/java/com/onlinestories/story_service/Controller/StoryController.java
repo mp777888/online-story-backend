@@ -1,12 +1,13 @@
 package com.onlinestories.story_service.Controller;
 
+import com.onlinestories.common.exception.ApiResponse;
 import com.onlinestories.story_service.DTO.Request.CreateStoryRequest;
 import com.onlinestories.story_service.DTO.Request.UpdateStoryRequest;
 import com.onlinestories.story_service.DTO.Response.ChapterResponse;
 import com.onlinestories.story_service.DTO.Response.FavoriteResponse;
 import com.onlinestories.story_service.DTO.Response.StoryResponse;
 import com.onlinestories.story_service.Enum.Period;
-import com.onlinestories.story_service.Exception.ApiResponse;
+
 import com.onlinestories.story_service.Service.ReadingService;
 import com.onlinestories.story_service.Service.StoryService;
 import lombok.AccessLevel;

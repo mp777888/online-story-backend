@@ -1,10 +1,11 @@
 package com.onlinestories.story_service.Controller;
 
+import com.onlinestories.common.exception.ApiResponse;
 import com.onlinestories.story_service.DTO.Request.CreateChapterRequest;
 import com.onlinestories.story_service.DTO.Request.PublishRequest;
 import com.onlinestories.story_service.DTO.Request.UpdateChapterRequest;
 import com.onlinestories.story_service.DTO.Response.*;
-import com.onlinestories.story_service.Exception.ApiResponse;
+
 import com.onlinestories.story_service.Service.ReadingService;
 import com.onlinestories.story_service.Service.WritingService;
 import lombok.AccessLevel;

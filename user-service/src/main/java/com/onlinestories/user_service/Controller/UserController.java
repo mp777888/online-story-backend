@@ -1,10 +1,11 @@
 package com.onlinestories.user_service.Controller;
 
+import com.onlinestories.common.exception.ApiResponse;
 import com.onlinestories.user_service.DTO.Request.SocialCreateRequest;
 import com.onlinestories.user_service.DTO.Request.UserCreateRequest;
 import com.onlinestories.user_service.DTO.Request.UserUpdateRequest;
 import com.onlinestories.user_service.DTO.Response.UserResponse;
-import com.onlinestories.user_service.Exception.ApiResponse;
+
 import com.onlinestories.user_service.Service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
