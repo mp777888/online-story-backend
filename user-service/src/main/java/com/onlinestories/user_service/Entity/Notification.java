@@ -6,6 +6,8 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.time.LocalDateTime;
+
 @Document
 @Setter
 @Getter
@@ -20,4 +22,5 @@ public class Notification {
     String userId;
     String message;
     boolean isRead = false;
+    LocalDateTime createdAt = LocalDateTime.now();
 }

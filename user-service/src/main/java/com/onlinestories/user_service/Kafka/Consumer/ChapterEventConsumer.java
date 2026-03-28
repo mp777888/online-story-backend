@@ -9,8 +9,11 @@ import com.onlinestories.user_service.Repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Set;
 
@@ -21,6 +24,7 @@ public class ChapterEventConsumer {
 
     private final UserRepository userRepository;
     private final NotificationRepository notificationRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @KafkaListener(topics = KafkaTopics.CHAPTER_PUBLISHED, groupId = "${spring.application.name}")
     public void listenChapterPublished(ChapterPublishedEvent event) {
@@ -39,9 +43,15 @@ public class ChapterEventConsumer {
                                     // Tạo message hiển thị cho user
                                     .message("Tác giả " + author.getNickname() + " vừa đăng chương mới: " + event.getTitle())
                                     .isRead(false)
+                                    .createdAt(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")))
                                     .build()
                     ).toList();
                     notificationRepository.saveAll(notifications);
+
+                    // websocket
+                    for (Notification notification : notifications) {
+                        messagingTemplate.convertAndSend("/topic/user/" + notification.getUserId(), notification);
+                    }
 
                     log.info("Successfully saved {} notifications for followers of author: {}",
                             notifications.size(), author.getNickname());

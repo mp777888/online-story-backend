@@ -3,6 +3,8 @@ package com.onlinestories.user_service.DTO.Response;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.time.LocalDateTime;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -13,4 +15,5 @@ public class NotificationResponse {
     String userId;
     String message;
     boolean isRead;
+    LocalDateTime createdAt;
 }
