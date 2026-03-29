@@ -65,6 +65,16 @@ public class ChapterController {
                 .build();
     }
 
+    @GetMapping("/id")
+    public ApiResponse<ChapterResponse> getChapterById(@RequestParam String chapterId){
+        log.info("Received request to fetch chapter by ID: {}", chapterId);
+        return ApiResponse.<ChapterResponse>builder()
+                .code(200)
+                .message("Chapter details fetched successfully")
+                .result(readingService.getChapterById(chapterId))
+                .build();
+    }
+
     @PutMapping("/update")
     public ApiResponse<ChapterResponse> updateChapter(
             @AuthenticationPrincipal Jwt jwt,

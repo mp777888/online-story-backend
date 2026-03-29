@@ -180,6 +180,22 @@ public class ReadingService {
         }
     }
 
+    public ChapterResponse getChapterById(String chapterId) {
+        log.info("Fetching chapter by ID: {}", chapterId);
+        Chapter chapter = chapterRepository.findById(chapterId)
+                .orElseThrow(() -> new AppException(ErrorCode.CHAPTER_NOT_FOUND));
+
+        return ChapterResponse.builder()
+                .chapterId(chapter.getChapterId())
+                .storyId(chapter.getStoryId())
+                .title(chapter.getTitle())
+                .status(chapter.getStatus().name())
+                .img(chapter.getImg())
+                .createdAt(chapter.getCreatedAt())
+                .publishedAt(chapter.getPublishedAt())
+                .build();
+    }
+
     public Page<StoryResponse> getTopViewedStories(Period period, int page, int size) {
         log.info("Getting top viewed stories for period: {}, page: {}, size: {}", period, page, size);
 

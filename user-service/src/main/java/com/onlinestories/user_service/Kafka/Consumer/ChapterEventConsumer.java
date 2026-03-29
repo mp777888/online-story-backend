@@ -1,6 +1,6 @@
 package com.onlinestories.user_service.Kafka.Consumer;
 
-import com.onlinestories.common.chapter.event.chapter.ChapterPublishedEvent;
+import com.onlinestories.common.chapter.event.ChapterPublishedEvent;
 import com.onlinestories.user_service.Entity.Notification;
 
 import com.onlinestories.common.kafka.KafkaTopics;

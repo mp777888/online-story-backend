@@ -1,6 +1,6 @@
 package com.onlinestories.story_service.Service;
 
-import com.onlinestories.common.chapter.event.chapter.ChapterPublishedEvent;
+import com.onlinestories.common.chapter.event.ChapterPublishedEvent;
 import com.onlinestories.common.exception.AppException;
 import com.onlinestories.common.exception.ErrorCode;
 import com.onlinestories.story_service.Client.MediaClient;

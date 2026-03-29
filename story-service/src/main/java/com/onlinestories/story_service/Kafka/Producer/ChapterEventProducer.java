@@ -1,6 +1,6 @@
 package com.onlinestories.story_service.Kafka.Producer;
 
-import com.onlinestories.common.chapter.event.chapter.ChapterPublishedEvent;
+import com.onlinestories.common.chapter.event.ChapterPublishedEvent;
 import com.onlinestories.common.kafka.KafkaTopics;
 
 

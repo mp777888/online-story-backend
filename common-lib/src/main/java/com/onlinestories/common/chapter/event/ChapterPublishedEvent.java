@@ -1,4 +1,4 @@
-package com.onlinestories.common.chapter.event.interaction;
+package com.onlinestories.common.chapter.event;
 
 
 import com.onlinestories.common.kafka.BaseEvent;
@@ -12,10 +12,9 @@ import lombok.experimental.SuperBuilder;
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class CommentAddedEvent extends BaseEvent {
-   String commentId;
-   String chapterId;
-   String storyId;
-   String userId;
-   String parentCommentId;
+public class ChapterPublishedEvent extends BaseEvent {
+    String chapterId;
+    String storyId;
+    String title;
+    String authorId;
 }
