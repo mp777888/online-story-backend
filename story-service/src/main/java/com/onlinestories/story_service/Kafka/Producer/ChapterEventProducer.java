@@ -1,6 +1,6 @@
 package com.onlinestories.story_service.Kafka.Producer;
 
-import com.onlinestories.common.chapter.event.ChapterPublishedEvent;
+import com.onlinestories.common.chapter.event.chapter.ChapterPublishedEvent;
 import com.onlinestories.common.kafka.KafkaTopics;
 
 
@@ -25,7 +25,7 @@ public class ChapterEventProducer {
         // Cấu hình một số metadata mặc định của BaseEvent nếu chưa có
         if (event.getEventId() == null) event.setEventId(UUID.randomUUID().toString());
         if (event.getOccurredAt() == null) event.setOccurredAt(Instant.now());
-        event.setEventType("CHAPTER_PUBLISHED");
+        event.setEventType(event.getEventType());
 
         // Gửi event vào topic CHAPTER_PUBLISHED, dùng storyId làm partition key
         // (để đảm bảo các event của cùng 1 truyện nhảy vào cùng 1 partition và được xử lý theo thứ tự)

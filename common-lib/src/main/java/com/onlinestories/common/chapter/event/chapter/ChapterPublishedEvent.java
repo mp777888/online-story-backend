@@ -1,4 +1,4 @@
-package com.onlinestories.common.chapter.event;
+package com.onlinestories.common.chapter.event.chapter;
 
 
 import com.onlinestories.common.kafka.BaseEvent;

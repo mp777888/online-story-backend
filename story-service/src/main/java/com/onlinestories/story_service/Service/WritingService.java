@@ -1,6 +1,6 @@
 package com.onlinestories.story_service.Service;
 
-import com.onlinestories.common.chapter.event.ChapterPublishedEvent;
+import com.onlinestories.common.chapter.event.chapter.ChapterPublishedEvent;
 import com.onlinestories.common.exception.AppException;
 import com.onlinestories.common.exception.ErrorCode;
 import com.onlinestories.story_service.Client.MediaClient;
@@ -461,6 +461,15 @@ public class WritingService {
                 chapterRepository.save(chapter);
 
                 log.info("Chapter {} scheduled to be published at {}", chapter.getChapterId(), publishDate);
+
+                ChapterPublishedEvent event = ChapterPublishedEvent.builder()
+                        .chapterId(chapter.getChapterId())
+                        .storyId(chapter.getStoryId())
+                        .title(chapter.getTitle())
+                        .authorId(story.getAuthorId())
+                        .eventType("CHAPTER_SCHEDULED")
+                        .build();
+                chapterEventProducer.publishChapterCreatedEvent(event);
                 return ChapterResponse.builder()
                         .chapterId(chapter.getChapterId())
                         .status(chapter.getStatus().name())

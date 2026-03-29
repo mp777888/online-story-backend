@@ -1,6 +1,6 @@
 package com.onlinestories.user_service.Kafka.Consumer;
 
-import com.onlinestories.common.chapter.event.ChapterPublishedEvent;
+import com.onlinestories.common.chapter.event.chapter.ChapterPublishedEvent;
 import com.onlinestories.user_service.Entity.Notification;
 
 import com.onlinestories.common.kafka.KafkaTopics;
@@ -32,6 +32,17 @@ public class ChapterEventConsumer {
                 event.getStoryId(), event.getChapterId());
         try {
             userRepository.findById(event.getAuthorId()).ifPresent(author -> {
+                String message;
+                if(event.getEventType().equals("CHAPTER_SCHEDULED")){
+                    message = "Tác giả " + author.getNickname() + " vừa lên lịch đăng chương mới: " + event.getTitle();
+                }
+                else if(event.getEventType().equals("CHAPTER_PUBLISHED")){
+                    message = "Tác giả " + author.getNickname() + " vừa đăng chương mới: " + event.getTitle();
+                }
+                else{
+                    log.warn("Unknown event type: {}. No notifications will be sent.", event.getEventType());
+                    return;
+                }
 
                 Set<String> followerIds = author.getFollowerIds();
 
@@ -41,7 +52,7 @@ public class ChapterEventConsumer {
                             Notification.builder()
                                     .userId(followerId)
                                     // Tạo message hiển thị cho user
-                                    .message("Tác giả " + author.getNickname() + " vừa đăng chương mới: " + event.getTitle())
+                                    .message(message)
                                     .isRead(false)
                                     .createdAt(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")))
                                     .build()

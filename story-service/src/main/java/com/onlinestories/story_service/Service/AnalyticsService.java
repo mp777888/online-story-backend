@@ -8,6 +8,7 @@ import com.onlinestories.story_service.Entity.Story;
 import com.onlinestories.story_service.Entity.StoryDailyView;
 
 import com.onlinestories.story_service.Repository.ChapterRepository;
+import com.onlinestories.story_service.Repository.ProgressReadingRepository;
 import com.onlinestories.story_service.Repository.StoryDailyViewRepository;
 import com.onlinestories.story_service.Repository.StoryRepository;
 import lombok.AccessLevel;
@@ -27,6 +28,7 @@ import org.springframework.stereotype.Service;
 public class AnalyticsService {
     StoryRepository storyRepository;
     ChapterRepository chapterRepository;
+    ProgressReadingRepository progressReadingRepository;
     StoryDailyViewRepository storyDailyViewRepository;
 
     public Page<StoryDailyViewResponse> getStoryDailyViews(
@@ -68,10 +70,15 @@ public class AnalyticsService {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Order.asc("chapterId")));
 
         return chapterRepository.findByStoryId(storyId, pageable)
-                .map(stats -> ChapterStatsResponse.builder()
-                        .chapterId(stats.getChapterId())
-                        .title(stats.getTitle())
-                        .numberOfViews(stats.getNumberOfViews())
-                        .build());
+                .map(stats -> {
+
+                    Float averagePercentageRead = progressReadingRepository.calculateAveragePercentageReadByChapterId(stats.getChapterId());
+                    return ChapterStatsResponse.builder()
+                            .chapterId(stats.getChapterId())
+                            .title(stats.getTitle())
+                            .numberOfViews(stats.getNumberOfViews())
+                            .averagePercentageRead(averagePercentageRead != null ? averagePercentageRead : 0f)
+                            .build();
+                });
     }
 }

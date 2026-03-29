@@ -129,18 +129,33 @@ public class ReadingService {
             log.info("Fetching chapter details for chapterId: {}", chapterId);
             Chapter chapter = chapterRepository.findById(chapterId)
                     .orElseThrow(() -> new AppException(ErrorCode.CHAPTER_NOT_FOUND));
+            Story story = storyRepository.findById(chapter.getStoryId())
+                    .orElseThrow(() -> new AppException(ErrorCode.STORY_NOT_FOUND));
 
             String content = null;
-            if(!chapter.getStatus().equals(ChapterStatus.PUBLISHED)){
-                Story story = storyRepository.findById(chapter.getStoryId())
-                        .orElseThrow(() -> new AppException(ErrorCode.STORY_NOT_FOUND));
+            if(chapter.getStatus().equals(ChapterStatus.DRAFT)){
                 if(!story.getAuthorId().equals(userId)){
                     log.warn("User with ID: {} is not the author of the story and cannot access draft chapter details", userId);
                     throw new AppException(ErrorCode.ACCESS_DENIED);
                 }
             }
-            else {
+            else if(chapter.getStatus().equals(ChapterStatus.SCHEDULED)){
+                log.info("Chapter {} is scheduled but not published yet, returning details without content", chapterId);
+                return ChapterResponse.builder()
+                        .chapterId(chapter.getChapterId())
+                        .storyId(chapter.getStoryId())
+                        .title(chapter.getTitle())
+                        .status(chapter.getStatus().name())
+                        .img(chapter.getImg())
+                        .publishedAt(chapter.getPublishedAt())
+                        .build();
+            }
+            else if(chapter.getStatus().equals(ChapterStatus.PUBLISHED)){
                 content = getContentForReading(chapterId);
+            }
+            else if(chapter.getStatus().equals(ChapterStatus.TAKEN_DOWN)){
+                log.warn("Chapter {} has been taken down and cannot be accessed", chapterId);
+                throw new AppException(ErrorCode.CHAPTER_IS_TAKEN_DOWN);
             }
 
             ProgressReading progressReading = progressReadingRepository.findByUserIdAndChapterId(userId, chapterId)

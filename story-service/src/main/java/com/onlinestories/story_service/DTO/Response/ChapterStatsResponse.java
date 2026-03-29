@@ -14,4 +14,5 @@ public class ChapterStatsResponse {
     String chapterId;
     String title;
     int numberOfViews;
+    Float averagePercentageRead;
 }
