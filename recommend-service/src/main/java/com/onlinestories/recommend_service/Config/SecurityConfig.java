@@ -1,4 +1,4 @@
-package com.onlinestories.reconmend_service.Config;
+package com.onlinestories.recommend_service.Config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

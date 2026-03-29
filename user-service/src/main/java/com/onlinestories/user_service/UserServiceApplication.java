@@ -5,7 +5,10 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = {
+		"com.onlinestories.user_service",
+		"com.onlinestories.common"
+})
 @EnableFeignClients(basePackages = "com.onlinestories.user_service.Client")
 @EnableDiscoveryClient
 public class UserServiceApplication {

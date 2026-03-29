@@ -1,4 +1,4 @@
-package com.example.onlinestories.transaction_service;
+package com.onlinestories.recommend_service;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -6,15 +6,15 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 
 @SpringBootApplication(scanBasePackages = {
-		"com.example.onlinestories.transaction_service",
+		"com.onlinestories.recommend_service",
 		"com.onlinestories.common"
 })
-@EnableFeignClients(basePackages = "com.example.onlinestories.transaction_service.Client")
+@EnableFeignClients(basePackages = "com.onlinestories.recommend_service.Client")
 @EnableDiscoveryClient
-public class TransactionServiceApplication {
+public class RecommendServiceApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(TransactionServiceApplication.class, args);
+		SpringApplication.run(RecommendServiceApplication.class, args);
 	}
 
 }

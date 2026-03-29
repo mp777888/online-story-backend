@@ -1,4 +1,4 @@
-package com.onlinestories.reconmend_service;
+package com.onlinestories.recommend_service;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

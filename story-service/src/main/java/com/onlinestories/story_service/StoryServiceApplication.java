@@ -6,7 +6,10 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = {
+		"com.onlinestories.story_service",
+		"com.onlinestories.common"
+})
 @EnableFeignClients(basePackages = "com.onlinestories.story_service.Client")
 @EnableDiscoveryClient
 @EnableScheduling
