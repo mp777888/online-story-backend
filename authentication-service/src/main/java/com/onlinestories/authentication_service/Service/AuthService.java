@@ -1,5 +1,6 @@
 package com.onlinestories.authentication_service.Service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.onlinestories.authentication_service.Client.UserClient;
@@ -76,7 +77,15 @@ public class AuthService {
             // Block và lấy kết quả
             Map<String, Object> responseMap = responseMono.block();
             log.info("Received token for user: {}", request.getUsername());
-            return responseMap;
+
+            String accessToken = (String) responseMap.get("access_token");
+            JsonNode payloadNode = extractJwtPayload(accessToken);
+
+            boolean isAdmin = checkIfAdmin(payloadNode);
+
+            Map<String, Object> finalResponse = new HashMap<>(responseMap);
+            finalResponse.put("is_admin", isAdmin);
+            return finalResponse;
         } catch (Exception e) {
             log.error("Error during authentication for user {}: {}", request.getUsername(), e.getMessage());
             throw new AppException(ErrorCode.INVALID_CREDENTIALS);
@@ -163,20 +172,18 @@ public class AuthService {
             }
 
             String accessToken = (String) responseMap.get("access_token");
-            String[] chunks = accessToken.split("\\.");
-            Base64.Decoder decoder = Base64.getUrlDecoder();
-            String payloadJson = new String(decoder.decode(chunks[1]));
+            JsonNode payloadNode = extractJwtPayload(accessToken);
 
-            JsonNode payloadNode = new ObjectMapper().readTree(payloadJson);
-            String userId = payloadNode.get("sub").asText();
-            boolean isUserExist = userClient.checkUserExistence(userId);
+            boolean requireOnboarding = checkIfRequireOnboarding(payloadNode);
+            boolean isAdmin = checkIfAdmin(payloadNode);
 
             Map<String, Object> finalResponse = new HashMap<>(responseMap);
 
-            finalResponse.put("require_onboarding", !isUserExist);
+            finalResponse.put("require_onboarding", requireOnboarding);
+            finalResponse.put("is_admin", isAdmin);
 
-            if (!isUserExist) {
-                log.info("User {} needs onboarding. Flag set to true.", userId);
+            if (requireOnboarding) {
+                log.info("User {} needs onboarding. Flag set to true.", payloadNode.get("sub").asText());
             }
 
             return finalResponse;
@@ -220,5 +227,33 @@ public class AuthService {
             log.error("Error during forgot password flow for email {}: {}", email, e.getMessage());
             throw new AppException(ErrorCode.RESET_PASSWORD_ERROR);
         }
+    }
+
+    private JsonNode extractJwtPayload(String accessToken) throws JsonProcessingException {
+        String[] chunks = accessToken.split("\\.");
+        Base64.Decoder decoder = Base64.getUrlDecoder();
+        String payloadJson = new String(decoder.decode(chunks[1]));
+        return new ObjectMapper().readTree(payloadJson);
+    }
+
+    private boolean checkIfAdmin(JsonNode payloadNode) {
+        JsonNode realmAccess = payloadNode.get("realm_access");
+        if (realmAccess != null && realmAccess.has("roles")) {
+            for (JsonNode roleNode : realmAccess.get("roles")) {
+                if ("ADMIN".equals(roleNode.asText())) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean checkIfRequireOnboarding(JsonNode payloadNode) {
+        String userId = payloadNode.get("sub").asText();
+        boolean isUserExist = userClient.checkUserExistence(userId);
+        if (!isUserExist) {
+            log.info("User {} needs onboarding. Flag set to true.", userId);
+        }
+        return !isUserExist;
     }
 }
