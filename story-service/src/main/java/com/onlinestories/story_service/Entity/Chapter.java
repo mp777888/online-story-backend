@@ -24,7 +24,6 @@ public class Chapter {
     String title;
     String summary;
     String img;
-    Integer chapterNumber;
     LocalDateTime createdAt;
     LocalDateTime publishedAt;
     ChapterStatus status;

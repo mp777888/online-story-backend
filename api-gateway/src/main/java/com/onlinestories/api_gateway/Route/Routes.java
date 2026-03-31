@@ -47,4 +47,12 @@ public class Routes {
                         HandlerFunctions.http("http://localhost:8085"))
                 .build();
     }
+
+    @Bean
+    public RouterFunction<ServerResponse> reportRoutes(){
+        return GatewayRouterFunctions.route("report-service")
+                .route(RequestPredicates.path("/api/reports/**"),
+                        HandlerFunctions.http("http://localhost:8087"))
+                .build();
+    }
 }
