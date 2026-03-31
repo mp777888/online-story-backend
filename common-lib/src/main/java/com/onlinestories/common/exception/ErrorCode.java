@@ -42,7 +42,7 @@ public enum ErrorCode {
     SOCIAL_LOGIN_ERROR(3003, "Social login error", HttpStatus.BAD_REQUEST),
     RESET_PASSWORD_ERROR(3004, "Reset password error", HttpStatus.BAD_REQUEST),
 
-
+    REPORT_NOT_FOUND(4001, "Report not found", HttpStatus.NOT_FOUND),
     ;
     private int code;
     private String message;

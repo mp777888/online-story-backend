@@ -15,6 +15,10 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -167,5 +171,40 @@ public class ReportService {
                 .content(report.getContent())
                 .createdAt(report.getCreatedAt())
                 .build();
+    }
+
+    public ReportResponse getReportById(String reportId){
+        log.info("Getting report by ID: {}", reportId);
+        Report report = reportRepository.findById(reportId)
+                .orElseThrow(() -> {
+                    log.error("Report not found: {}", reportId);
+                    return new AppException(ErrorCode.REPORT_NOT_FOUND);
+                });
+        return ReportResponse.builder()
+                .reportId(report.getReportId())
+                .reporterId(report.getReporterId())
+                .reportedId(report.getReportedId())
+                .type(report.getType().name())
+                .reason(report.getReason().name())
+                .status(report.getStatus().name())
+                .content(report.getContent())
+                .createdAt(report.getCreatedAt())
+                .build();
+    }
+
+    public Page<ReportResponse> getAllReports(int page, int size){
+        log.info("Getting all reports - page: {}, size: {}", page, size);
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        return reportRepository.findAll(pageable)
+                .map(report -> ReportResponse.builder()
+                        .reportId(report.getReportId())
+                        .reporterId(report.getReporterId())
+                        .reportedId(report.getReportedId())
+                        .type(report.getType().name())
+                        .reason(report.getReason().name())
+                        .status(report.getStatus().name())
+                        .content(report.getContent())
+                        .createdAt(report.getCreatedAt())
+                        .build());
     }
 }
