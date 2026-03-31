@@ -5,6 +5,7 @@ import com.onlinestories.common.exception.ErrorCode;
 import com.onlinestories.common.report.enums.ReportReason;
 import com.onlinestories.common.report.enums.ReportStatus;
 import com.onlinestories.common.report.enums.ReportType;
+import com.onlinestories.report_service.client.StoryClient;
 import com.onlinestories.report_service.client.UserClient;
 import com.onlinestories.report_service.dto.request.ReportRequest;
 import com.onlinestories.report_service.dto.response.ReportResponse;
@@ -26,6 +27,7 @@ import java.time.ZoneId;
 public class ReportService {
     ReportRepository reportRepository;
     UserClient userClient;
+    StoryClient storyClient;
 
     public ReportResponse createReport(String userId, ReportRequest request){
         log.info("Creating report: {}", request);
@@ -50,10 +52,6 @@ public class ReportService {
     }
 
     private ReportResponse userReport(String userId, ReportRequest request){
-        // Validate reason
-        // Check if reporter and reported exist
-        // Check if already reported
-        // Save report
         log.info("Processing user report: {}", request);
         if(!userClient.checkUserExistence(request.getReportedId())){
             log.error("Reported user does not exist: {}", request.getReportedId());
@@ -85,26 +83,89 @@ public class ReportService {
     }
 
     private ReportResponse storyReport(String userId, ReportRequest request){
-        // Validate reason
-        // Check if reporter and reported exist
-        // Check if already reported
-        // Save report
-        return null;
+        log.info("Processing story report: {}", request);
+        if(!storyClient.checkStoryExistence(request.getReportedId())){
+            log.error("Reported story does not exist: {}", request.getReportedId());
+            throw new AppException(ErrorCode.STORY_NOT_FOUND);
+        }
+
+        Report report = Report.builder()
+                .reporterId(userId)
+                .reportedId(request.getReportedId())
+                .type(ReportType.STORY)
+                .reason(ReportReason.valueOf(request.getReason()))
+                .status(ReportStatus.PENDING)
+                .content(request.getContent())
+                .createdAt(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")))
+                .build();
+        reportRepository.save(report);
+        return ReportResponse.builder()
+                .reportId(report.getReportId())
+                .reporterId(report.getReporterId())
+                .reportedId(report.getReportedId())
+                .type(report.getType().name())
+                .reason(report.getReason().name())
+                .status(report.getStatus().name())
+                .content(report.getContent())
+                .createdAt(report.getCreatedAt())
+                .build();
     }
 
     private ReportResponse chapterReport(String userId, ReportRequest request){
-        // Validate reason
-        // Check if reporter and reported exist
-        // Check if already reported
-        // Save report
-        return null;
+        log.info("Processing chapter report: {}", request);
+        if(!storyClient.checkChapterExistence(request.getReportedId())){
+            log.error("Reported chapter does not exist: {}", request.getReportedId());
+            throw new AppException(ErrorCode.CHAPTER_NOT_FOUND);
+        }
+
+        Report report = Report.builder()
+                .reporterId(userId)
+                .reportedId(request.getReportedId())
+                .type(ReportType.CHAPTER)
+                .reason(ReportReason.valueOf(request.getReason()))
+                .status(ReportStatus.PENDING)
+                .content(request.getContent())
+                .createdAt(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")))
+                .build();
+        reportRepository.save(report);
+        return ReportResponse.builder()
+                .reportId(report.getReportId())
+                .reporterId(report.getReporterId())
+                .reportedId(report.getReportedId())
+                .type(report.getType().name())
+                .reason(report.getReason().name())
+                .status(report.getStatus().name())
+                .content(report.getContent())
+                .createdAt(report.getCreatedAt())
+                .build();
     }
 
     private ReportResponse commentReport(String userId, ReportRequest request){
-        // Validate reason
-        // Check if reporter and reported exist
-        // Check if already reported
-        // Save report
-        return null;
+        log.info("Processing comment report: {}", request);
+        if(!storyClient.checkCommentExistence(request.getReportedId())){
+            log.error("Reported comment does not exist: {}", request.getReportedId());
+            throw new AppException(ErrorCode.COMMENT_NOT_FOUND);
+        }
+
+        Report report = Report.builder()
+                .reporterId(userId)
+                .reportedId(request.getReportedId())
+                .type(ReportType.COMMENT)
+                .reason(ReportReason.valueOf(request.getReason()))
+                .status(ReportStatus.PENDING)
+                .content(request.getContent())
+                .createdAt(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")))
+                .build();
+        reportRepository.save(report);
+        return ReportResponse.builder()
+                .reportId(report.getReportId())
+                .reporterId(report.getReporterId())
+                .reportedId(report.getReportedId())
+                .type(report.getType().name())
+                .reason(report.getReason().name())
+                .status(report.getStatus().name())
+                .content(report.getContent())
+                .createdAt(report.getCreatedAt())
+                .build();
     }
 }

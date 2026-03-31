@@ -239,11 +239,4 @@ public class StoryService {
             throw ex;
         }
     }
-
-
-    // Get stories by filters: genre, author, status
-    public ResponseEntity<?> getStoriesBy(){
-        return null;
-    }
-
 }
