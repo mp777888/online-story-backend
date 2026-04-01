@@ -5,11 +5,13 @@ import com.onlinestories.common.exception.ErrorCode;
 import com.onlinestories.common.report.enums.ReportReason;
 import com.onlinestories.common.report.enums.ReportStatus;
 import com.onlinestories.common.report.enums.ReportType;
+import com.onlinestories.common.report.event.ReportResponseEvent;
 import com.onlinestories.report_service.client.StoryClient;
 import com.onlinestories.report_service.client.UserClient;
 import com.onlinestories.report_service.dto.request.ReportRequest;
 import com.onlinestories.report_service.dto.response.ReportResponse;
 import com.onlinestories.report_service.entity.Report;
+import com.onlinestories.report_service.kafka.producer.ReportEventProducer;
 import com.onlinestories.report_service.repository.ReportRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +34,7 @@ public class ReportService {
     ReportRepository reportRepository;
     UserClient userClient;
     StoryClient storyClient;
+    ReportEventProducer reportEventProducer;
 
     public ReportResponse createReport(String userId, ReportRequest request){
         log.info("Creating report: {}", request);
@@ -173,13 +176,18 @@ public class ReportService {
                 .build();
     }
 
-    public ReportResponse getReportById(String reportId){
+    public ReportResponse getReportById(String reportId, String requesterId, boolean isAdmin){
         log.info("Getting report by ID: {}", reportId);
         Report report = reportRepository.findById(reportId)
                 .orElseThrow(() -> {
                     log.error("Report not found: {}", reportId);
                     return new AppException(ErrorCode.REPORT_NOT_FOUND);
                 });
+        boolean isOwner = report.getReporterId().equals(requesterId);
+        if (!isAdmin && !isOwner) {
+            throw new AppException(ErrorCode.ACCESS_DENIED);
+        }
+
         return ReportResponse.builder()
                 .reportId(report.getReportId())
                 .reporterId(report.getReporterId())
@@ -206,5 +214,86 @@ public class ReportService {
                         .content(report.getContent())
                         .createdAt(report.getCreatedAt())
                         .build());
+    }
+
+    public ReportResponse manuallyHandleReport(String reportId, ReportStatus status){
+        log.info("Manually handling report - ID: {}, new status: {}", reportId, status);
+        Report report = reportRepository.findById(reportId)
+                .orElseThrow(() -> {
+                    log.error("Report not found for manual handling: {}", reportId);
+                    return new AppException(ErrorCode.REPORT_NOT_FOUND);
+                });
+        report.setStatus(status);
+        reportRepository.save(report);
+        return ReportResponse.builder()
+                .reportId(report.getReportId())
+                .reporterId(report.getReporterId())
+                .reportedId(report.getReportedId())
+                .type(report.getType().name())
+                .reason(report.getReason().name())
+                .status(report.getStatus().name())
+                .content(report.getContent())
+                .createdAt(report.getCreatedAt())
+                .build();
+    }
+
+    public ReportResponse sendResponseToReporter(String reportId){
+        log.info("Sending response to reporter - Report ID: {}, reportId", reportId);
+        Report report = reportRepository.findById(reportId)
+                .orElseThrow(() -> {
+                    log.error("Report not found for sending response: {}", reportId);
+                    return new AppException(ErrorCode.REPORT_NOT_FOUND);
+                });
+
+        if(report.getStatus() == ReportStatus.PENDING){
+            log.error("Report has not been handled yet: {}", reportId);
+            throw new AppException(ErrorCode.REPORT_HAS_NOT_BEEN_HANDLED);
+        }
+
+        ReportResponseEvent responseEvent = ReportResponseEvent.builder()
+                .reportId(report.getReportId())
+                .respondedId(report.getReporterId())
+                .responseMessage(responseMessage(report.getType(), report.getStatus()))
+                .build();
+        reportEventProducer.sendResponseEvent(responseEvent);
+
+        return ReportResponse.builder()
+                .reportId(report.getReportId())
+                .reporterId(report.getReporterId())
+                .reportedId(report.getReportedId())
+                .type(report.getType().name())
+                .reason(report.getReason().name())
+                .status(report.getStatus().name())
+                .content(report.getContent())
+                .createdAt(report.getCreatedAt())
+                .build();
+    }
+
+    private String responseMessage(ReportType type, ReportStatus status){
+        String vnType = mapToVnType(type);
+        String decision = switch (status) {
+            case RESOLVED -> "đã được giải quyết và hành động phù hợp đã được thực hiện.";
+            case REJECTED -> "đã được xem xét nhưng không thấy vi phạm chính sách, do đó không có hành động nào được thực hiện.";
+            default -> "đang được xem xét bởi đội ngũ quản trị viên.";
+        };
+        return """ 
+                Xin chào,
+               
+                Báo cáo của bạn về %s %s
+                
+                Cảm ơn bạn đã giúp chúng tôi duy trì một cộng đồng lành mạnh và an toàn.
+                
+                Trân trọng,
+                Đội ngũ quản trị viên
+                """.formatted(vnType, decision);
+    }
+
+    private String mapToVnType(ReportType type){
+        return switch (type) {
+            case USER -> "người dùng";
+            case STORY -> "truyện";
+            case CHAPTER -> "chương";
+            case COMMENT -> "bình luận";
+        };
     }
 }

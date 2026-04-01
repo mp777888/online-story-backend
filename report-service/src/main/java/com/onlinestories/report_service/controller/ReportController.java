@@ -1,6 +1,7 @@
 package com.onlinestories.report_service.controller;
 
 import com.onlinestories.common.exception.ApiResponse;
+import com.onlinestories.common.report.enums.ReportStatus;
 import com.onlinestories.report_service.dto.request.ReportRequest;
 import com.onlinestories.report_service.dto.response.ReportResponse;
 import com.onlinestories.report_service.service.ReportService;
@@ -13,6 +14,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/reports")
@@ -51,14 +54,44 @@ public class ReportController {
     }
 
     @GetMapping("/id")
-    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<ReportResponse> getReportById(
+            @AuthenticationPrincipal Jwt jwt,
             @RequestParam String reportId) {
         log.info("Retrieving report by id: {}", reportId);
+        String requesterId = jwt.getSubject();
+        boolean isAdmin = jwt.getClaimAsMap("realm_access") != null
+                && ((List<String>) jwt.getClaimAsMap("realm_access").getOrDefault("roles", List.of()))
+                .contains("ADMIN");
+
         return ApiResponse.<ReportResponse>builder()
                 .code(200)
                 .message("Report retrieved successfully")
-                .result(reportService.getReportById(reportId))
+                .result(reportService.getReportById(reportId, requesterId, isAdmin))
+                .build();
+    }
+
+    @PutMapping("/manual-handle")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<ReportResponse> handleReportManually(
+            @RequestParam String reportId,
+            @RequestParam ReportStatus status
+            ){
+        log.info("Manually handling report - reportId: {}, newStatus: {}", reportId, status);
+        return ApiResponse.<ReportResponse>builder()
+                .code(200)
+                .message("Report handled successfully")
+                .result(reportService.manuallyHandleReport(reportId, status))
+                .build();
+    }
+
+    @PostMapping("/response")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<ReportResponse> respondToReport(@RequestParam String reportId){
+        log.info("Responding to report - reportId: {}", reportId);
+        return ApiResponse.<ReportResponse>builder()
+                .code(200)
+                .message("Report response sent successfully")
+                .result(reportService.sendResponseToReporter(reportId))
                 .build();
     }
 }

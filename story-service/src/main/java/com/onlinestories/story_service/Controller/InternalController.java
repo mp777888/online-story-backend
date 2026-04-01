@@ -1,20 +1,14 @@
 package com.onlinestories.story_service.Controller;
 
-import com.onlinestories.common.exception.ApiResponse;
-import com.onlinestories.story_service.DTO.Request.CommentRequest;
-import com.onlinestories.story_service.DTO.Request.RatingRequest;
-import com.onlinestories.story_service.DTO.Response.CommentResponse;
-import com.onlinestories.story_service.DTO.Response.RatingResponse;
-import com.onlinestories.story_service.Service.InteractService;
 import com.onlinestories.story_service.Service.InternalService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("api/stories/internal")

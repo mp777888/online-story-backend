@@ -43,6 +43,7 @@ public enum ErrorCode {
     RESET_PASSWORD_ERROR(3004, "Reset password error", HttpStatus.BAD_REQUEST),
 
     REPORT_NOT_FOUND(4001, "Report not found", HttpStatus.NOT_FOUND),
+    REPORT_HAS_NOT_BEEN_HANDLED(4002, "Report has not been handled yet", HttpStatus.BAD_REQUEST)
     ;
     private int code;
     private String message;

@@ -16,4 +16,6 @@ public class KafkaTopics {
 
     public static final String CHAPTER_READ = "analytics.chapter-read.v1";
 
+    public static final String REPORT_RESPONDED = "report.responded.v1";
+
 }

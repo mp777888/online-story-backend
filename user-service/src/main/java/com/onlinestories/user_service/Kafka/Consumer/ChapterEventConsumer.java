@@ -1,6 +1,7 @@
 package com.onlinestories.user_service.Kafka.Consumer;
 
 import com.onlinestories.common.chapter.event.ChapterPublishedEvent;
+import com.onlinestories.common.report.event.ReportResponseEvent;
 import com.onlinestories.user_service.Entity.Notification;
 
 import com.onlinestories.common.kafka.KafkaTopics;
@@ -72,6 +73,35 @@ public class ChapterEventConsumer {
             });
         } catch (Exception e) {
             log.error("Error processing ChapterPublishedEvent: {}", e.getMessage(), e);
+        }
+    }
+
+    @KafkaListener(topics = KafkaTopics.REPORT_RESPONDED, groupId = "${spring.application.name}")
+    public void listenReportResponded(ReportResponseEvent event){
+        log.info("Received Kafka Event REPORT_RESPONDED: reportId={}, respondedId={}",
+                event.getReportId(), event.getRespondedId());
+        try {
+            userRepository.findById(event.getRespondedId()).ifPresent(user ->
+                    log.info("Found user for report response: userId={}, nickname={}",
+                    user.getUserId(), user.getNickname()));
+
+            String message = "Báo cáo của bạn đã được phản hồi: \n" + event.getResponseMessage();
+
+            Notification notification = Notification.builder()
+                    .userId(event.getRespondedId())
+                    .message(message)
+                    .isRead(false)
+                    .createdAt(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")))
+                    .build();
+            notificationRepository.save(notification);
+
+            // websocket
+            messagingTemplate.convertAndSend("/topic/user/" + notification.getUserId(), notification);
+
+            log.info("Successfully saved notification for report response: reportId={}, userId={}",
+                    event.getReportId(), event.getRespondedId());
+        } catch (Exception e) {
+            log.error("Error processing ReportResponseEvent: {}", e.getMessage(), e);
         }
     }
 }
