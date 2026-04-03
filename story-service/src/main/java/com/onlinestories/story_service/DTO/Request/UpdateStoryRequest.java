@@ -16,4 +16,6 @@ public class UpdateStoryRequest {
     String description;
     String status;
     Set<String> genreIds;
+    boolean premium;
+    int unlockPrice;
 }

@@ -91,7 +91,7 @@ public class ReportService {
 
     private ReportResponse storyReport(String userId, ReportRequest request){
         log.info("Processing story report: {}", request);
-        if(!storyClient.checkStoryExistence(request.getReportedId())){
+        if(storyClient.checkStoryExistence(request.getReportedId()) == null){
             log.error("Reported story does not exist: {}", request.getReportedId());
             throw new AppException(ErrorCode.STORY_NOT_FOUND);
         }
@@ -120,7 +120,7 @@ public class ReportService {
 
     private ReportResponse chapterReport(String userId, ReportRequest request){
         log.info("Processing chapter report: {}", request);
-        if(!storyClient.checkChapterExistence(request.getReportedId())){
+        if(storyClient.checkChapterExistence(request.getReportedId()) == null){
             log.error("Reported chapter does not exist: {}", request.getReportedId());
             throw new AppException(ErrorCode.CHAPTER_NOT_FOUND);
         }

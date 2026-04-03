@@ -1,4 +1,4 @@
-package com.onlinestories.story_service.DTO.Response;
+package com.onlinestories.common.story.dto;
 
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -10,18 +10,11 @@ import java.util.Set;
 @AllArgsConstructor
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class StoryResponse {
+public class StoryDTOResponse {
     String storyId;
     String authorId;
-    String title;
-    String description;
     String status;
-    String img;
-    int numberOfChapters;
-    int numberOfViews;
-    double averageRatingScore;
-    int totalRatingCount;
-    Set<String> genres;
+    String title;
     boolean premium;
     int unlockPrice;
 }

@@ -7,4 +7,5 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface WalletRepository extends MongoRepository<Wallet, String> {
     void deleteByUserId(String userId);
+    Wallet findByUserId(String userId);
 }

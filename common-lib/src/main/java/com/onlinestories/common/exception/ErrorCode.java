@@ -6,7 +6,7 @@ import org.springframework.http.HttpStatusCode;
 
 @Getter
 public enum ErrorCode {
-    USER_NOT_FOUND(1001, "Author of this story not found", HttpStatus.NOT_FOUND),
+    USER_NOT_FOUND(1001, "User not found", HttpStatus.NOT_FOUND),
     UNAUTHENTICATED_EXCEPTION(1002, "Unauthenticated", HttpStatus.UNAUTHORIZED),
     USER_NAME_INVALID(1003,"Username must be at least 6 characters",HttpStatus.BAD_REQUEST),
     PASSWORD_INVALID(1004,"Password must be at least 6 characters",HttpStatus.BAD_REQUEST),
@@ -43,7 +43,14 @@ public enum ErrorCode {
     RESET_PASSWORD_ERROR(3004, "Reset password error", HttpStatus.BAD_REQUEST),
 
     REPORT_NOT_FOUND(4001, "Report not found", HttpStatus.NOT_FOUND),
-    REPORT_HAS_NOT_BEEN_HANDLED(4002, "Report has not been handled yet", HttpStatus.BAD_REQUEST)
+    REPORT_HAS_NOT_BEEN_HANDLED(4002, "Report has not been handled yet", HttpStatus.BAD_REQUEST),
+
+    UPDATE_TOKEN_ERROR(5001, "Update token error", HttpStatus.INTERNAL_SERVER_ERROR),
+    WALLET_NOT_FOUND(5002, "Wallet not found", HttpStatus.NOT_FOUND),
+    INSUFFICIENT_BALANCE(5003, "Insufficient balance", HttpStatus.BAD_REQUEST),
+    UNLOCK_ERROR(5004, "Unlock story error", HttpStatus.INTERNAL_SERVER_ERROR),
+    UNLOCK_ALREADY(5005, "User has already unlocked this story", HttpStatus.BAD_REQUEST),
+    INVALID_READING_TOKENS(5006, "Invalid reading tokens", HttpStatus.BAD_REQUEST)
     ;
     private int code;
     private String message;

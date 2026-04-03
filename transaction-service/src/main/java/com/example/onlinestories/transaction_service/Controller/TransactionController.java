@@ -4,12 +4,15 @@ import com.example.onlinestories.transaction_service.DTO.Response.WalletResponse
 import com.example.onlinestories.transaction_service.Service.MomoService;
 import com.example.onlinestories.transaction_service.Service.VNPayService;
 import com.example.onlinestories.transaction_service.Service.WalletService;
+import com.onlinestories.common.exception.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -68,4 +71,16 @@ public class TransactionController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("/unlock-story")
+    public ApiResponse<String> unlockStory(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam String storyId) {
+        String userId = jwt.getSubject();
+        log.info("Received request to unlock story for userId: {}, storyId: {}", userId, storyId);
+        walletService.createUnlockStory(userId, storyId);
+        return ApiResponse.<String>builder()
+                .code(200)
+                .result("Story unlocked successfully")
+                .build();
+    }
 }

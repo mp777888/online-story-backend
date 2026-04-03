@@ -1,6 +1,5 @@
-package com.onlinestories.report_service.client;
+package com.example.onlinestories.transaction_service.Client;
 
-import com.onlinestories.common.chapter.dto.ChapterDTOResponse;
 import com.onlinestories.common.story.dto.StoryDTOResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,11 +11,5 @@ public interface StoryClient {
 
     @GetMapping("/api/stories/internal/check-story")
     StoryDTOResponse checkStoryExistence(@RequestParam String storyId);
-
-    @GetMapping("/api/stories/internal/check-chapter")
-    ChapterDTOResponse checkChapterExistence(@RequestParam String chapterId);
-
-    @GetMapping("/api/stories/internal/check-comment")
-    Boolean checkCommentExistence(@RequestParam String commentId);
 
 }

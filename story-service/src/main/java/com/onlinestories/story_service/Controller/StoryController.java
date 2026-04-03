@@ -113,13 +113,15 @@ public class StoryController {
 
     @PutMapping("/update")
     public ApiResponse<StoryResponse> updateStory(
+            @AuthenticationPrincipal Jwt jwt,
             @RequestPart("request") UpdateStoryRequest request,
             @RequestPart(value = "file", required = false) MultipartFile img) {
+        String userId = jwt.getSubject();
         log.info("Received request to update story: {}", request.getTitle());
         return ApiResponse.<StoryResponse>builder()
                 .code(200)
                 .message("Story updated successfully")
-                .result(storyService.updateStory(request, img))
+                .result(storyService.updateStory(userId, request, img))
                 .build();
     }
 

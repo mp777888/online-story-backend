@@ -33,7 +33,8 @@ public class Story {
     int totalRatingCount;
     Set<GenreSummary> genres;
 
-
+    boolean premium = false;
+    int unlockPrice = 0;
 
     @Data
     @NoArgsConstructor

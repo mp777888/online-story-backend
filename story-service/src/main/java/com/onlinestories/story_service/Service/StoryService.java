@@ -24,7 +24,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -116,6 +115,8 @@ public class StoryService {
                     .totalRatingCount(story.getTotalRatingCount())
                     .numberOfChapters(story.getNumberOfChapters())
                     .numberOfViews(story.getNumberOfViews())
+                    .premium(story.isPremium())
+                    .unlockPrice(story.getUnlockPrice())
                     .genres(story.getGenres().stream()
                             .map(Story.GenreSummary::getName)
                             .collect(Collectors.toSet()))
@@ -160,11 +161,16 @@ public class StoryService {
         }
     }
 
-    public StoryResponse updateStory(UpdateStoryRequest request, MultipartFile img) {
+    public StoryResponse updateStory(String userId, UpdateStoryRequest request, MultipartFile img) {
         try {
             log.info("Updating story: {}", request.getStoryId());
             Story story = storyRepository.findById(request.getStoryId())
                     .orElseThrow(() -> new AppException(ErrorCode.STORY_NOT_FOUND));
+
+            if(!story.getAuthorId().equals(userId)){
+                log.error("Unauthorized access: User {} is not the author of story {}", userId, request.getStoryId());
+                throw new AppException(ErrorCode.NOT_AUTHOR_OF_STORY);
+            }
 
             if (request.getTitle() != null) {
                 story.setTitle(request.getTitle());
@@ -193,6 +199,11 @@ public class StoryService {
                 story.setImg(imgUrl);
             }
 
+            if (request.isPremium() && request.getUnlockPrice() > 0) {
+                story.setPremium(true);
+                story.setUnlockPrice(request.getUnlockPrice());
+            }
+
             storyRepository.save(story);
             log.info("Story {} updated successfully", request.getStoryId());
 
@@ -206,6 +217,8 @@ public class StoryService {
                     .numberOfChapters(story.getNumberOfChapters())
                     .averageRatingScore(story.getAverageRatingScore())
                     .totalRatingCount(story.getTotalRatingCount())
+                    .premium(story.isPremium())
+                    .unlockPrice(story.getUnlockPrice())
                     .genres(story.getGenres().stream()
                             .map(Story.GenreSummary::getName)
                             .collect(Collectors.toSet()))
