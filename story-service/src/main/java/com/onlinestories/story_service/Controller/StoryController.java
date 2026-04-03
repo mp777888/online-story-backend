@@ -164,4 +164,17 @@ public class StoryController {
                 .result(readingService.getTopViewedStories(period, page, size))
                 .build();
     }
+
+    @GetMapping("/unlock-story")
+    public ApiResponse<Boolean> checkIfStoryUnlocked(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam String storyId) {
+        String userId = jwt.getSubject();
+        log.info("Received request to check if story is unlocked for user: {}, story ID: {}", userId, storyId);
+        return ApiResponse.<Boolean>builder()
+                .code(200)
+                .message("Unlock status checked successfully")
+                .result(readingService.isUnlockStory(userId, storyId))
+                .build();
+    }
 }

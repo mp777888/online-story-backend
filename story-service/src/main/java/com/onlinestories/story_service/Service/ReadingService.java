@@ -3,6 +3,7 @@ package com.onlinestories.story_service.Service;
 import com.mongodb.client.result.UpdateResult;
 import com.onlinestories.common.exception.AppException;
 import com.onlinestories.common.exception.ErrorCode;
+import com.onlinestories.story_service.Client.TransactionClient;
 import com.onlinestories.story_service.DTO.Response.ChapterResponse;
 import com.onlinestories.story_service.DTO.Response.FavoriteResponse;
 import com.onlinestories.story_service.DTO.Response.ReadingHistoryResponse;
@@ -50,6 +51,7 @@ public class ReadingService {
     ChapterVersionRepository chapterVersionRepository;
     StoryDailyViewRepository storyDailyViewRepository;
     MongoTemplate mongoTemplate;
+    TransactionClient transactionClient;
 
     public Page<ChapterResponse> getChaptersByStoryId(
             String userId, String storyId, int page, int size) {
@@ -626,6 +628,13 @@ public class ReadingService {
         return favoritePage.map(favorite -> FavoriteResponse.builder()
                 .storyId(favorite.getStoryId())
                 .build());
+    }
+
+    public boolean isUnlockStory(String userId, String storyId){
+        log.info("Checking if story {} is unlocked for user {}", storyId, userId);
+        Story story = storyRepository.findById(storyId)
+                .orElseThrow(() -> new AppException(ErrorCode.STORY_NOT_FOUND));
+        return story.getAuthorId().equals(userId) || transactionClient.checkIfStoryUnlocked(userId, storyId);
     }
 
     private LocalDateTime resolveStartTime(Period period, ZoneId zoneId) {

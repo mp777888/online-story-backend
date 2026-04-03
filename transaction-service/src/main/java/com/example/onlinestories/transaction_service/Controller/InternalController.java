@@ -7,6 +7,7 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -18,8 +19,10 @@ public class InternalController {
     WalletService walletService;
 
     @GetMapping("/check-unlock")
-    public Boolean checkUnlockStatus(String userId, String chapterId) {
-        log.info("Received check unlock status request for userId: {} and chapterId: {}", userId, chapterId);
-        return walletService.checkUnlockStoryExistence(userId, chapterId);
+    public Boolean checkUnlockStatus(
+            @RequestParam String userId,
+            @RequestParam String storyId) {
+        log.info("Received request to check unlock status for userId: {} and storyId: {}", userId, storyId);
+        return walletService.checkUnlockStoryExistence(userId, storyId);
     }
 }
