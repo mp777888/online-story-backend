@@ -50,11 +50,14 @@ public enum ErrorCode {
     INSUFFICIENT_BALANCE(5003, "Insufficient balance", HttpStatus.BAD_REQUEST),
     UNLOCK_ERROR(5004, "Unlock story error", HttpStatus.INTERNAL_SERVER_ERROR),
     UNLOCK_ALREADY(5005, "User has already unlocked this story", HttpStatus.BAD_REQUEST),
-    INVALID_READING_TOKENS(5006, "Invalid reading tokens", HttpStatus.BAD_REQUEST)
+    INVALID_READING_TOKENS(5006, "Invalid reading tokens", HttpStatus.BAD_REQUEST),
+    INVALID_TOP_UP_AMOUNT(5007, "Invalid top-up amount", HttpStatus.BAD_REQUEST),
+    TOP_UP_ERROR(5008, "Top-up error", HttpStatus.INTERNAL_SERVER_ERROR),
+    PAYMENT_NOT_FOUND(5009, "Payment not found", HttpStatus.NOT_FOUND)
     ;
-    private int code;
-    private String message;
-    private HttpStatus httpStatusCode;
+    private final int code;
+    private final String message;
+    private final HttpStatus httpStatusCode;
 
     ErrorCode(int code, String message, HttpStatusCode httpStatusCode) {
         this.code = code;

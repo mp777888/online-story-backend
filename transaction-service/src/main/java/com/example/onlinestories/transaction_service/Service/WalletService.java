@@ -1,8 +1,11 @@
 package com.example.onlinestories.transaction_service.Service;
 import com.example.onlinestories.transaction_service.Client.StoryClient;
+import com.example.onlinestories.transaction_service.Entity.PendingPayment;
 import com.example.onlinestories.transaction_service.Entity.UnlockStory;
 import com.example.onlinestories.transaction_service.Entity.Wallet;
 import com.example.onlinestories.transaction_service.DTO.Response.WalletResponse;
+import com.example.onlinestories.transaction_service.Enums.PaymentStatus;
+import com.example.onlinestories.transaction_service.Repostiory.PendingPaymentRepository;
 import com.example.onlinestories.transaction_service.Repostiory.UnlockStoryRepository;
 import com.example.onlinestories.transaction_service.Repostiory.WalletRepository;
 import com.onlinestories.common.exception.AppException;
@@ -29,6 +32,7 @@ import java.time.ZoneId;
 public class WalletService {
     WalletRepository walletRepository;
     UnlockStoryRepository unlockStoryRepository;
+    PendingPaymentRepository pendingPaymentRepository;
     MongoTemplate mongoTemplate;
     StoryClient storyClient;
 
@@ -69,13 +73,32 @@ public class WalletService {
     }
 
     @Transactional
-    public void topUpReadingTokens(String userId, int tokens) {
-        log.info("Topping up reading tokens for userId: {}, tokens: {}", userId, tokens);
-        if(tokens < 0) {
-            log.warn("Invalid token amount: {} for userId: {}", tokens, userId);
-            throw new AppException(ErrorCode.INVALID_READING_TOKENS);
+    public void topUpReadingTokens(String txnRef) {
+        PendingPayment payment = pendingPaymentRepository.findByTxnRef(txnRef)
+                .orElseThrow(() -> {
+                    log.warn("Pending payment not found for txnRef: {}", txnRef);
+                    return new AppException(ErrorCode.PAYMENT_NOT_FOUND);
+                });
+
+        if (payment.getStatus() == PaymentStatus.PAID){
+            return;
         }
-        updateReadingTokens(userId, tokens);
+        log.info("Topping up reading tokens for userId: {}, amount: {} VND", payment.getUserId(), payment.getAmount());
+
+        int tokensToAdd = getReadingTokensByAmount(payment.getAmount());
+        log.info("Calculated reading tokens to add: {} for userId: {}", tokensToAdd, payment.getUserId());
+
+
+        try{
+            updateReadingTokens(payment.getUserId(), tokensToAdd);
+            log.info("Reading tokens topped up for userId: {}, tokens added: {}", payment.getUserId(), tokensToAdd);
+        } catch (Exception e) {
+            log.error("Error topping up reading tokens for userId: {}, amount: {} VND, error: {}"
+                    , payment.getUserId(), payment.getAmount(), e.getMessage());
+            payment.setStatus(PaymentStatus.FAILED);
+            pendingPaymentRepository.save(payment);
+            throw new AppException(ErrorCode.TOP_UP_ERROR);
+        }
     }
 
     @Transactional
@@ -166,5 +189,17 @@ public class WalletService {
             log.info("Unlock story does not exist for userId: {}, storyId: {}", userId, storyId);
             return false;
         }
+    }
+
+    private int getReadingTokensByAmount(int amount) {
+        return switch (amount) {
+            case 10000 -> 100;
+            case 20000 -> 200;
+            case 50000 -> 500 + 25;
+            case 100000 -> 1000 + 100;
+            case 200000 -> 2000 + 300;
+            case 500000 -> 5000 + 1000;
+            default -> throw new AppException(ErrorCode.INVALID_TOP_UP_AMOUNT);
+        };
     }
 }

@@ -52,20 +52,29 @@ public class TransactionController {
     }
 
     @GetMapping("/vn-pay")
-    public ResponseEntity<String> createVNPayTransaction(HttpServletRequest request){
+    public ApiResponse<String> createVNPayTransaction(HttpServletRequest request){
         log.info("Received request to create VNPay transaction");
-        return ResponseEntity.ok(vnPayService.createPaymentUrl(request));
+        return ApiResponse.<String>builder()
+                .code(200)
+                .result(vnPayService.createPaymentUrl(request))
+                .build();
     }
 
     @GetMapping("/vn-pay-call-back")
-    public ResponseEntity<String> handleVNPayCallback(HttpServletRequest request){
+    public ApiResponse<String> handleVNPayCallback(HttpServletRequest request){
         log.info("Received VNPay callback");
         String status = request.getParameter("vnp_ResponseCode");
+        String message = "Payment Successful";
         if (status.equals("00")) {
-            return ResponseEntity.ok("Payment Successful");
+            walletService.topUpReadingTokens(request.getParameter("vnp_TxnRef"));
         } else {
-            return ResponseEntity.badRequest().body("Payment Failed");
+            log.warn("Payment failed for orderId: {}, with response code: {}", request.getParameter("vnp_TxnRef"), status);
+            message = "Payment Failed with code: " + status;
         }
+        return ApiResponse.<String>builder()
+                .code(200)
+                .result(message)
+                .build();
     }
 
     @GetMapping("/momo")

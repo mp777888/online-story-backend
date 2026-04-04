@@ -3,7 +3,12 @@ package com.example.onlinestories.transaction_service.Service;
 import com.example.onlinestories.transaction_service.Client.UserClient;
 import com.example.onlinestories.transaction_service.Config.VNPayConfig;
 import com.example.onlinestories.transaction_service.DTO.Response.UserResponse;
+import com.example.onlinestories.transaction_service.Entity.PendingPayment;
+import com.example.onlinestories.transaction_service.Enums.PaymentStatus;
+import com.example.onlinestories.transaction_service.Repostiory.PendingPaymentRepository;
 import com.example.onlinestories.transaction_service.util.VNPayUtil;
+import com.onlinestories.common.exception.AppException;
+import com.onlinestories.common.exception.ErrorCode;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +19,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Map;
 
 @Slf4j
@@ -23,6 +30,7 @@ import java.util.Map;
 public class VNPayService {
     VNPayConfig vnPayConfig;
     UserClient userClient;
+    PendingPaymentRepository pendingPaymentRepository;
 
     public String createPaymentUrl(HttpServletRequest request) {
         try {
@@ -34,7 +42,7 @@ public class VNPayService {
             UserResponse userResponse = userClient.getUserById(userId);
             if (userResponse == null) {
                 log.error("Author with ID {} not found", userId);
-                throw new RuntimeException("User not found: " + userId);
+                throw new AppException(ErrorCode.USER_NOT_FOUND);
             }
 
             long amount = Integer.parseInt(request.getParameter("amount")) * 100L;
@@ -52,6 +60,16 @@ public class VNPayService {
             String hashData = VNPayUtil.getPaymentURL(vnpParamsMap, false);
             String vnpSecureHash = VNPayUtil.hmacSHA512(vnPayConfig.getSecretKey(), hashData);
             queryUrl += "&vnp_SecureHash=" + vnpSecureHash;
+
+            PendingPayment pendingPayment = PendingPayment.builder()
+                    .txnRef(vnpParamsMap.get("vnp_TxnRef"))
+                    .userId(userId)
+                    .amount((int) (amount / 100L))
+                    .status(PaymentStatus.PENDING)
+                    .createdAt(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")))
+                    .build();
+            pendingPaymentRepository.save(pendingPayment);
+
             return vnPayConfig.getVnp_PayUrl() + "?" + queryUrl;
         }
         catch (Exception e) {
