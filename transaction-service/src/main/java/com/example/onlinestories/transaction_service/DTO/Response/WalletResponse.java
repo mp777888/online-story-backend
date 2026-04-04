@@ -10,4 +10,6 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class WalletResponse {
     String walletId;
+    int readingTokens;
+    int writingTokens;
 }

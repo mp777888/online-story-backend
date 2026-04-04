@@ -53,6 +53,21 @@ public class WalletService {
         log.info("Wallet deleted for userId: {}", userId);
     }
 
+    public WalletResponse getMyWallet(String userId) {
+        log.info("Getting wallet for userId: {}", userId);
+        Wallet wallet = walletRepository.findByUserId(userId);
+        if (wallet == null) {
+            log.warn("Wallet not found for userId: {}", userId);
+            throw new AppException(ErrorCode.WALLET_NOT_FOUND);
+        }
+        log.info("Wallet found for userId: {}, walletId: {}", userId, wallet.getWalletId());
+        return WalletResponse.builder()
+                .walletId(wallet.getWalletId())
+                .readingTokens(wallet.getReadingTokens())
+                .writingTokens(wallet.getWritingTokens())
+                .build();
+    }
+
     @Transactional
     public void topUpReadingTokens(String userId, int tokens) {
         log.info("Topping up reading tokens for userId: {}, tokens: {}", userId, tokens);

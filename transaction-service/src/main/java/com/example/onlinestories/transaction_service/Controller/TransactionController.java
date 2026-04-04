@@ -33,6 +33,17 @@ public class TransactionController {
         return ResponseEntity.ok(walletService.createWallet(userId));
     }
 
+    @GetMapping("/my-wallet")
+    public ApiResponse<WalletResponse> getMyWallet(@AuthenticationPrincipal Jwt jwt) {
+        String userId = jwt.getSubject();
+        log.info("Received request to get wallet for userId: {}", userId);
+        WalletResponse walletResponse = walletService.getMyWallet(userId);
+        return ApiResponse.<WalletResponse>builder()
+                .code(200)
+                .result(walletResponse)
+                .build();
+    }
+
     @DeleteMapping("/wallet")
     public ResponseEntity<Void> deleteWallet(@RequestBody String userId){
         log.info("Received request to delete wallet");
