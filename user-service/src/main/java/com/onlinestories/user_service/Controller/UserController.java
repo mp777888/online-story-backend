@@ -126,8 +126,8 @@ public class UserController {
                 .build();
     }
 
-    @GetMapping("/follower")
-    public ApiResponse<List<UserResponse>> getFollowers(@AuthenticationPrincipal Jwt jwt) {
+    @GetMapping("/my-followers")
+    public ApiResponse<List<UserResponse>> getMyFollowers(@AuthenticationPrincipal Jwt jwt) {
         String userId = jwt.getSubject();
         log.info("Received request to get followers for userId={}", userId);
         return ApiResponse.<List<UserResponse>>builder()
@@ -136,10 +136,28 @@ public class UserController {
                 .build();
     }
 
-    @GetMapping("/following")
+    @GetMapping("/user-followers")
+    public ApiResponse<List<UserResponse>> getUserFollowers(@RequestParam String userId) {
+        log.info("Received request to get followers for targetUserId={}", userId);
+        return ApiResponse.<List<UserResponse>>builder()
+                .code(200)
+                .result(userService.getFollowers(userId))
+                .build();
+    }
+
+    @GetMapping("/my-followings")
     public ApiResponse<List<UserResponse>> getFollowing(@AuthenticationPrincipal Jwt jwt) {
         String userId = jwt.getSubject();
         log.info("Received request to get following for userId={}", userId);
+        return ApiResponse.<List<UserResponse>>builder()
+                .code(200)
+                .result(userService.getFollowing(userId))
+                .build();
+    }
+
+    @GetMapping("/user-followings")
+    public ApiResponse<List<UserResponse>> getUserFollowing(@RequestParam String userId) {
+        log.info("Received request to get following for targetUserId={}", userId);
         return ApiResponse.<List<UserResponse>>builder()
                 .code(200)
                 .result(userService.getFollowing(userId))

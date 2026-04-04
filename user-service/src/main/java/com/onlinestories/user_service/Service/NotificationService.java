@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -44,7 +45,7 @@ public class NotificationService {
     public Page<NotificationResponse> getAllMyNotifications(
             String userId, int page, int size) {
         log.info("Fetching notifications for user {}", userId);
-        Pageable pageable = PageRequest.of(page, size);
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
         return notificationRepository.findByUserId(userId, pageable)
                 .map(notification -> NotificationResponse.builder()
                         .notificationId(notification.getNotificationId())

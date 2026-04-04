@@ -180,6 +180,7 @@ public class UserService {
                     .email(userRep.getEmail())
                     .dob(user.getDob())
                     .img(user.getImg())
+                    .description(user.getDescription())
                     .createdAt(user.getCreatedAt())
                     .build();
         }
