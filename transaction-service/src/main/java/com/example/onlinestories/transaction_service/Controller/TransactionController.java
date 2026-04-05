@@ -68,6 +68,7 @@ public class TransactionController {
         if (status.equals("00")) {
             walletService.topUpReadingTokens(request.getParameter("vnp_TxnRef"));
         } else {
+            walletService.updateStatus(request.getParameter("vnp_TxnRef"), "FAILED");
             log.warn("Payment failed for orderId: {}, with response code: {}", request.getParameter("vnp_TxnRef"), status);
             message = "Payment Failed with code: " + status;
         }
@@ -78,17 +79,30 @@ public class TransactionController {
     }
 
     @GetMapping("/momo")
-    public ResponseEntity<?> createMomoPayment() throws Exception {
-        // Giả lập dữ liệu đơn hàng
-        String orderId = "ORDER_" + System.currentTimeMillis(); // Bắt buộc unique
-        String amount = "50000";
-        String orderInfo = "Thanh toan don hang test";
-        String returnUrl = "http://localhost:8084/success"; // URL user quay lại sau khi thanh toán
-        String notifyUrl = "http://localhost:8084/api/payment/callback"; // URL MoMo gọi về (Cần deploy public mới nhận được)
+    public ApiResponse<String> createMomoTransaction(HttpServletRequest request) throws Exception {
+        log.info("Received request to create MoMo transaction");
+        return ApiResponse.<String>builder()
+                .code(200)
+                .result(momoService.createMomoTopupPayment(request))
+                .build();
+    }
 
-        Map<String, Object> response = momoService.createPayment(orderId, amount, orderInfo, returnUrl, notifyUrl);
-
-        return ResponseEntity.ok(response);
+    @GetMapping("/momo-call-back")
+    public ApiResponse<String> handleMomoCallback(HttpServletRequest request) {
+        log.info("Received MoMo callback");
+        String resultCode = request.getParameter("resultCode");
+        String message = "Payment Successful";
+        if (resultCode.equals("0")) {
+            walletService.topUpReadingTokens(request.getParameter("orderId"));
+        } else {
+            walletService.updateStatus(request.getParameter("orderId"), "FAILED");
+            log.warn("Payment failed for orderId: {}, with result code: {}", request.getParameter("orderId"), resultCode);
+            message = "Payment Failed with code: " + resultCode;
+        }
+        return ApiResponse.<String>builder()
+                .code(200)
+                .result(message)
+                .build();
     }
 
     @PostMapping("/unlock-story")

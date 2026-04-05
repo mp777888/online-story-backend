@@ -92,6 +92,9 @@ public class WalletService {
         try{
             updateReadingTokens(payment.getUserId(), tokensToAdd);
             log.info("Reading tokens topped up for userId: {}, tokens added: {}", payment.getUserId(), tokensToAdd);
+            payment.setStatus(PaymentStatus.PAID);
+            payment.setPaidAt(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")));
+            pendingPaymentRepository.save(payment);
         } catch (Exception e) {
             log.error("Error topping up reading tokens for userId: {}, amount: {} VND, error: {}"
                     , payment.getUserId(), payment.getAmount(), e.getMessage());
@@ -189,6 +192,18 @@ public class WalletService {
             log.info("Unlock story does not exist for userId: {}, storyId: {}", userId, storyId);
             return false;
         }
+    }
+
+    public void updateStatus(String txnRef, String status) {
+        log.info("Updating payment status for txnRef: {}, status: {}", txnRef, status);
+        PendingPayment payment = pendingPaymentRepository.findByTxnRef(txnRef)
+                .orElseThrow(() -> {
+                    log.warn("Pending payment not found for txnRef: {}", txnRef);
+                    return new AppException(ErrorCode.PAYMENT_NOT_FOUND);
+                });
+        payment.setStatus(PaymentStatus.valueOf(status));
+        pendingPaymentRepository.save(payment);
+        log.info("Payment status updated for txnRef: {}, status: {}", txnRef, status);
     }
 
     private int getReadingTokensByAmount(int amount) {
