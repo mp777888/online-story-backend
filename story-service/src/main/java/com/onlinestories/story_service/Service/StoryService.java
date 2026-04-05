@@ -145,6 +145,8 @@ public class StoryService {
                             .numberOfViews(story.getNumberOfViews())
                             .averageRatingScore(story.getAverageRatingScore())
                             .totalRatingCount(story.getTotalRatingCount())
+                            .premium(story.isPremium())
+                            .unlockPrice(story.getUnlockPrice())
                             .genres(story.getGenres()
                                     .stream()
                                     .map(Story.GenreSummary::getName)
