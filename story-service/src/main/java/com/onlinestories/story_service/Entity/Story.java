@@ -32,6 +32,7 @@ public class Story {
     double totalRatingScore;
     int totalRatingCount;
     Set<GenreSummary> genres;
+    Set<String> tags;
 
     boolean premium = false;
     int unlockPrice = 0;

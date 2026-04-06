@@ -14,4 +14,7 @@ public class CreateStoryRequest {
     String title;
     String description;
     Set<String> genreIds;
+    Set<String> tags;
+    boolean premium = false;
+    int unlockPrice = 0;
 }

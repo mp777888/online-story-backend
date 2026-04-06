@@ -1,28 +1,33 @@
-package com.onlinestories.story_service.DTO.Response;
+package com.onlinestories.common.story.event;
 
+
+import com.onlinestories.common.kafka.BaseEvent;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import lombok.experimental.SuperBuilder;
 
-import java.util.Set;
+import java.util.List;
 
 @Data
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@EqualsAndHashCode(callSuper = true)
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class StoryResponse {
+public class StoryUpdatedEvent extends BaseEvent {
     String storyId;
-    String authorId;
     String title;
     String description;
+    String authorId;
+    String authorName;
+    List<String> genres;
+    List<String> tags;
+    String coverImg;
     String status;
-    String img;
     int numberOfChapters;
     int numberOfViews;
     double averageRatingScore;
     int totalRatingCount;
-    Set<String> genres;
-    Set<String> tags;
     boolean premium;
     int unlockPrice;
 }

@@ -2,6 +2,7 @@ package com.onlinestories.story_service.Service;
 
 import com.onlinestories.common.exception.AppException;
 import com.onlinestories.common.exception.ErrorCode;
+import com.onlinestories.common.story.event.StoryUpdatedEvent;
 import com.onlinestories.story_service.Client.MediaClient;
 import com.onlinestories.story_service.Client.UserClient;
 import com.onlinestories.story_service.DTO.Request.CreateStoryRequest;
@@ -12,6 +13,7 @@ import com.onlinestories.story_service.Entity.Chapter;
 import com.onlinestories.story_service.Entity.Story;
 import com.onlinestories.story_service.Enum.StoryStatus;
 
+import com.onlinestories.story_service.Kafka.Producer.StoryEventProducer;
 import com.onlinestories.story_service.Repository.ChapterRepository;
 import com.onlinestories.story_service.Repository.GenreRepository;
 import com.onlinestories.story_service.Repository.StoryRepository;
@@ -37,12 +39,14 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class StoryService {
+    TagService tagService;
     StoryRepository storyRepository;
     ChapterRepository chapterRepository;
     WritingService writingService;
     GenreRepository genreRepository;
     UserClient userClient;
     MediaClient mediaClient;
+    StoryEventProducer storyEventProducer;
     Logger logger = LoggerFactory.getLogger(StoryService.class);
 
     public StoryResponse createNewStory(CreateStoryRequest request, String authorId, MultipartFile img) {
@@ -55,6 +59,8 @@ public class StoryService {
                 log.error("Author with ID {} not found", authorId);
                 throw new AppException(ErrorCode.USER_NOT_FOUND);
             }
+
+            Set<String> processedTags = tagService.processTagsForStory(request.getTags());
 
             Story story = Story.builder()
                     .authorId(authorId)
@@ -69,6 +75,7 @@ public class StoryService {
                                     .orElseThrow(() -> new AppException(ErrorCode.GENRE_NOT_FOUND)))
                             .map(genre -> new Story.GenreSummary(genre.getGenreId(), genre.getName()))
                             .collect(Collectors.toSet()))
+                    .tags(processedTags)
                     .build();
             storyRepository.save(story);
             log.info("Story {} created successfully", request.getTitle());
@@ -84,6 +91,7 @@ public class StoryService {
                     .genres(story.getGenres().stream()
                             .map(Story.GenreSummary::getName)
                             .collect(Collectors.toSet()))
+                    .tags(story.getTags())
                     .build();
         }
         catch (Exception ex) {
@@ -120,6 +128,7 @@ public class StoryService {
                     .genres(story.getGenres().stream()
                             .map(Story.GenreSummary::getName)
                             .collect(Collectors.toSet()))
+                    .tags(story.getTags())
                     .build();
         }catch (Exception ex){
             logger.error("Error fetching story details for story {}: {}", storyId, ex.getMessage(), ex);
@@ -151,6 +160,7 @@ public class StoryService {
                                     .stream()
                                     .map(Story.GenreSummary::getName)
                                     .collect(Collectors.toSet()))
+                            .tags(story.getTags())
                             .build());
 
             log.info("Fetched {} stories for user {}", storyPage.getTotalElements(), userId);
@@ -194,6 +204,12 @@ public class StoryService {
 
                 genres.addAll(newGenres);
             }
+
+            if (request.getTags() != null) {
+                Set<String> processedTags = tagService.processTagsForStory(request.getTags());
+                story.setTags(processedTags);
+            }
+
             if (img != null && !img.isEmpty()) {
                 if (story.getImg() != null) {
                     String message = mediaClient.deleteFile(story.getImg(), "image");
@@ -211,6 +227,26 @@ public class StoryService {
             storyRepository.save(story);
             log.info("Story {} updated successfully", request.getStoryId());
 
+            StoryUpdatedEvent event = StoryUpdatedEvent.builder()
+                    .storyId(story.getStoryId())
+                    .authorId(story.getAuthorId())
+                    .authorName(userClient.getUserById(story.getAuthorId()).getNickname())
+                    .title(story.getTitle())
+                    .description(story.getDescription())
+                    .coverImg(story.getImg())
+                    .status(story.getStatus().name())
+                    .numberOfChapters(story.getNumberOfChapters())
+                    .averageRatingScore(story.getAverageRatingScore())
+                    .totalRatingCount(story.getTotalRatingCount())
+                    .premium(story.isPremium())
+                    .unlockPrice(story.getUnlockPrice())
+                    .genres(story.getGenres().stream()
+                            .map(Story.GenreSummary::getName)
+                            .collect(Collectors.toList()))
+                    .tags(story.getTags().stream().toList())
+                    .build();
+            storyEventProducer.storyUpdatedEvent(event);
+
             return StoryResponse.builder()
                     .storyId(story.getStoryId())
                     .authorId(story.getAuthorId())
@@ -226,6 +262,7 @@ public class StoryService {
                     .genres(story.getGenres().stream()
                             .map(Story.GenreSummary::getName)
                             .collect(Collectors.toSet()))
+                    .tags(story.getTags())
                     .build();
         }
         catch (Exception ex) {

@@ -3,7 +3,6 @@ package com.onlinestories.common.kafka;
 public class KafkaTopics {
     private KafkaTopics() {}
 
-    public static final String STORY_CREATED = "story.created.v1";
     public static final String STORY_UPDATED = "story.updated.v1";
     public static final String STORY_DELETED = "story.deleted.v1";
 
@@ -17,5 +16,8 @@ public class KafkaTopics {
     public static final String CHAPTER_READ = "analytics.chapter-read.v1";
 
     public static final String REPORT_RESPONDED = "report.responded.v1";
+
+    public static final String USER_CREATED = "user.created.v1";
+    public static final String USER_UPDATED = "user.updated.v1";
 
 }
