@@ -130,6 +130,12 @@ public class WritingService {
                         }
                     }
                 }
+
+                if(chapter.getStatus() == ChapterStatus.TAKEN_DOWN){
+                    log.warn("Chapter with ID: {} is currently taken down, cannot change status except admin", request.getChapterId());
+                    throw new AppException(ErrorCode.CHAPTER_IS_TAKEN_DOWN);
+                }
+
                 chapter.setStatus(ChapterStatus.valueOf(status));
             }
 
@@ -141,6 +147,16 @@ public class WritingService {
                 String imgUrl = mediaClient.uploadFile(img, "chapter-img");
                 chapter.setImg(imgUrl);
             }
+
+            if(request.getPublishedAt() != null){
+                ChapterVersion version = chapterVersionRepository.findByChapterIdAndIsPublishedTrue(request.getChapterId());
+                if(version == null){
+                    log.warn("Cannot set publishedAt for chapterId: {} because it has no published version", request.getChapterId());
+                    throw new AppException(ErrorCode.VERSION_NOT_FOUND);
+                }
+                chapter.setPublishedAt(request.getPublishedAt());
+            }
+
             chapterRepository.save(chapter);
             return ChapterResponse.builder()
                     .chapterId(chapter.getChapterId())
