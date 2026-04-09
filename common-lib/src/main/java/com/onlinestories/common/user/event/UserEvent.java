@@ -12,7 +12,7 @@ import lombok.experimental.SuperBuilder;
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class UserCreatedEvent extends BaseEvent {
+public class UserEvent extends BaseEvent {
     String userId;
     String nickname;
     String description;

@@ -5,10 +5,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/transactions/internal")
@@ -24,5 +21,10 @@ public class InternalController {
             @RequestParam String storyId) {
         log.info("Received request to check unlock status for userId: {} and storyId: {}", userId, storyId);
         return walletService.checkUnlockStoryExistence(userId, storyId);
+    }
+
+    @PostMapping("/check-in")
+    public void addTokensForCheckIn(@RequestParam String userId, @RequestParam int tokens) {
+        walletService.addCheckInTokens(userId, tokens);
     }
 }

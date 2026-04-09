@@ -59,11 +59,12 @@ public class WalletService {
 
     public WalletResponse getMyWallet(String userId) {
         log.info("Getting wallet for userId: {}", userId);
-        Wallet wallet = walletRepository.findByUserId(userId);
-        if (wallet == null) {
-            log.warn("Wallet not found for userId: {}", userId);
-            throw new AppException(ErrorCode.WALLET_NOT_FOUND);
-        }
+        Wallet wallet = walletRepository.findByUserId(userId)
+                .orElseThrow(() -> {
+                    log.warn("Wallet not found for userId: {}", userId);
+                    return new AppException(ErrorCode.WALLET_NOT_FOUND);
+                });
+
         log.info("Wallet found for userId: {}, walletId: {}", userId, wallet.getWalletId());
         return WalletResponse.builder()
                 .walletId(wallet.getWalletId())
@@ -123,8 +124,16 @@ public class WalletService {
             throw new AppException(ErrorCode.UNLOCK_ALREADY);
         }
 
-        Wallet walletReader = walletRepository.findByUserId(userId);
-        Wallet walletAuthor = walletRepository.findByUserId(storyDTOResponse.getAuthorId());
+        Wallet walletReader = walletRepository.findByUserId(userId)
+                .orElseThrow(() -> {
+                    log.warn("Wallet not found for userId: {}", userId);
+                    return new AppException(ErrorCode.WALLET_NOT_FOUND);
+                });
+        Wallet walletAuthor = walletRepository.findByUserId(storyDTOResponse.getAuthorId())
+                .orElseThrow(() -> {
+                    log.warn("Wallet not found for authorId: {}", storyDTOResponse.getAuthorId());
+                    return new AppException(ErrorCode.WALLET_NOT_FOUND);
+                });
         if (walletReader == null || walletAuthor == null) {
             log.error("Wallet not found");
             throw new AppException(ErrorCode.WALLET_NOT_FOUND);
@@ -204,6 +213,14 @@ public class WalletService {
         payment.setStatus(PaymentStatus.valueOf(status));
         pendingPaymentRepository.save(payment);
         log.info("Payment status updated for txnRef: {}, status: {}", txnRef, status);
+    }
+
+    @Transactional
+    public void addCheckInTokens(String userId, int tokens) {
+        log.info("Adding check-in tokens for userId: {}, tokens: {}", userId, tokens);
+        walletRepository.findByUserId(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.WALLET_NOT_FOUND));
+        updateReadingTokens(userId, tokens);
     }
 
     private int getReadingTokensByAmount(int amount) {

@@ -36,4 +36,6 @@ public class User {
     List<String> notificationIds = List.of();
     Set<String> followingIds = new HashSet<>();
     Set<String> followerIds = new HashSet<>();
+    Set<LocalDate> checkInDates = new HashSet<>();
+    int checkInStreak;
 }

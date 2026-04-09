@@ -12,6 +12,8 @@ public enum ErrorCode {
     PASSWORD_INVALID(1004,"Password must be at least 6 characters",HttpStatus.BAD_REQUEST),
     USER_EXISTED(1005,"User already exists",HttpStatus.BAD_REQUEST),
     USER_CREATION_FAILED(1006,"User creation failed",HttpStatus.INTERNAL_SERVER_ERROR),
+    ALREADY_CHECKED_IN(1007,"User has already checked in today",HttpStatus.BAD_REQUEST),
+
     STORY_NOT_FOUND(2001, "Story not found", HttpStatus.NOT_FOUND),
     CHAPTER_NOT_FOUND(2002, "Chapter not found", HttpStatus.NOT_FOUND),
     COMMENT_NOT_FOUND(2003, "Comment not found", HttpStatus.NOT_FOUND),

@@ -4,6 +4,7 @@ import com.onlinestories.common.exception.ApiResponse;
 import com.onlinestories.user_service.DTO.Request.SocialCreateRequest;
 import com.onlinestories.user_service.DTO.Request.UserCreateRequest;
 import com.onlinestories.user_service.DTO.Request.UserUpdateRequest;
+import com.onlinestories.user_service.DTO.Response.CheckInStatusResponse;
 import com.onlinestories.user_service.DTO.Response.UserResponse;
 
 import com.onlinestories.user_service.Service.UserService;
@@ -181,6 +182,28 @@ public class UserController {
     public Boolean checkUserExistence(@RequestParam String userId) {
         log.info("Received request to check existence for userId={}", userId);
         return userService.checkUserExistence(userId);
+    }
+
+    @PostMapping("/check-in")
+    public ApiResponse<String> checkIn(@AuthenticationPrincipal Jwt jwt) {
+        String userId = jwt.getSubject();
+        log.info("Received check-in request for userId={}", userId);
+        return ApiResponse.<String>builder()
+                .code(200)
+                .message("Check-in successful, tokens added to wallet")
+                .result(userService.dailyCheckIn(userId))
+                .build();
+    }
+
+    @GetMapping("/check-in/weekly-status")
+    public ApiResponse<List<CheckInStatusResponse>> getWeeklyStatus(@AuthenticationPrincipal Jwt jwt) {
+        String userId = jwt.getSubject();
+        List<CheckInStatusResponse> response = userService.getWeeklyCheckInStatus(userId);
+
+        return ApiResponse.<List<CheckInStatusResponse>>builder()
+                .code(200)
+                .result(response)
+                .build();
     }
 
 }
