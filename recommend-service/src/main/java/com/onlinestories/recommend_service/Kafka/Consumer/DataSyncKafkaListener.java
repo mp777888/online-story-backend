@@ -54,15 +54,15 @@ public class DataSyncKafkaListener {
             }
 
             // Gọi thư viện AI/API để tạo vector embedding từ title của truyện
-            String textForAi = "Truyện: " + event.getTitle() +
-                    ", Thể loại: " + (event.getGenres() != null ? String.join(", ", event.getGenres()) : "N/A") +
-                    ", Tác giả: " + event.getAuthorName() +
-                    ", Tags: " + (event.getTags() != null ? String.join(", ", event.getTags()) : "N/A") +
-                    ", Mô tả: " + event.getDescription();
+//            String textForAi = "Truyện: " + event.getTitle() +
+//                    ", Thể loại: " + (event.getGenres() != null ? String.join(", ", event.getGenres()) : "N/A") +
+//                    ", Tác giả: " + event.getAuthorName() +
+//                    ", Tags: " + (event.getTags() != null ? String.join(", ", event.getTags()) : "N/A") +
+//                    ", Mô tả: " + event.getDescription();
 
             // Lấy vector
-            float[] vector = aiEmbeddingService.generateEmbedding(textForAi);
-            item.setEmbedding(vector);
+//            float[] vector = aiEmbeddingService.generateEmbedding(textForAi);
+//            item.setEmbedding(vector);
 
             // 2. Index vào OpenSearch bản thu gọn
             IndexRequest<StorySearchItem> request = IndexRequest.of(i -> i
@@ -97,11 +97,11 @@ public class DataSyncKafkaListener {
             item.setImg(event.getImg());
 
             // TẠO VECTOR AI CHO TÁC GIẢ
-            String textForAi = "Tác giả: " + event.getNickname() +
-                    ", Mô tả / Tiểu sử: " + (event.getDescription() != null ? event.getDescription() : "Không có");
+//            String textForAi = "Tác giả: " + event.getNickname() +
+//                    ", Mô tả / Tiểu sử: " + (event.getDescription() != null ? event.getDescription() : "Không có");
 
-            float[] vector = aiEmbeddingService.generateEmbedding(textForAi);
-            item.setEmbedding(vector);
+//            float[] vector = aiEmbeddingService.generateEmbedding(textForAi);
+//            item.setEmbedding(vector);
 
             IndexRequest<UserSearchItem> request = IndexRequest.of(i -> i
                     .index("users")

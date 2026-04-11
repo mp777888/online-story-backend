@@ -28,15 +28,15 @@ public class RecommendService {
     public List<Object> searchAll(String keyword) {
         List<Object> results = new ArrayList<>();
         try {
-            float[] queryVector = aiEmbeddingService.generateEmbedding(keyword);
+//            float[] queryVector = aiEmbeddingService.generateEmbedding(keyword);
 
             SearchRequest request = SearchRequest.of(s -> s
                     .index("users","stories")
                     .source(src -> src.filter(f -> f.excludes("embedding")))
                     .query(q -> q
                             .bool(b -> b
-                                    // SHOULD: Tìm kiếm truyện/tác giả có liên quan đến keyword
-                                    .should(sh -> sh
+                                    // MUST: Tìm kiếm truyện/tác giả có liên quan đến keyword
+                                    .must(m -> m
                                             .multiMatch(mm -> mm
                                                     .query(keyword)
                                                     .fields("title^3", "authorName^2", "nickname^2", "description")
@@ -45,15 +45,15 @@ public class RecommendService {
                                             )
                                     )
                                     // SHOULD: Tìm kiếm truyện có embedding vector gần với query vector (tìm kiếm ngữ nghĩa)
-                                    .should(sh -> sh
-                                            // Giúp tìm ra các truyện miêu tả gián tiếp keyword
-                                            .knn(k -> k
-                                                    .field("embedding")
-                                                    .vector(queryVector)
-                                                    .k(20)
-                                            )
-                                    )
-                                    .minimumShouldMatch("1")
+//                                    .should(sh -> sh
+//                                            // Giúp tìm ra các truyện miêu tả gián tiếp keyword
+//                                            .knn(k -> k
+//                                                    .field("embedding")
+//                                                    .vector(queryVector)
+//                                                    .k(20)
+//                                            )
+//                                    )
+//                                    .minimumShouldMatch("1")
                                     // FILTER: Bắt buộc truyện phải có status != DRAFT
                                     .filter(f -> f
                                             .bool(filterBool -> filterBool

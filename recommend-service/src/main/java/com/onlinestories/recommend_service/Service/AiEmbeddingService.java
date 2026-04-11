@@ -27,7 +27,6 @@ public class AiEmbeddingService {
 
     private final RestTemplate restTemplate = new RestTemplate();
 
-//    @Cacheable(value = "search_embeddings", key = "#textToEmbed?.toLowerCase()?.trim()", unless = "#result == null")
     public float[] generateEmbedding(String textToEmbed) {
         if (textToEmbed == null || textToEmbed.isBlank()) {
             return fallbackVector();
