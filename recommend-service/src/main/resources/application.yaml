@@ -3,10 +3,22 @@ server:
 spring:
   application:
     name: recommend-service
+  cache:
+    type: redis
   data:
     mongodb:
       uri: ${MONGODB_URI}
       database: ${MONGODB_DB}
+    redis:
+      url: ${REDIS_URL}
+      ssl:
+        enabled: true
+      timeout: 5000
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
   elasticsearch:
     uris: ${ELASTICSEARCH_URIS}
     username: ${ELASTICSEARCH_USERNAME}
@@ -39,6 +51,18 @@ eureka:
   client:
     service-url:
       defaultZone: http://localhost:8761/eureka/
+
+bonsai:
+  opensearch:
+    url: ${OPENSEARCH_URL}
+
+#gemini:
+#  api:
+#    key: ${GEMINI_API_KEY}
+
+cohere:
+  api:
+    key: ${COHERE_API_KEY}
 
 logging:
   level:

@@ -7,9 +7,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import java.util.HashSet;
 import java.util.List;
 
 @Service
@@ -29,7 +29,7 @@ public class RecommendationService {
     public String addCategories(String userId, List<String> categoryIds) {
         User user = userRepository.findById(userId).orElseThrow(()
                 -> new RuntimeException("User not found"));
-        user.getCategories().addAll(categoryIds);
+        user.setCategories(new HashSet<>(categoryIds));
         userRepository.save(user);
         return "Categories added successfully";
     }
