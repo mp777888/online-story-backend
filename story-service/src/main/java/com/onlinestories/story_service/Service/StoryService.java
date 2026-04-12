@@ -3,12 +3,13 @@ package com.onlinestories.story_service.Service;
 import com.onlinestories.common.exception.AppException;
 import com.onlinestories.common.exception.ErrorCode;
 import com.onlinestories.common.story.event.StoryUpdatedEvent;
+import com.onlinestories.common.user.dto.UserResponse;
+
 import com.onlinestories.story_service.Client.MediaClient;
 import com.onlinestories.story_service.Client.UserClient;
 import com.onlinestories.story_service.DTO.Request.CreateStoryRequest;
 import com.onlinestories.story_service.DTO.Request.UpdateStoryRequest;
 import com.onlinestories.story_service.DTO.Response.StoryResponse;
-import com.onlinestories.story_service.DTO.Response.UserResponse;
 import com.onlinestories.story_service.Entity.Chapter;
 import com.onlinestories.story_service.Entity.Story;
 import com.onlinestories.story_service.Enum.StoryStatus;
@@ -54,7 +55,7 @@ public class StoryService {
             log.info("Creating new story: {}", request.getTitle());
 
             // Validate author existence via UserClient
-            UserResponse userResponse = userClient.getUserById(authorId);
+            UserResponse userResponse = userClient.getUserById(authorId).getResult();
             if (userResponse == null) {
                 log.error("Author with ID {} not found", authorId);
                 throw new AppException(ErrorCode.USER_NOT_FOUND);
@@ -230,7 +231,7 @@ public class StoryService {
             StoryUpdatedEvent event = StoryUpdatedEvent.builder()
                     .storyId(story.getStoryId())
                     .authorId(story.getAuthorId())
-                    .authorName(userClient.getUserById(story.getAuthorId()).getNickname())
+                    .authorName(userClient.getUserById(story.getAuthorId()).getResult().getNickname())
                     .title(story.getTitle())
                     .description(story.getDescription())
                     .coverImg(story.getImg())

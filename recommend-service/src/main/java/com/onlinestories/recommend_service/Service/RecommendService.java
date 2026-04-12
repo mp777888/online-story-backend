@@ -42,6 +42,7 @@ public class RecommendService {
                                                     .fields("title^3", "authorName^2", "nickname^2", "description")
                                                     .type(TextQueryType.CrossFields)
                                                     .operator(Operator.Or)
+                                                    .fuzziness("AUTO")
                                             )
                                     )
                                     // SHOULD: Tìm kiếm truyện có embedding vector gần với query vector (tìm kiếm ngữ nghĩa)

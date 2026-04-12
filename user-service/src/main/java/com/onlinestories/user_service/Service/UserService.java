@@ -9,7 +9,7 @@ import com.onlinestories.user_service.DTO.Request.SocialCreateRequest;
 import com.onlinestories.user_service.DTO.Request.UserCreateRequest;
 import com.onlinestories.user_service.DTO.Request.UserUpdateRequest;
 import com.onlinestories.user_service.DTO.Response.CheckInStatusResponse;
-import com.onlinestories.user_service.DTO.Response.UserResponse;
+import com.onlinestories.common.user.dto.UserResponse;
 import com.onlinestories.user_service.DTO.Response.WalletResponse;
 import com.onlinestories.user_service.Entity.User;
 

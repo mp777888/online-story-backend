@@ -1,4 +1,4 @@
-package com.onlinestories.user_service.DTO.Response;
+package com.onlinestories.common.user.dto;
 
 import lombok.*;
 import lombok.experimental.FieldDefaults;

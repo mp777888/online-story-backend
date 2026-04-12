@@ -1,6 +1,8 @@
 package com.onlinestories.story_service.Client;
 
-import com.onlinestories.story_service.DTO.Response.UserResponse;
+
+import com.onlinestories.common.exception.ApiResponse;
+import com.onlinestories.common.user.dto.UserResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -10,5 +12,5 @@ import org.springframework.web.bind.annotation.PathVariable;
 public interface UserClient {
 
     @GetMapping("/api/users/{id}")
-    UserResponse getUserById(@PathVariable("id") String id);
+    ApiResponse<UserResponse> getUserById(@PathVariable("id") String id);
 }
