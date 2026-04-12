@@ -48,10 +48,8 @@ public class DataSyncKafkaListener {
             item.setTotalRatingCount(event.getTotalRatingCount());
             item.setPremium(event.isPremium());
             item.setUnlockPrice(event.getUnlockPrice());
-
-            if (event.getGenres() != null) {
-                item.setGenres(event.getGenres());
-            }
+            item.setGenres(event.getGenres());
+            item.setTags(event.getTags());
 
             // Gọi thư viện AI/API để tạo vector embedding từ title của truyện
 //            String textForAi = "Truyện: " + event.getTitle() +

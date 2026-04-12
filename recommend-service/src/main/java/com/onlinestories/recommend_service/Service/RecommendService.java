@@ -39,8 +39,8 @@ public class RecommendService {
                                     .must(m -> m
                                             .multiMatch(mm -> mm
                                                     .query(keyword)
-                                                    .fields("title^3", "authorName^2", "nickname^2", "description")
-                                                    .type(TextQueryType.CrossFields)
+                                                            .fields("title^3", "authorName^2", "nickname^2", "tags^2", "genres^2", "description")
+//                                                    .type(TextQueryType.CrossFields)
                                                     .operator(Operator.Or)
                                                     .fuzziness("AUTO")
                                             )
