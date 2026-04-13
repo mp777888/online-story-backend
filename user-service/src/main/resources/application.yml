@@ -47,3 +47,6 @@ eureka:
 logging:
     level:
         org.springframework.security: DEBUG
+        org.apache.kafka.clients.NetworkClient: ERROR
+        org.apache.kafka.clients.Metadata: ERROR
+        org.apache.kafka.clients.consumer.internals.ConsumerCoordinator: WARN
