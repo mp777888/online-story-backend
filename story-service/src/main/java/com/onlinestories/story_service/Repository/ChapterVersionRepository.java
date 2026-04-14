@@ -9,7 +9,6 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface ChapterVersionRepository extends MongoRepository<ChapterVersion, String> {
-    ChapterVersion findByChapterIdAndIsPublishedTrue(String chapterId);
     Page<ChapterVersion> findByChapterId(String chapterId, Pageable pageable);
     void deleteByChapterId(String chapterId);
 }

@@ -14,7 +14,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.List;
 
@@ -47,7 +46,7 @@ public class ChapterPublishScheduler {
             try {
                 Story story = storyRepository.findById(chapter.getStoryId()).orElse(null);
 
-                String targetVersionId = chapter.getScheduledVersionId();
+                String targetVersionId = chapter.getPublishedVersionId();
                 if (targetVersionId == null) {
                     log.warn("Chapter {} is SCHEDULED but has no scheduledVersionId. Cannot publish.", chapter.getChapterId());
                     continue;
@@ -57,8 +56,6 @@ public class ChapterPublishScheduler {
 
                 if (story != null && version != null) {
                     writingService.doPublishChapter(story, chapter, version);
-                    chapter.setScheduledVersionId(null);
-                    chapterRepository.save(chapter);
                 } else {
                     log.warn("Cannot auto-publish Chapter ID: {}. Associated Story or Version not found.", chapter.getChapterId());
                 }

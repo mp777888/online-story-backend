@@ -14,6 +14,7 @@ import com.onlinestories.story_service.Enum.Period;
 import com.onlinestories.story_service.Enum.StoryStatus;
 
 import com.onlinestories.story_service.Repository.*;
+import com.onlinestories.story_service.Utils.StoryHelper;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -52,6 +53,7 @@ public class ReadingService {
     StoryDailyViewRepository storyDailyViewRepository;
     MongoTemplate mongoTemplate;
     TransactionClient transactionClient;
+    StoryHelper storyHelper;
 
     public Page<ChapterResponse> getChaptersByStoryId(
             String userId, String storyId, int page, int size) {
@@ -153,7 +155,7 @@ public class ReadingService {
                         .build();
             }
             else if(chapter.getStatus().equals(ChapterStatus.PUBLISHED)){
-                content = getContentForReading(chapterId);
+                content = getContentForReading(chapter.getPublishedVersionId());
             }
             else if(chapter.getStatus().equals(ChapterStatus.TAKEN_DOWN)){
                 log.warn("Chapter {} has been taken down and cannot be accessed", chapterId);
@@ -492,6 +494,8 @@ public class ReadingService {
                     new Update().inc("viewCount", 1),
                     StoryDailyView.class
             );
+            storyHelper.markStoryAsDirty(story.getStoryId());
+
             log.info("Story daily view update - matched: {}, modified: {}, upsertedId: {}",
                     dailyStoryUpdate.getMatchedCount(), dailyStoryUpdate.getModifiedCount(), dailyStoryUpdate.getUpsertedId());
 
@@ -547,16 +551,17 @@ public class ReadingService {
                 .build();
     }
 
-    private String getContentForReading(String chapterId) {
-        log.info("Fetching chapter version details for chapterId: {}", chapterId);
-        ChapterVersion version = chapterVersionRepository.findByChapterIdAndIsPublishedTrue(chapterId);
+    private String getContentForReading(String chapterVersionId) {
+        log.info("Fetching chapter version details for chapterId: {}", chapterVersionId);
+        ChapterVersion version = chapterVersionRepository.findById(chapterVersionId)
+                .orElse(null);
 
         if(version == null){
-            log.warn("Published chapter version not found for chapterId: {}", chapterId);
+            log.warn("Published chapter version not found for chapterId: {}", chapterVersionId);
             throw new AppException(ErrorCode.VERSION_NOT_FOUND);
         }
 
-        log.info("Chapter version details fetched successfully for chapterId: {}", chapterId);
+        log.info("Chapter version details fetched successfully for chapterId: {}", chapterVersionId);
         return version.getContent();
     }
 

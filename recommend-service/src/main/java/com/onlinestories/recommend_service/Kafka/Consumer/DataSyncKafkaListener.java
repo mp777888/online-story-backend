@@ -1,6 +1,7 @@
 package com.onlinestories.recommend_service.Kafka.Consumer;
 
 import com.onlinestories.common.kafka.KafkaTopics;
+import com.onlinestories.common.story.event.StoryMetricsSyncEvent;
 import com.onlinestories.common.story.event.StoryUpdatedEvent;
 import com.onlinestories.common.user.event.UserEvent;
 import com.onlinestories.recommend_service.Entity.StorySearchItem;
@@ -9,9 +10,15 @@ import com.onlinestories.recommend_service.Service.AiEmbeddingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.opensearch.client.opensearch.OpenSearchClient;
+import org.opensearch.client.opensearch.core.GetResponse;
 import org.opensearch.client.opensearch.core.IndexRequest;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 
 @Slf4j
 @Component
@@ -51,16 +58,38 @@ public class DataSyncKafkaListener {
             item.setGenres(event.getGenres());
             item.setTags(event.getTags());
 
-            // Gọi thư viện AI/API để tạo vector embedding từ title của truyện
-//            String textForAi = "Truyện: " + event.getTitle() +
-//                    ", Thể loại: " + (event.getGenres() != null ? String.join(", ", event.getGenres()) : "N/A") +
-//                    ", Tác giả: " + event.getAuthorName() +
-//                    ", Tags: " + (event.getTags() != null ? String.join(", ", event.getTags()) : "N/A") +
-//                    ", Mô tả: " + event.getDescription();
+            float[] vector = null;
 
-            // Lấy vector
-//            float[] vector = aiEmbeddingService.generateEmbedding(textForAi);
-//            item.setEmbedding(vector);
+            GetResponse<StorySearchItem> documentResponse = openSearchClient.get(g -> g
+                            .index("stories")
+                            .id(event.getStoryId()),
+                    StorySearchItem.class
+            );
+            if(documentResponse.found()){
+                StorySearchItem existingItem = documentResponse.source();
+                if(existingItem != null && Objects.equals(existingItem.getTitle(), event.getTitle()) &&
+                        Objects.equals(existingItem.getAuthorName(), event.getAuthorName()) &&
+                        Objects.equals(existingItem.getDescription(), event.getDescription()) &&
+                        Objects.equals(existingItem.getGenres(), event.getGenres()) &&
+                        Objects.equals(existingItem.getTags(), event.getTags())
+                ){
+                    // Nếu title, authorName, description, genres, tags không thay đổi thì giữ nguyên vector cũ
+                    vector = existingItem.getEmbedding();
+                }
+            }
+
+            if(vector == null) {
+                // Gọi thư viện AI/API để tạo vector embedding từ title của truyện
+                String textForAi = "Truyện: " + event.getTitle() +
+                        ", Thể loại: " + (event.getGenres() != null ? String.join(", ", event.getGenres()) : "N/A") +
+                        ", Tác giả: " + event.getAuthorName() +
+                        ", Tags: " + (event.getTags() != null ? String.join(", ", event.getTags()) : "N/A") +
+                        ", Mô tả: " + event.getDescription();
+
+                // Lấy vector
+                vector = aiEmbeddingService.generateEmbedding(textForAi);
+            }
+            item.setEmbedding(vector);
 
             // 2. Index vào OpenSearch bản thu gọn
             IndexRequest<StorySearchItem> request = IndexRequest.of(i -> i
@@ -74,6 +103,34 @@ public class DataSyncKafkaListener {
 
         } catch (Exception e) {
             log.error("Error syncing story to OpenSearch", e);
+        }
+    }
+
+    @KafkaListener(
+            topics = {KafkaTopics.STORY_METRICS_UPDATED},
+            groupId = "recommend-service-group"
+    )
+    public void updateStoryMetricsInOpenSearch(StoryMetricsSyncEvent event) {
+        try {
+            // Sử dụng Map để thực hiện partial update (chỉ cập nhật các trường được chỉ định)
+            Map<String, Object> partialDoc = new HashMap<>();
+            partialDoc.put("numberOfViews", event.getNumberOfViews());
+            partialDoc.put("numberOfChapters", event.getNumberOfChapters());
+            partialDoc.put("averageRatingScore", event.getAverageRatingScore());
+            partialDoc.put("totalRatingCount", event.getTotalRatingCount());
+            partialDoc.put("premium", event.isPremium());
+            partialDoc.put("unlockPrice", event.getUnlockPrice());
+
+            openSearchClient.update(u -> u
+                            .index("stories")
+                            .id(event.getStoryId())
+                            .doc(partialDoc),
+                    Map.class
+            );
+
+            log.info("Successfully partial updated metrics for story: {}", event.getStoryId());
+        } catch (IOException e) {
+            log.error("Error doing partial update for story metrics: {}", event.getStoryId(), e);
         }
     }
 

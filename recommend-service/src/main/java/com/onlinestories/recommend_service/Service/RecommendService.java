@@ -6,7 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.opensearch.client.opensearch.OpenSearchClient;
 import org.opensearch.client.opensearch._types.FieldValue;
 import org.opensearch.client.opensearch._types.query_dsl.Operator;
-import org.opensearch.client.opensearch._types.query_dsl.TextQueryType;
+import org.opensearch.client.opensearch.core.GetResponse;
 import org.opensearch.client.opensearch.core.SearchRequest;
 import org.opensearch.client.opensearch.core.SearchResponse;
 import org.springframework.stereotype.Service;
@@ -92,16 +92,50 @@ public class RecommendService {
     /**
      * GỢI Ý VECTOR (kNN SEARCH) - TRUYỆN LIÊN QUAN
      */
-    public List<StorySearchItem> recommendSimilarStories(float[] targetVector) {
+    public List<StorySearchItem> recommendSimilarStories(String storyId) {
         List<StorySearchItem> recommendations = new ArrayList<>();
         try {
+            GetResponse<StorySearchItem> documentResponse = openSearchClient.get(g -> g
+                            .index("stories")
+                            .id(storyId),
+                    StorySearchItem.class
+            );
+            if (!documentResponse.found() || documentResponse.source() == null || documentResponse.source().getEmbedding() == null) {
+                log.warn("Document with ID {} not found or missing embedding, cannot perform kNN search.", storyId);
+                return recommendations;
+            }
+
+            float[] targetVector = documentResponse.source().getEmbedding();
+
             SearchRequest request = SearchRequest.of(s -> s
                     .index("stories")
                     .query(q -> q
-                            .knn(k -> k
-                                    .field("embedding")
-                                    .vector(targetVector)
-                                    .k(10) // Lấy top 10 gần nhất
+                            .bool(b -> b
+                                    .mustNot(mn -> mn
+                                            .term(t -> t
+                                                    .field("_id")
+                                                    .value(FieldValue.of(storyId))
+                                            )
+                                    )
+                                    .must(m -> m
+                                            .knn(k -> k
+                                                    .field("embedding")
+                                                    .vector(targetVector)
+                                                    .k(10) // Lấy top 10 gần nhất
+                                            )
+                                    )
+                                    .filter(f -> f
+                                            .bool(filterBool -> filterBool
+                                                    .should(sh -> sh
+                                                            .terms(t -> t
+                                                                    .field("status")
+                                                                    .terms(t2 -> t2.value(List.of(
+                                                                            FieldValue.of("ONGOING"),
+                                                                            FieldValue.of("COMPLETED"))))
+                                                            )
+                                                    )
+                                            )
+                                    )
                             )
                     )
             );

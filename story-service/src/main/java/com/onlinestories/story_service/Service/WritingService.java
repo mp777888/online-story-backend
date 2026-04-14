@@ -24,6 +24,7 @@ import com.onlinestories.story_service.Repository.ChapterRepository;
 import com.onlinestories.story_service.Repository.ChapterVersionRepository;
 import com.onlinestories.story_service.Repository.StoryRepository;
 import com.onlinestories.story_service.Utils.ByteArrayMultipartFile;
+import com.onlinestories.story_service.Utils.StoryHelper;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -57,6 +58,7 @@ public class WritingService {
     AzureTtsService azureTtsService;
     MediaClient mediaClient;
     MongoTemplate mongoTemplate;
+    StoryHelper storyHelper;
 
     // Create new chapters
     public ChapterResponse creteNewChapter(CreateChapterRequest request, MultipartFile img) {
@@ -115,29 +117,28 @@ public class WritingService {
             }
 
             if(request.getStatus() != null && !request.getStatus().isEmpty()) {
-                String status = request.getStatus().toUpperCase();
-                if(status.equals("TAKEN_DOWN")) {
-                    if (chapter.getStatus() == ChapterStatus.PUBLISHED) {
-
-                        story.setNumberOfChapters(story.getNumberOfChapters() - 1);
-                        storyRepository.save(story);
-
-
-                        ChapterVersion version = chapterVersionRepository.findByChapterIdAndIsPublishedTrue(request.getChapterId());
-                        if (version != null) {
-                            version.setIsPublished(false);
-                            chapterVersionRepository.save(version);
-                        }
-                    }
-                }
+                String newStatusStr = request.getStatus().toUpperCase();
+                ChapterStatus newStatus = ChapterStatus.valueOf(newStatusStr);
 
                 if(chapter.getStatus() == ChapterStatus.TAKEN_DOWN){
                     log.warn("Chapter with ID: {} is currently taken down, cannot change status except admin", request.getChapterId());
                     throw new AppException(ErrorCode.CHAPTER_IS_TAKEN_DOWN);
                 }
 
-                chapter.setStatus(ChapterStatus.valueOf(status));
+                if (chapter.getStatus() == ChapterStatus.PUBLISHED && newStatus != ChapterStatus.PUBLISHED) {
+                    story.setNumberOfChapters(story.getNumberOfChapters() - 1);
+                    storyRepository.save(story);
+
+                }
+                else if (chapter.getStatus() != ChapterStatus.PUBLISHED && newStatus == ChapterStatus.PUBLISHED) {
+                    story.setNumberOfChapters(story.getNumberOfChapters() + 1);
+                    storyRepository.save(story);
+                }
+
+                storyHelper.markStoryAsDirty(story.getStoryId());
+                chapter.setStatus(newStatus);
             }
+
 
             if(img != null && !img.isEmpty()) {
                 if (chapter.getImg() != null && !chapter.getImg().isEmpty()) {
@@ -149,7 +150,8 @@ public class WritingService {
             }
 
             if(request.getPublishedAt() != null){
-                ChapterVersion version = chapterVersionRepository.findByChapterIdAndIsPublishedTrue(request.getChapterId());
+                ChapterVersion version = chapterVersionRepository.findById(chapter.getPublishedVersionId())
+                        .orElse(null);
                 if(version == null){
                     log.warn("Cannot set publishedAt for chapterId: {} because it has no published version", request.getChapterId());
                     throw new AppException(ErrorCode.VERSION_NOT_FOUND);
@@ -468,14 +470,14 @@ public class WritingService {
 
             ChapterVersion version = chapterVersionRepository.findById(request.getChapterVersionId())
                     .orElseThrow(() -> new AppException(ErrorCode.VERSION_NOT_FOUND));
-            version.setIsPublished(true);
-            chapterVersionRepository.save(version);
+            chapter.setPublishedVersionId(version.getChapterVersionId());
+
 
             LocalDateTime publishDate = request.getPublishDate();
             if(publishDate != null && publishDate.isAfter(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")))){
                 chapter.setStatus(ChapterStatus.SCHEDULED);
                 chapter.setPublishedAt(publishDate);
-                chapter.setScheduledVersionId(version.getChapterVersionId());
+
                 chapterRepository.save(chapter);
 
                 log.info("Chapter {} scheduled to be published at {}", chapter.getChapterId(), publishDate);

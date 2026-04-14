@@ -21,6 +21,5 @@ public class ChapterVersion {
     String chapterId;
     String versionName;
     String content;
-    Boolean isPublished;
     LocalDateTime createdAt;
 }
