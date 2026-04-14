@@ -468,6 +468,8 @@ public class WritingService {
 
             ChapterVersion version = chapterVersionRepository.findById(request.getChapterVersionId())
                     .orElseThrow(() -> new AppException(ErrorCode.VERSION_NOT_FOUND));
+            version.setIsPublished(true);
+            chapterVersionRepository.save(version);
 
             LocalDateTime publishDate = request.getPublishDate();
             if(publishDate != null && publishDate.isAfter(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")))){
@@ -512,11 +514,10 @@ public class WritingService {
         chapter.setPublishedAt(LocalDateTime.now());
         chapterRepository.save(chapter);
 
-        version.setIsPublished(true);
-        chapterVersionRepository.save(version);
 
         story.setNumberOfChapters(story.getNumberOfChapters() + 1);
         storyRepository.save(story);
+        storyHelper.markStoryAsDirty(story.getStoryId());
 
         ChapterPublishedEvent event = ChapterPublishedEvent.builder()
                 .chapterId(chapter.getChapterId())
