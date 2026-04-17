@@ -48,7 +48,7 @@ public class ChapterPublishScheduler {
 
                 String targetVersionId = chapter.getPublishedVersionId();
                 if (targetVersionId == null) {
-                    log.warn("Chapter {} is SCHEDULED but has no scheduledVersionId. Cannot publish.", chapter.getChapterId());
+                    log.warn("Chapter {} is SCHEDULED but has no PublishedVersionId. Cannot publish.", chapter.getChapterId());
                     continue;
                 }
 

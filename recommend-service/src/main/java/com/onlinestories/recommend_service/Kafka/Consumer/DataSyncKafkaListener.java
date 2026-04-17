@@ -151,12 +151,32 @@ public class DataSyncKafkaListener {
             item.setDescription(event.getDescription());
             item.setImg(event.getImg());
 
-            // TẠO VECTOR AI CHO TÁC GIẢ
-//            String textForAi = "Tác giả: " + event.getNickname() +
-//                    ", Mô tả / Tiểu sử: " + (event.getDescription() != null ? event.getDescription() : "Không có");
+            float[] vector = null;
 
-//            float[] vector = aiEmbeddingService.generateEmbedding(textForAi);
-//            item.setEmbedding(vector);
+            GetResponse<UserSearchItem> documentResponse = openSearchClient.get(g -> g
+                            .index("users")
+                            .id(event.getUserId()),
+                    UserSearchItem.class
+            );
+
+            if(documentResponse.found()){
+                UserSearchItem existingItem = documentResponse.source();
+                if(existingItem != null && Objects.equals(existingItem.getNickname(), event.getNickname()) &&
+                        Objects.equals(existingItem.getDescription(), event.getDescription())
+                ){
+                    // Nếu nickname và description không thay đổi thì giữ nguyên vector cũ
+                    vector = existingItem.getEmbedding();
+                }
+            }
+
+            if(vector == null) {
+                // TẠO VECTOR AI CHO TÁC GIẢ
+                String textForAi = "Tác giả: " + event.getNickname() +
+                        ", Mô tả / Tiểu sử: " + (event.getDescription() != null ? event.getDescription() : "Không có");
+
+                vector = aiEmbeddingService.generateEmbedding(textForAi);
+            }
+            item.setEmbedding(vector);
 
             IndexRequest<UserSearchItem> request = IndexRequest.of(i -> i
                     .index("users")
