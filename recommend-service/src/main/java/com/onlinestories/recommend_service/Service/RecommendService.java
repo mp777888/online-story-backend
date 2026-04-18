@@ -113,6 +113,8 @@ public class RecommendService {
             }
 
             float[] targetVector = documentResponse.source().getEmbedding();
+            String authorId = documentResponse.source().getAuthorId();
+            List<String> sourceGenres = documentResponse.source().getGenres();
 
             SearchRequest request = SearchRequest.of(s -> s
                     .index("stories")
@@ -145,6 +147,24 @@ public class RecommendService {
                                                                             FieldValue.of("ONGOING"),
                                                                             FieldValue.of("COMPLETED")
                                                                     )))
+                                                            )
+                                                    )
+                                                    .should(sh -> sh
+                                                            .term(t -> t
+                                                                    .field("authorId")
+                                                                    .value(FieldValue.of(authorId))
+                                                                    .boost(2.0f) // Nhân đôi điểm cho truyện cùng tác giả
+                                                            )
+                                                    )
+                                                    .should(sh -> sh
+                                                            .terms(t -> t
+                                                                    .field("genres")
+                                                                    .terms(t2 -> t2.value(
+                                                                            sourceGenres != null
+                                                                                    ? sourceGenres.stream().map(FieldValue::of).toList()
+                                                                                    : List.of()
+                                                                    ))
+                                                                    .boost(1.5f) // Cộng thêm điểm cho truyện có chung thể loại
                                                             )
                                                     )
                                             )
