@@ -3,6 +3,7 @@ package com.onlinestories.recommend_service.Controller;
 import com.onlinestories.common.exception.ApiResponse;
 import com.onlinestories.recommend_service.Entity.StorySearchItem;
 import com.onlinestories.recommend_service.Service.RecommendService;
+import com.onlinestories.recommend_service.Service.TestGeminiEmbeddingService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;

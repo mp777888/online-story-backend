@@ -155,7 +155,7 @@ public class ReadingService {
                         .build();
             }
             else if(chapter.getStatus().equals(ChapterStatus.PUBLISHED)){
-                content = getContentForReading(chapter.getPublishedVersionId());
+                content = storyHelper.getContentForReading(chapter.getPublishedVersionId());
             }
             else if(chapter.getStatus().equals(ChapterStatus.TAKEN_DOWN)){
                 log.warn("Chapter {} has been taken down and cannot be accessed", chapterId);
@@ -222,7 +222,7 @@ public class ReadingService {
         }
 
         ZoneId zone = ZoneId.of("Asia/Ho_Chi_Minh");
-        LocalDate fromDate = resolveStartTime(effectivePeriod, zone).toLocalDate();
+        LocalDate fromDate = storyHelper.resolveStartTime(effectivePeriod, zone).toLocalDate();
         LocalDate toDate = LocalDate.now(zone);
 
         var dateMatch = Aggregation.match(
@@ -337,7 +337,7 @@ public class ReadingService {
         }
 
         ZoneId zone = ZoneId.of("Asia/Ho_Chi_Minh");
-        LocalDateTime from = resolveStartTime(effectivePeriod, zone);
+        LocalDateTime from = storyHelper.resolveStartTime(effectivePeriod, zone);
         LocalDateTime to = LocalDateTime.now(zone);
 
         var dateMatch = Aggregation.match(
@@ -551,19 +551,7 @@ public class ReadingService {
                 .build();
     }
 
-    private String getContentForReading(String chapterVersionId) {
-        log.info("Fetching chapter version details for chapterId: {}", chapterVersionId);
-        ChapterVersion version = chapterVersionRepository.findById(chapterVersionId)
-                .orElse(null);
 
-        if(version == null){
-            log.warn("Published chapter version not found for chapterId: {}", chapterVersionId);
-            throw new AppException(ErrorCode.VERSION_NOT_FOUND);
-        }
-
-        log.info("Chapter version details fetched successfully for chapterId: {}", chapterVersionId);
-        return version.getContent();
-    }
 
     public Page<ReadingHistoryResponse> getReadingHistory(
             String userId, int page, int size){
@@ -642,14 +630,6 @@ public class ReadingService {
         return story.getAuthorId().equals(userId) || transactionClient.checkIfStoryUnlocked(userId, storyId);
     }
 
-    private LocalDateTime resolveStartTime(Period period, ZoneId zoneId) {
-        LocalDate today = LocalDate.now(zoneId);
-        return switch (period) {
-            case TODAY -> today.atStartOfDay();
-            case WEEK -> today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)).atStartOfDay();
-            case MONTH -> today.withDayOfMonth(1).atStartOfDay();
-            case ALL_TIME -> LocalDateTime.MIN;
-        };
-    }
+
 
 }

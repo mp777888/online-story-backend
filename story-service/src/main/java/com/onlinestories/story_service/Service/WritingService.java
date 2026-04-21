@@ -1,6 +1,7 @@
 package com.onlinestories.story_service.Service;
 
 import com.onlinestories.common.chapter.event.ChapterPublishedEvent;
+import com.onlinestories.common.chapter.event.ChapterSyncEvent;
 import com.onlinestories.common.exception.AppException;
 import com.onlinestories.common.exception.ErrorCode;
 import com.onlinestories.story_service.Client.MediaClient;
@@ -131,6 +132,10 @@ public class WritingService {
 
                 }
                 else if (chapter.getStatus() != ChapterStatus.PUBLISHED && newStatus == ChapterStatus.PUBLISHED) {
+                    if(chapter.getPublishedVersionId() == null || chapter.getPublishedVersionId().isEmpty()){
+                        log.warn("Chapter with ID: {} cannot be set to PUBLISHED because it has no published version", request.getChapterId());
+                        throw new AppException(ErrorCode.VERSION_NOT_FOUND);
+                    }
                     story.setNumberOfChapters(story.getNumberOfChapters() + 1);
                     storyRepository.save(story);
                 }
@@ -160,6 +165,17 @@ public class WritingService {
             }
 
             chapterRepository.save(chapter);
+
+            ChapterSyncEvent event = ChapterSyncEvent.builder()
+                    .chapterId(chapter.getChapterId())
+                    .storyId(chapter.getStoryId())
+                    .chapterTitle(chapter.getTitle())
+                    .storyTitle(story.getTitle())
+                    .content(chapter.getPublishedVersionId() != null ? storyHelper.getContentForReading(chapter.getPublishedVersionId()) : "")
+                    .status(chapter.getStatus().name())
+                    .build();
+            chapterEventProducer.publishChapterSyncEvent(event);
+
             return ChapterResponse.builder()
                     .chapterId(chapter.getChapterId())
                     .storyId(chapter.getStoryId())
@@ -405,7 +421,7 @@ public class WritingService {
                 throw new AppException(ErrorCode.ACCESS_DENIED);
             }
 
-            String importedContent = extractDocxAsHtml(file);
+            String importedContent = storyHelper.extractDocxAsHtml(file);
             if (importedContent == null || importedContent.trim().isEmpty()) {
                 throw new AppException(ErrorCode.EMPTY_IMPORT_CONTENT);
             }
@@ -521,14 +537,24 @@ public class WritingService {
         storyRepository.save(story);
         storyHelper.markStoryAsDirty(story.getStoryId());
 
-        ChapterPublishedEvent event = ChapterPublishedEvent.builder()
+        ChapterPublishedEvent eventPublished = ChapterPublishedEvent.builder()
                 .chapterId(chapter.getChapterId())
                 .storyId(chapter.getStoryId())
                 .title(chapter.getTitle())
                 .authorId(story.getAuthorId())
                 .eventType("CHAPTER_PUBLISHED")
                 .build();
-        chapterEventProducer.publishChapterCreatedEvent(event);
+        chapterEventProducer.publishChapterCreatedEvent(eventPublished);
+
+        ChapterSyncEvent eventSync = ChapterSyncEvent.builder()
+                .chapterId(chapter.getChapterId())
+                .storyId(chapter.getStoryId())
+                .chapterTitle(chapter.getTitle())
+                .storyTitle(story.getTitle())
+                .content(version.getContent())
+                .status(chapter.getStatus().name())
+                .build();
+        chapterEventProducer.publishChapterSyncEvent(eventSync);
 
         log.info("Chapter with ID: {} published automatically/immediately success", chapter.getChapterId());
 
@@ -566,29 +592,7 @@ public class WritingService {
         }
     }
 
-    private String extractDocxAsHtml(MultipartFile file) {
-        try (var is = file.getInputStream();
-             var doc = new org.apache.poi.xwpf.usermodel.XWPFDocument(is)) {
 
-            StringBuilder html = new StringBuilder();
-
-            for (var p : doc.getParagraphs()) {
-                String text = p.getText();
-                if (text == null || text.trim().isEmpty()) continue;
-
-                String style = p.getStyle();
-                if (style != null && style.toLowerCase().contains("heading")) {
-                    html.append("<h3>").append(org.jsoup.parser.Parser.unescapeEntities(text, false)).append("</h3>");
-                } else {
-                    html.append("<p>").append(org.jsoup.parser.Parser.unescapeEntities(text, false)).append("</p>");
-                }
-            }
-
-            return html.toString();
-        } catch (Exception ex) {
-            throw new AppException(ErrorCode.FILE_IMPORT_FAILED);
-        }
-    }
 
 
 }

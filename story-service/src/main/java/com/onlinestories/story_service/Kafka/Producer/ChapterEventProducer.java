@@ -1,6 +1,7 @@
 package com.onlinestories.story_service.Kafka.Producer;
 
 import com.onlinestories.common.chapter.event.ChapterPublishedEvent;
+import com.onlinestories.common.chapter.event.ChapterSyncEvent;
 import com.onlinestories.common.kafka.KafkaTopics;
 
 
@@ -32,5 +33,18 @@ public class ChapterEventProducer {
         kafkaTemplate.send(KafkaTopics.CHAPTER_PUBLISHED, event.getStoryId(), event);
 
         log.info("Successfully published ChapterPublishedEvent: {}", event.getEventId());
+    }
+
+    public void publishChapterSyncEvent(ChapterSyncEvent event) {
+        log.info("Publishing ChapterSyncEvent for chapterId: {}, storyId: {}", event.getChapterId(), event.getStoryId());
+
+        // Cấu hình một số metadata mặc định của BaseEvent nếu chưa có
+        if (event.getEventId() == null) event.setEventId(UUID.randomUUID().toString());
+        if (event.getOccurredAt() == null) event.setOccurredAt(Instant.now());
+        event.setEventType(event.getEventType());
+
+        kafkaTemplate.send(KafkaTopics.CHAPTER_SYNC, event.getStoryId(), event);
+
+        log.info("Successfully published ChapterSyncEvent: {}", event.getEventId());
     }
 }

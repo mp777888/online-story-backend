@@ -138,6 +138,7 @@ public class RecommendService {
                                                                     .field("embedding")
                                                                     .vector(targetVector)
                                                                     .k(10)
+                                                                    .boost(10.0f)
                                                             )
                                                     )
                                                     .filter(f -> f
