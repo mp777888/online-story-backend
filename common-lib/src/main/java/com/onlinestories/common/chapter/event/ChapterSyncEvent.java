@@ -15,6 +15,7 @@ import lombok.experimental.SuperBuilder;
 public class ChapterSyncEvent extends BaseEvent {
     String chapterId;
     String storyId;
+    String authorId;
     String chapterTitle;
     String storyTitle;
     String title;

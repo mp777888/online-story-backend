@@ -4,6 +4,8 @@ import com.onlinestories.common.chapter.event.ChapterPublishedEvent;
 import com.onlinestories.common.chapter.event.ChapterSyncEvent;
 import com.onlinestories.common.exception.AppException;
 import com.onlinestories.common.exception.ErrorCode;
+import com.onlinestories.common.story.dto.PlagiarismRequest;
+import com.onlinestories.story_service.Client.AIClient;
 import com.onlinestories.story_service.Client.MediaClient;
 import com.onlinestories.story_service.DTO.Request.CreateChapterRequest;
 import com.onlinestories.story_service.DTO.Request.PublishRequest;
@@ -58,16 +60,21 @@ public class WritingService {
     ChapterEventProducer chapterEventProducer;
     AzureTtsService azureTtsService;
     MediaClient mediaClient;
+    AIClient aiClient;
     MongoTemplate mongoTemplate;
     StoryHelper storyHelper;
 
     // Create new chapters
-    public ChapterResponse creteNewChapter(CreateChapterRequest request, MultipartFile img) {
+    public ChapterResponse creteNewChapter(
+            String userId, CreateChapterRequest request, MultipartFile img) {
         try{
             log.info("Creating new chapter: {}", request.getTitle());
-            if(!storyRepository.existsById(request.getStoryId())){
-                log.warn("Story not found with ID: {}", request.getStoryId());
-                throw new AppException(ErrorCode.STORY_NOT_FOUND);
+            Story story = storyRepository.findById(request.getStoryId())
+                    .orElseThrow(() -> new AppException(ErrorCode.STORY_NOT_FOUND));
+
+            if(!story.getAuthorId().equals(userId)){
+                log.warn("User with ID: {} is not the author of the story and cannot create chapters", userId);
+                throw new AppException(ErrorCode.ACCESS_DENIED);
             }
 
             Chapter chapter = Chapter.builder()
@@ -166,15 +173,18 @@ public class WritingService {
 
             chapterRepository.save(chapter);
 
-            ChapterSyncEvent event = ChapterSyncEvent.builder()
-                    .chapterId(chapter.getChapterId())
-                    .storyId(chapter.getStoryId())
-                    .chapterTitle(chapter.getTitle())
-                    .storyTitle(story.getTitle())
-                    .content(chapter.getPublishedVersionId() != null ? storyHelper.getContentForReading(chapter.getPublishedVersionId()) : "")
-                    .status(chapter.getStatus().name())
-                    .build();
-            chapterEventProducer.publishChapterSyncEvent(event);
+            if(chapter.getPublishedVersionId() != null){
+                ChapterSyncEvent event = ChapterSyncEvent.builder()
+                        .chapterId(chapter.getChapterId())
+                        .storyId(chapter.getStoryId())
+                        .authorId(story.getAuthorId())
+                        .chapterTitle(chapter.getTitle())
+                        .storyTitle(story.getTitle())
+                        .content(Jsoup.parse(storyHelper.getContentForReading(chapter.getPublishedVersionId())).text())
+                        .status(chapter.getStatus().name())
+                        .build();
+                chapterEventProducer.publishChapterSyncEvent(event);
+            }
 
             return ChapterResponse.builder()
                     .chapterId(chapter.getChapterId())
@@ -524,6 +534,20 @@ public class WritingService {
 
     @Transactional
     public ChapterResponse doPublishChapter(Story story, Chapter chapter, ChapterVersion version) {
+        if (chapter.getStatus() == ChapterStatus.PUBLISHED) {
+            log.warn("Chapter with ID: {} is already published", chapter.getChapterId());
+            throw new AppException(ErrorCode.CHAPTER_ALREADY_PUBLISHED);
+        }
+
+        if(aiClient.checkPlagiarism(new PlagiarismRequest(
+                story.getAuthorId(),
+                version.getContent()
+        ))){
+            log.warn("Plagiarism detected for chapterId: {}, cannot publish", chapter.getChapterId());
+            throw new AppException(ErrorCode.PLAGIARISM_DETECTED);
+        }
+
+
         chapter.setStatus(ChapterStatus.PUBLISHED);
         if(chapter.getAudioUrl() != null && !chapter.getAudioUrl().isEmpty()){
             mediaClient.deleteFile(chapter.getAudioUrl(), "video");
@@ -549,6 +573,7 @@ public class WritingService {
         ChapterSyncEvent eventSync = ChapterSyncEvent.builder()
                 .chapterId(chapter.getChapterId())
                 .storyId(chapter.getStoryId())
+                .authorId(story.getAuthorId())
                 .chapterTitle(chapter.getTitle())
                 .storyTitle(story.getTitle())
                 .content(version.getContent())

@@ -11,6 +11,7 @@ import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -43,7 +44,14 @@ public class ChatService {
 
         List<Document> similarDocuments = this.vectorStore.similaritySearch(searchRequest);
         String documentContext = similarDocuments.stream()
-                .map(Document::getText)
+                .map(doc -> {
+                    Map<String, Object> meta = doc.getMetadata();
+                    String storyTitle = meta.getOrDefault("storyTitle", "Chưa rõ").toString();
+                    String chapterTitle = meta.getOrDefault("chapterTitle", "Chưa rõ").toString();
+
+                    return String.format("Tên truyện: %s\nTên chương: %s\nNội dung: %s",
+                            storyTitle, chapterTitle, doc.getText());
+                })
                 .collect(Collectors.joining("\n---\n"));
 
         String finalPrompt = String.format("""

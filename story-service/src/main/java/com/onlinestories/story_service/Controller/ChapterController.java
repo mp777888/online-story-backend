@@ -29,13 +29,15 @@ public class ChapterController {
 
     @PostMapping
     public ApiResponse<ChapterResponse> createNewChapter(
+            @AuthenticationPrincipal Jwt jwt,
             @RequestPart CreateChapterRequest request,
             @RequestPart(value = "file", required = false) MultipartFile img){
+        String userId = jwt.getSubject();
         log.info("Received request to create new chapter: {}", request.getTitle());
         return ApiResponse.<ChapterResponse>builder()
                 .code(200)
                 .message("Chapter created successfully")
-                .result(writingService.creteNewChapter(request, img))
+                .result(writingService.creteNewChapter(userId, request, img))
                 .build();
     }
 
