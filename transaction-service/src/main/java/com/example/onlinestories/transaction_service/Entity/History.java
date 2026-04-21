@@ -1,5 +1,6 @@
 package com.example.onlinestories.transaction_service.Entity;
 
+import com.example.onlinestories.transaction_service.Enums.HistoryStatus;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.springframework.data.annotation.Id;
@@ -18,6 +19,7 @@ public class History {
     @Id
     String historyId;
     String userId;
+    HistoryStatus status;
     int tokenChange;
     LocalDateTime createdAt;
 }

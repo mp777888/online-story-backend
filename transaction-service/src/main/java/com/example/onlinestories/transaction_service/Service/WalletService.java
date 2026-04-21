@@ -1,10 +1,14 @@
 package com.example.onlinestories.transaction_service.Service;
 import com.example.onlinestories.transaction_service.Client.StoryClient;
+import com.example.onlinestories.transaction_service.DTO.Response.HistoryResponse;
+import com.example.onlinestories.transaction_service.Entity.History;
 import com.example.onlinestories.transaction_service.Entity.PendingPayment;
 import com.example.onlinestories.transaction_service.Entity.UnlockStory;
 import com.example.onlinestories.transaction_service.Entity.Wallet;
 import com.example.onlinestories.transaction_service.DTO.Response.WalletResponse;
+import com.example.onlinestories.transaction_service.Enums.HistoryStatus;
 import com.example.onlinestories.transaction_service.Enums.PaymentStatus;
+import com.example.onlinestories.transaction_service.Repostiory.HistoryRepository;
 import com.example.onlinestories.transaction_service.Repostiory.PendingPaymentRepository;
 import com.example.onlinestories.transaction_service.Repostiory.UnlockStoryRepository;
 import com.example.onlinestories.transaction_service.Repostiory.WalletRepository;
@@ -15,6 +19,9 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -32,6 +39,7 @@ import java.time.ZoneId;
 public class WalletService {
     WalletRepository walletRepository;
     UnlockStoryRepository unlockStoryRepository;
+    HistoryRepository historyRepository;
     PendingPaymentRepository pendingPaymentRepository;
     MongoTemplate mongoTemplate;
     StoryClient storyClient;
@@ -91,7 +99,7 @@ public class WalletService {
 
 
         try{
-            updateReadingTokens(payment.getUserId(), tokensToAdd);
+            updateReadingTokens(payment.getUserId(), tokensToAdd, HistoryStatus.EARNED);
             log.info("Reading tokens topped up for userId: {}, tokens added: {}", payment.getUserId(), tokensToAdd);
             payment.setStatus(PaymentStatus.PAID);
             payment.setPaidAt(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")));
@@ -143,7 +151,7 @@ public class WalletService {
             log.error("Not enough reading tokens for userId: {}, required: {}, available: {}", userId, storyDTOResponse.getUnlockPrice(), walletReader.getReadingTokens());
             throw new AppException(ErrorCode.INSUFFICIENT_BALANCE);
         } else {
-            updateReadingTokens(userId, -storyDTOResponse.getUnlockPrice());
+            updateReadingTokens(userId, -storyDTOResponse.getUnlockPrice(), HistoryStatus.SPENT);
             updateWritingTokens(storyDTOResponse.getAuthorId(), storyDTOResponse.getUnlockPrice() * 80 / 100);
         }
 
@@ -162,7 +170,7 @@ public class WalletService {
     }
 
     @Transactional
-    public void updateReadingTokens(String userId, int tokens) {
+    public void updateReadingTokens(String userId, int tokens, HistoryStatus status) {
         log.info("Updating reading tokens for userId: {}, tokens: {}", userId, tokens);
 
         try{
@@ -170,6 +178,8 @@ public class WalletService {
             Query query = new Query().addCriteria(Criteria.where("userId").is(userId));
             mongoTemplate.updateFirst(query, update, Wallet.class);
             log.info("Reading tokens updated for userId: {}", userId);
+
+            updateHistory(userId, tokens, status);
         } catch (Exception e) {
             log.error("Error updating reading tokens for userId: {}, tokens: {}, error: {}", userId, tokens, e.getMessage());
             throw new AppException(ErrorCode.UPDATE_TOKEN_ERROR);
@@ -185,10 +195,43 @@ public class WalletService {
             Query query = new Query().addCriteria(Criteria.where("userId").is(userId));
             mongoTemplate.updateFirst(query, update, Wallet.class);
             log.info("Writing tokens updated for userId: {}", userId);
+
+            updateHistory(userId, tokens, HistoryStatus.EARNED);
         } catch (Exception e) {
             log.error("Error updating writing tokens for userId: {}, tokens: {}, error: {}", userId, tokens, e.getMessage());
             throw new AppException(ErrorCode.UPDATE_TOKEN_ERROR);
         }
+    }
+
+    public void updateHistory(String userId, int tokenChange, HistoryStatus status) {
+        log.info("Updating history for userId: {}, tokenChange: {}", userId, tokenChange);
+        History history = History.builder()
+                .userId(userId)
+                .tokenChange(tokenChange)
+                .status(status)
+                .createdAt(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")))
+                .build();
+        try{
+            mongoTemplate.save(history);
+            log.info("History updated for userId: {}, tokenChange: {}", userId, tokenChange);
+        } catch (Exception e) {
+            log.error("Error updating history for userId: {}, tokenChange: {}, error: {}", userId, tokenChange, e.getMessage());
+            throw new AppException(ErrorCode.HISTORY_ERROR);
+        }
+    }
+
+    public Page<HistoryResponse> getMyHistory(
+            String userId, int page, int size) {
+        log.info("Getting history for userId: {}, page: {}, size: {}", userId, page, size);
+        Pageable pageable = PageRequest.of(page, size);
+        Page<History> historyPage = historyRepository.findByUserId(userId, pageable);
+        log.info("History found for userId: {}, totalElements: {}", userId, historyPage.getTotalElements());
+        return historyPage.map(history -> HistoryResponse.builder()
+                .historyId(history.getHistoryId())
+                .status(history.getStatus().name())
+                .tokenChange(history.getTokenChange())
+                .createdAt(history.getCreatedAt().toString())
+                .build());
     }
 
     public Boolean checkUnlockStoryExistence(String userId, String storyId) {
@@ -220,7 +263,7 @@ public class WalletService {
         log.info("Adding check-in tokens for userId: {}, tokens: {}", userId, tokens);
         walletRepository.findByUserId(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.WALLET_NOT_FOUND));
-        updateReadingTokens(userId, tokens);
+        updateReadingTokens(userId, tokens, HistoryStatus.EARNED);
     }
 
     private int getReadingTokensByAmount(int amount) {
