@@ -1,5 +1,6 @@
 package com.example.onlinestories.transaction_service.Controller;
 
+import com.example.onlinestories.transaction_service.DTO.Response.HistoryResponse;
 import com.example.onlinestories.transaction_service.DTO.Response.WalletResponse;
 import com.example.onlinestories.transaction_service.Service.MomoService;
 import com.example.onlinestories.transaction_service.Service.VNPayService;
@@ -10,6 +11,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -115,6 +117,19 @@ public class TransactionController {
         return ApiResponse.<String>builder()
                 .code(200)
                 .result("Story unlocked successfully")
+                .build();
+    }
+
+    @GetMapping("/history")
+    public ApiResponse<Page<HistoryResponse>> getTransactionHistory(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam int page,
+            @RequestParam int size) {
+        String userId = jwt.getSubject();
+        log.info("Received request to get transaction history for userId: {}, page: {}, size: {}", userId, page, size);
+        return ApiResponse.<Page<HistoryResponse>>builder()
+                .code(200)
+                .result(walletService.getMyHistory(userId, page, size))
                 .build();
     }
 }
