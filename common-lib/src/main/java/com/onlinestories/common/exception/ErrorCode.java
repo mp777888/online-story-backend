@@ -55,7 +55,11 @@ public enum ErrorCode {
     INVALID_READING_TOKENS(5006, "Invalid reading tokens", HttpStatus.BAD_REQUEST),
     INVALID_TOP_UP_AMOUNT(5007, "Invalid top-up amount", HttpStatus.BAD_REQUEST),
     TOP_UP_ERROR(5008, "Top-up error", HttpStatus.INTERNAL_SERVER_ERROR),
-    PAYMENT_NOT_FOUND(5009, "Payment not found", HttpStatus.NOT_FOUND)
+    PAYMENT_NOT_FOUND(5009, "Payment not found", HttpStatus.NOT_FOUND),
+    HISTORY_NOT_FOUND(5010, "Transaction history not found", HttpStatus.NOT_FOUND),
+    HISTORY_ERROR(5011, "Transaction history error", HttpStatus.INTERNAL_SERVER_ERROR),
+
+    PLAGIARISM_DETECTED(6001, "Plagiarism detected", HttpStatus.BAD_REQUEST)
     ;
     private final int code;
     private final String message;
