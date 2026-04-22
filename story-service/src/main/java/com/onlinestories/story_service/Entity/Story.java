@@ -1,5 +1,6 @@
 package com.onlinestories.story_service.Entity;
 
+import com.onlinestories.story_service.Enum.Language;
 import com.onlinestories.story_service.Enum.StoryStatus;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -24,6 +25,7 @@ public class Story {
     String title;
     String description;
     StoryStatus status;
+    Language language;
     String img;
     int numberOfViews;
     int numberOfChapters;

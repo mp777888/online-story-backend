@@ -552,7 +552,7 @@ public class WritingService {
         if(chapter.getAudioUrl() != null && !chapter.getAudioUrl().isEmpty()){
             mediaClient.deleteFile(chapter.getAudioUrl(), "video");
         }
-        chapter.setAudioUrl(getAudioUrl(version.getContent(), "vn-VN"));
+        chapter.setAudioUrl(getAudioUrl(version.getContent(), story.getLanguage().name()));
         chapter.setPublishedAt(LocalDateTime.now());
         chapterRepository.save(chapter);
 

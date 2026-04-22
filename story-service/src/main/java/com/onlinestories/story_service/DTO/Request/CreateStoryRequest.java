@@ -1,5 +1,6 @@
 package com.onlinestories.story_service.DTO.Request;
 
+import com.onlinestories.story_service.Enum.Language;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -15,6 +16,7 @@ public class CreateStoryRequest {
     String description;
     Set<String> genreIds;
     Set<String> tags;
+    Language language;
     boolean premium = false;
     int unlockPrice = 0;
 }

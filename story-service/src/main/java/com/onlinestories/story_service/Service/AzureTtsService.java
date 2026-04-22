@@ -1,6 +1,7 @@
 package com.onlinestories.story_service.Service;
 
 import com.microsoft.cognitiveservices.speech.*;
+import com.onlinestories.story_service.Enum.Language;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -24,7 +25,7 @@ public class AzureTtsService {
         try {
             // 1. Cấu hình Speech
             SpeechConfig speechConfig = SpeechConfig.fromSubscription(speechKey, speechRegion);
-            String voiceName = language.equals("en") ? "en-US-JennyNeural" : "vi-VN-HoaiMyNeural";
+            String voiceName = language.equals(Language.ENGLISH.name()) ? "en-US-JennyNeural" : "vi-VN-HoaiMyNeural";
             speechConfig.setSpeechSynthesisVoiceName(voiceName);
 
             // Định dạng âm thanh xuất ra là MP3
