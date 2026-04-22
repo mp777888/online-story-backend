@@ -4,6 +4,7 @@ import com.onlinestories.common.exception.AppException;
 import com.onlinestories.common.exception.ErrorCode;
 import com.onlinestories.story_service.DTO.Response.ChapterStatsResponse;
 import com.onlinestories.story_service.DTO.Response.StoryDailyViewResponse;
+import com.onlinestories.story_service.DTO.Response.TrendStatisticResponse;
 import com.onlinestories.story_service.Entity.Story;
 import com.onlinestories.story_service.Entity.StoryDailyView;
 
@@ -19,7 +20,14 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.aggregation.Aggregation;
+import org.springframework.data.mongodb.core.aggregation.AggregationResults;
+import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.stereotype.Service;
+
+import java.time.Instant;
+import java.util.List;
 
 @Service
 @Slf4j
@@ -30,6 +38,8 @@ public class AnalyticsService {
     ChapterRepository chapterRepository;
     ProgressReadingRepository progressReadingRepository;
     StoryDailyViewRepository storyDailyViewRepository;
+    MongoTemplate mongoTemplate;
+
 
     public Page<StoryDailyViewResponse> getStoryDailyViews(
             String userId, String storyId, int page, int size) {
@@ -81,4 +91,50 @@ public class AnalyticsService {
                             .build();
                 });
     }
+
+    /**     * Lấy Top Categories (thể loại) xu hướng     */
+    public List<TrendStatisticResponse> getTopTrendingCategories(Instant startDate, Instant endDate, int limit) {
+        log.info("Fetching top trending categories from {} to {}", startDate, endDate);
+
+        Aggregation aggregation = Aggregation.newAggregation(
+                Aggregation.match(Criteria.where("createdAt").gte(startDate).lte(endDate)),
+
+                Aggregation.unwind("genres"),
+
+                // Trỏ tới trường name bên trong GenreSummary Object
+                Aggregation.group("genres.name").count().as("count"),
+
+                Aggregation.sort(Sort.Direction.DESC, "count"),
+                Aggregation.limit(limit),
+                Aggregation.project("count").and("_id").as("name")
+        );
+
+        AggregationResults<TrendStatisticResponse> results = mongoTemplate.aggregate(
+                aggregation, Story.class, TrendStatisticResponse.class);
+
+        return results.getMappedResults();
+    }
+
+    /**     * Lấy Top Tags xu hướng     */
+    public List<TrendStatisticResponse> getTopTrendingTags(Instant startDate, Instant endDate, int limit) {
+        log.info("Fetching top trending tags from {} to {}", startDate, endDate);
+
+        Aggregation aggregation = Aggregation.newAggregation(
+                Aggregation.match(Criteria.where("createdAt").gte(startDate).lte(endDate)),
+
+                Aggregation.unwind("tags"),
+                Aggregation.group("tags").count().as("count"),
+
+                Aggregation.sort(Sort.Direction.DESC, "count"),
+                Aggregation.limit(limit),
+                Aggregation.project("count").and("_id").as("name")
+        );
+
+        AggregationResults<TrendStatisticResponse> results = mongoTemplate.aggregate(
+                aggregation, Story.class, TrendStatisticResponse.class);
+
+        return results.getMappedResults();
+    }
+
+
 }

@@ -9,6 +9,7 @@ import org.springframework.data.mongodb.core.index.IndexDirection;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.time.LocalDateTime;
 import java.util.Set;
 
 @Document
@@ -46,4 +47,5 @@ public class Story {
         private String genreId;
         private String name;
     }
+    LocalDateTime createdAt;
 }

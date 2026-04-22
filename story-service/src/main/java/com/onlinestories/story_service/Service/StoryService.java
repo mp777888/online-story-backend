@@ -31,6 +31,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -72,6 +74,7 @@ public class StoryService {
                     .status(StoryStatus.DRAFT)
                     .language(request.getLanguage())
                     .numberOfChapters(0)
+                    .createdAt(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")))
                     .genres(request.getGenreIds().stream()
                             .map(genreId -> genreRepository.findById(genreId)
                                     .orElseThrow(() -> new AppException(ErrorCode.GENRE_NOT_FOUND)))
