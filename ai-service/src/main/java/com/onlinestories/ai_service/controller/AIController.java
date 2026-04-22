@@ -1,5 +1,8 @@
 package com.onlinestories.ai_service.controller;
 
+import com.onlinestories.ai_service.dto.request.ContentSuggestionRequest;
+import com.onlinestories.ai_service.dto.request.SpellingCorrectionRequest;
+import com.onlinestories.ai_service.service.WritingAssistantService;
 import com.onlinestories.common.story.dto.PlagiarismRequest;
 import com.onlinestories.ai_service.service.ChatService;
 import com.onlinestories.ai_service.service.ImageService;
@@ -19,6 +22,7 @@ public class AIController {
     ImageService imageService;
     ChatService chatService;
     PlagiarismService plagiarismService;
+    WritingAssistantService writingAssistantService;
 
     @GetMapping("/generate-image")
     public String generateImage(@RequestParam String prompt) {
@@ -36,5 +40,17 @@ public class AIController {
     public Boolean checkPlagiarism(@RequestBody PlagiarismRequest request) {
         log.info("Received plagiarism check request for author: {}", request.authorId());
         return plagiarismService.checkPlagiarism(request.authorId(), request.content());
+    }
+
+    @PostMapping("/correct-spelling")
+    public String correctSpelling(@RequestBody SpellingCorrectionRequest request) {
+        log.info("Received request to correct spelling");
+        return writingAssistantService.correctSpelling(request.content());
+    }
+
+    @PostMapping("/suggest-content")
+    public String suggestContent(@RequestBody ContentSuggestionRequest request) {
+        log.info("Received request to suggest content");
+        return writingAssistantService.suggestContent(request.currentContent(), request.promptDirection());
     }
 }
