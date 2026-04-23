@@ -51,6 +51,22 @@ public class CloudinaryService {
         }
     }
 
+    public String uploadBase64(String base64Data, String folderName){
+        try {
+            Map params = ObjectUtils.asMap(
+                    "folder", folderName,
+                    "resource_type", "image",
+                    "public_id", UUID.randomUUID().toString() // Tạo tên file ngẫu nhiên
+            );
+
+            Map uploadResult = cloudinary.uploader().upload(base64Data, params);
+            return (String) uploadResult.get("secure_url");
+        } catch (IOException e) {
+            log.error("Upload failed", e);
+            throw new RuntimeException("Failed to upload base64 data to Cloudinary: " + e.getMessage());
+        }
+    }
+
     public String deleteFile(String url, String resourceType) {
         try {
             String publicId = extractPublicId(url);

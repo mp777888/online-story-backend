@@ -539,13 +539,13 @@ public class WritingService {
             throw new AppException(ErrorCode.CHAPTER_ALREADY_PUBLISHED);
         }
 
-        if(aiClient.checkPlagiarism(new PlagiarismRequest(
-                story.getAuthorId(),
-                version.getContent()
-        ))){
-            log.warn("Plagiarism detected for chapterId: {}, cannot publish", chapter.getChapterId());
-            throw new AppException(ErrorCode.PLAGIARISM_DETECTED);
-        }
+//        if(aiClient.checkPlagiarism(new PlagiarismRequest(
+//                story.getAuthorId(),
+//                version.getContent()
+//        ))){
+//            log.warn("Plagiarism detected for chapterId: {}, cannot publish", chapter.getChapterId());
+//            throw new AppException(ErrorCode.PLAGIARISM_DETECTED);
+//        }
 
 
         chapter.setStatus(ChapterStatus.PUBLISHED);

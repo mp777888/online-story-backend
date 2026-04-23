@@ -37,6 +37,7 @@ public enum ErrorCode {
     FAVORITE_ALREADY_EXISTS(2021, "User has already liked this story", HttpStatus.BAD_REQUEST),
     FAVORITE_NOT_FOUND(2022, "Favorite not found", HttpStatus.NOT_FOUND),
     CHAPTER_IS_TAKEN_DOWN(2023, "Chapter is taken down", HttpStatus.BAD_REQUEST),
+    GENERATE_IMAGE_ERROR(2024, "Generate image error", HttpStatus.INTERNAL_SERVER_ERROR),
     ACCESS_DENIED(2900, "Access denied", HttpStatus.FORBIDDEN),
 
     INVALID_CREDENTIALS(3001, "Invalid username or password", HttpStatus.UNAUTHORIZED),

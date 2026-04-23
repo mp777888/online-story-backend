@@ -1,5 +1,6 @@
 package com.onlinestories.media_service.Controller;
 
+import com.onlinestories.common.media.dto.UploadBase64Request;
 import com.onlinestories.media_service.Service.CloudinaryService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +29,13 @@ public class MediaController {
         log.info("Received file upload request for folder: {}", folder);
         // Gọi Cloudinary upload
         String url = cloudinaryService.uploadFile(file, folder);
+        return ResponseEntity.ok(url);
+    }
+
+    @PostMapping("/uploadBase64")
+    public ResponseEntity<String> uploadBase64(@RequestBody UploadBase64Request request) {
+        log.info("Received Base64 upload request for folder: {}", request.folderName());
+        String url = cloudinaryService.uploadBase64(request.base64Data(), request.folderName());
         return ResponseEntity.ok(url);
     }
 

@@ -37,4 +37,10 @@ public class InternalController {
         log.info("Received check comment existence request for commentId: {}", commentId);
         return internalService.checkCommentExistence(commentId);
     }
+
+    @GetMapping("/get-chapter-content")
+    public ChapterDTOResponse getChapterData(@RequestParam String chapterId) {
+        log.info("Received get chapter content request for chapterId: {}", chapterId);
+        return internalService.getChapterData(chapterId);
+    }
 }

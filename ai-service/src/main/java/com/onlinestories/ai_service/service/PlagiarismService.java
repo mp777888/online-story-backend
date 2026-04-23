@@ -1,9 +1,13 @@
 package com.onlinestories.ai_service.service;
 
+import com.onlinestories.ai_service.client.StoryClient;
+import com.onlinestories.ai_service.dto.response.PlagiarismResponse;
+import com.onlinestories.common.chapter.dto.ChapterDTOResponse;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.jsoup.Jsoup;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.transformer.splitter.TokenTextSplitter;
 import org.springframework.ai.vectorstore.SearchRequest;
@@ -21,9 +25,16 @@ import java.util.Objects;
 public class PlagiarismService {
 
     VectorStore vectorStore;
+    StoryClient storyClient;
 
-    public Boolean checkPlagiarism(String authorId, String content) {
-        log.info("Starting plagiarism check for authorId: {}", authorId);
+    public PlagiarismResponse checkPlagiarism(String chapterId) {
+        log.info("Starting plagiarism check for chapterId: {}", chapterId);
+
+        ChapterDTOResponse chapterData = storyClient.getChapterData(chapterId);
+        String authorId = chapterData.getAuthorId();
+        String rawContent = chapterData.getContent();
+
+        String content = Jsoup.parse(rawContent).text();
 
         Document tempDoc = new Document(content);
         // Định nghĩa các dấu mốc ưu tiên để ngắt chunk
@@ -73,12 +84,24 @@ public class PlagiarismService {
                 if (score <= 0.545) {
                     log.warn("Plagiarism detected! Author [{}] has content similar to storyId [{}], chapterId [{}] with score: {}", authorId,
                             matchedStoryId, matchedChapterId, score);
-                    return true;
+                    return new PlagiarismResponse(
+                            true,
+                            "Plagiarism detected! This chapter has content similar to a published story.",
+                            matchedStoryId,
+                            matchedChapterId,
+                            matchedDoc.getText()
+                    );
                 }
             }
         }
 
         log.info("No plagiarism detected for authorId: {}", authorId);
-        return false;
+        return new PlagiarismResponse(
+                false,
+                "No plagiarism detected. This chapter appears to be original.",
+                null,
+                null,
+                null
+        );
     }
 }

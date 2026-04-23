@@ -2,8 +2,8 @@ package com.onlinestories.ai_service.controller;
 
 import com.onlinestories.ai_service.dto.request.ContentSuggestionRequest;
 import com.onlinestories.ai_service.dto.request.SpellingCorrectionRequest;
+import com.onlinestories.ai_service.dto.response.PlagiarismResponse;
 import com.onlinestories.ai_service.service.WritingAssistantService;
-import com.onlinestories.common.story.dto.PlagiarismRequest;
 import com.onlinestories.ai_service.service.ChatService;
 import com.onlinestories.ai_service.service.ImageService;
 import com.onlinestories.ai_service.service.PlagiarismService;
@@ -37,9 +37,9 @@ public class AIController {
     }
 
     @PostMapping("/check-plagiarism")
-    public Boolean checkPlagiarism(@RequestBody PlagiarismRequest request) {
-        log.info("Received plagiarism check request for author: {}", request.authorId());
-        return plagiarismService.checkPlagiarism(request.authorId(), request.content());
+    public PlagiarismResponse checkPlagiarism(@RequestParam String chapterId) {
+        log.info("Received plagiarism check request for chapterId: {}", chapterId);
+        return plagiarismService.checkPlagiarism(chapterId);
     }
 
     @PostMapping("/correct-spelling")

@@ -11,5 +11,7 @@ import lombok.experimental.FieldDefaults;
 public class ChapterDTOResponse {
     String chapterId;
     String storyId;
+    String authorId;
     String title;
+    String content;
 }
