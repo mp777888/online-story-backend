@@ -32,15 +32,17 @@ public class DataSyncKafkaListener {
         try {
             log.info("Received ChapterSyncEvent for chapterId: {}", event.getChapterId());
 
+            Map<String, Object> metadata = new java.util.HashMap<>();
+            metadata.put("storyId", event.getStoryId());
+            metadata.put("chapterId", event.getChapterId());
+            metadata.put("authorId", event.getAuthorId());
+            metadata.put("status", event.getStatus());
+            metadata.put("storyTitle", event.getStoryTitle());
+            metadata.put("chapterTitle", event.getChapterTitle());
+            metadata.put("genres", event.getGenres());
 
 
-            Document document = new Document(event.getContent(), Map.of(
-                    "storyId", event.getStoryId(),
-                    "chapterId", event.getChapterId(),
-                    "authorId", event.getAuthorId(),
-                    "status", event.getStatus(),
-                    "storyTitle", event.getStoryTitle(),
-                    "chapterTitle", event.getChapterTitle()));
+            Document document = new Document(event.getContent(), metadata);
 
             // Định nghĩa các dấu mốc ưu tiên để ngắt chunk
             List<Character> punctuationMarks = List.of('.', '?', '!', ';', ',', '\n');

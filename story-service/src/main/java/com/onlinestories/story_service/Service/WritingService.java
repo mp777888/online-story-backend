@@ -47,6 +47,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -181,6 +182,10 @@ public class WritingService {
                         .chapterTitle(chapter.getTitle())
                         .storyTitle(story.getTitle())
                         .content(Jsoup.parse(storyHelper.getContentForReading(chapter.getPublishedVersionId())).text())
+                        .genres(story.getGenres()
+                                .stream()
+                                .map(Story.GenreSummary::getName)
+                                .collect(Collectors.toList()))
                         .status(chapter.getStatus().name())
                         .build();
                 chapterEventProducer.publishChapterSyncEvent(event);
@@ -577,6 +582,10 @@ public class WritingService {
                 .chapterTitle(chapter.getTitle())
                 .storyTitle(story.getTitle())
                 .content(version.getContent())
+                .genres(story.getGenres()
+                        .stream()
+                        .map(Story.GenreSummary::getName)
+                        .collect(Collectors.toList()))
                 .status(chapter.getStatus().name())
                 .build();
         chapterEventProducer.publishChapterSyncEvent(eventSync);

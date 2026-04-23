@@ -6,6 +6,8 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.SuperBuilder;
 
+import java.util.List;
+
 @Data
 @SuperBuilder
 @NoArgsConstructor
@@ -21,4 +23,5 @@ public class ChapterSyncEvent extends BaseEvent {
     String title;
     String status;
     String content;
+    List<String> genres;
 }
