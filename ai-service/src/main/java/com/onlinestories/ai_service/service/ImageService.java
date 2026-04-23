@@ -28,17 +28,17 @@ public class ImageService {
         try {
             log.info("Calling Pollinations API with prompt: {}", promptText);
 
-            String safePrompt = String.format(
-                    "A highly detailed, professional book cover design. " +
-                            "The scene must be suitable for a publishing novel. " +
-                            "No explicit, unsafe, or non-book related content. " +
-                            "Style: Artistic, cinematic lighting, conceptual art. " +
-                            "Subject: %s",
-                    promptText
-            );
+//            String safePrompt = String.format(
+//                    "A highly detailed, professional book cover design. " +
+//                            "The scene must be suitable for a publishing novel. " +
+//                            "No explicit, unsafe, or non-book related content. " +
+//                            "Style: Artistic, cinematic lighting, conceptual art. " +
+//                            "Subject: %s",
+//                    promptText
+//            );
 
             //Encode prompt
-            String encodedPrompt = URLEncoder.encode(safePrompt, StandardCharsets.UTF_8);
+            String encodedPrompt = URLEncoder.encode(promptText, StandardCharsets.UTF_8);
 
             // Tạo URL gọi API của Pollinations
             // (tỉ lệ 512x768 hợp làm ảnh bìa truyện)
