@@ -4,9 +4,7 @@ import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
-import org.springframework.ai.chat.memory.MessageWindowChatMemory;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.stereotype.Service;
 
@@ -16,7 +14,6 @@ import org.springframework.stereotype.Service;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class ChatService {
     ChatClient chatClient;
-    ChatMemory chatMemory;
 
     public ChatService(ChatClient.Builder chatClientBuilder, VectorStore vectorStore) {
         String systemPrompt = """
@@ -29,11 +26,9 @@ public class ChatService {
         4. Nếu công cụ trả về 'Không tìm thấy dữ liệu', hãy báo thẳng: 'Hệ thống hiện chưa có tựa truyện nào phù hợp.'
         5. Trả lời ngắn gọn, lịch sự.
         """;
-        this.chatMemory = MessageWindowChatMemory.builder().build();
 
         this.chatClient = chatClientBuilder
                 .defaultSystem(systemPrompt)
-                .defaultAdvisors(MessageChatMemoryAdvisor.builder(chatMemory).build())
                 .build();
     }
 
