@@ -6,6 +6,7 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.SuperBuilder;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
@@ -23,5 +24,6 @@ public class ChapterSyncEvent extends BaseEvent {
     String title;
     String status;
     String content;
+    LocalDateTime publishedDate;
     List<String> genres;
 }

@@ -31,9 +31,11 @@ public class AIController {
     }
 
     @GetMapping("/chat")
-    public String chatWithAI(@RequestParam String message) {
+    public String chatWithAI(
+            @RequestParam String message,
+            @RequestParam(defaultValue = "guest_session") String sessionId) {
         log.info("Received chat message from user: {}", message);
-        return chatService.chatWithUser(message);
+        return chatService.chatWithUser(message, sessionId);
     }
 
     @PostMapping("/check-plagiarism")

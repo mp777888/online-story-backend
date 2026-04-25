@@ -10,23 +10,31 @@ spring:
       opensearch:
         uris: ${OPENSEARCH_URL}
         index-name: story_chunks_vector
-    openai:
-      api-key: ${GEMINI_API_KEY}
-      chat:
-        base-url: https://generativelanguage.googleapis.com
-        completions-path: /v1beta/openai/chat/completions
-        options:
-          model: gemini-3.1-flash-lite-preview
-#      image:
+    google:
+      genai:
+        api-key: ${GEMINI_API_KEY}
+        project-id: ${GEMINI_PROJECT_ID}
+        chat:
+          options:
+            model: gemini-3.1-flash-lite-preview
+        embedding:
+          api-key: ${GEMINI_API_KEY}
+          project-id: ${GEMINI_PROJECT_ID}
+          text:
+            options:
+              model: gemini-embedding-001
+  #    openai:
+#      api-key: ${GEMINI_API_KEY}
+#      chat:
 #        base-url: https://generativelanguage.googleapis.com
-#        images-path: /v1beta/openai/images/generations
+#        completions-path: /v1beta/openai/chat/completions
 #        options:
-#          model: imagen-4.0-generate-001
-      embedding:
-        base-url: https://generativelanguage.googleapis.com
-        embeddings-path: /v1beta/openai/embeddings
-        options:
-          model: gemini-embedding-001
+#          model: gemini-3.1-flash-lite-preview
+#      embedding:
+#        base-url: https://generativelanguage.googleapis.com
+#        embeddings-path: /v1beta/openai/embeddings
+#        options:
+#          model: gemini-embedding-001
   data:
     mongodb:
       uri: ${MONGODB_URI}

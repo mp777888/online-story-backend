@@ -33,7 +33,9 @@ public class PlagiarismService {
         ChapterDTOResponse chapterData = storyClient.getChapterData(chapterId);
         String authorId = chapterData.getAuthorId();
         String rawContent = chapterData.getContent();
-
+        String currentPublishedDateStr = chapterData.getPublishedDate() != null
+                ? chapterData.getPublishedDate().toString()
+                : java.time.Instant.now().toString();
         String content = Jsoup.parse(rawContent).text();
 
         Document tempDoc = new Document(content);
@@ -66,9 +68,23 @@ public class PlagiarismService {
                 String matchedAuthorId = metadata.getOrDefault("authorId", "").toString();
                 String matchedStoryId = metadata.getOrDefault("storyId", "Unknown").toString();
                 String matchedChapterId = metadata.getOrDefault("chapterId", "Unknown").toString();
+                String matchedPublishedDateStr = metadata.getOrDefault("publishedDate", "").toString();
 
                 if (authorId.equals(matchedAuthorId)) {
                     continue;
+                }
+
+                if (!"PUBLISHED".equals(matchedStatus)) {
+                    continue;
+                }
+
+                if (!matchedPublishedDateStr.isEmpty()) {
+                    if (currentPublishedDateStr.compareTo(matchedPublishedDateStr) < 0) {
+                        log.info("Skipping document from storyId [{}], chapterId [{}] because its published date [{}] is after the current chapter's published date [{}]",
+                                matchedStoryId, matchedChapterId,
+                                currentPublishedDateStr, matchedPublishedDateStr);
+                        continue; // Bỏ qua, tiếp tục quét người tiếp theo
+                    }
                 }
 
                 Object distanceRaw = metadata.get("distance");
@@ -76,9 +92,7 @@ public class PlagiarismService {
                 log.info("Matched document from storyId [{}], chapterId [{}] with authorId [{}], status [{}], score: {}"
                         , matchedStoryId, matchedChapterId, matchedAuthorId, matchedStatus, score);
 
-                if (!"PUBLISHED".equals(matchedStatus)) {
-                    continue;
-                }
+
 
 
                 if (score <= 0.545) {

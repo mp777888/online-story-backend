@@ -40,6 +40,7 @@ public class DataSyncKafkaListener {
             metadata.put("storyTitle", event.getStoryTitle());
             metadata.put("chapterTitle", event.getChapterTitle());
             metadata.put("genres", event.getGenres());
+            metadata.put("publishedDate", event.getPublishedDate().toString());
 
 
             Document document = new Document(event.getContent(), metadata);

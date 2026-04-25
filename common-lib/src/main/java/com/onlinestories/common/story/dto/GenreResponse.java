@@ -1,9 +1,7 @@
-package com.onlinestories.story_service.DTO.Response;
+package com.onlinestories.common.story.dto;
 
 import lombok.*;
 import lombok.experimental.FieldDefaults;
-
-import java.util.Set;
 
 @Data
 @NoArgsConstructor

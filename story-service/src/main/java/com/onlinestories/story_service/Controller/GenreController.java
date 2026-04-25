@@ -2,7 +2,7 @@ package com.onlinestories.story_service.Controller;
 
 import com.onlinestories.common.exception.ApiResponse;
 import com.onlinestories.story_service.DTO.Request.AddGenreRequest;
-import com.onlinestories.story_service.DTO.Response.GenreResponse;
+import com.onlinestories.common.story.dto.GenreResponse;
 import com.onlinestories.story_service.DTO.Response.StoryResponse;
 
 import com.onlinestories.story_service.Service.GenreService;

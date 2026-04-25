@@ -3,7 +3,7 @@ package com.onlinestories.story_service.Service;
 import com.onlinestories.common.exception.AppException;
 import com.onlinestories.common.exception.ErrorCode;
 import com.onlinestories.story_service.DTO.Request.AddGenreRequest;
-import com.onlinestories.story_service.DTO.Response.GenreResponse;
+import com.onlinestories.common.story.dto.GenreResponse;
 import com.onlinestories.story_service.DTO.Response.StoryResponse;
 import com.onlinestories.story_service.Entity.Genre;
 import com.onlinestories.story_service.Entity.Story;
@@ -17,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;

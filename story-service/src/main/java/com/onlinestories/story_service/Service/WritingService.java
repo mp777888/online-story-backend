@@ -186,6 +186,7 @@ public class WritingService {
                                 .stream()
                                 .map(Story.GenreSummary::getName)
                                 .collect(Collectors.toList()))
+                        .publishedDate(chapter.getPublishedAt())
                         .status(chapter.getStatus().name())
                         .build();
                 chapterEventProducer.publishChapterSyncEvent(event);
@@ -586,6 +587,7 @@ public class WritingService {
                         .stream()
                         .map(Story.GenreSummary::getName)
                         .collect(Collectors.toList()))
+                .publishedDate(chapter.getPublishedAt())
                 .status(chapter.getStatus().name())
                 .build();
         chapterEventProducer.publishChapterSyncEvent(eventSync);

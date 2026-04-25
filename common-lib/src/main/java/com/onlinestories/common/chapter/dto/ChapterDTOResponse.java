@@ -3,6 +3,8 @@ package com.onlinestories.common.chapter.dto;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.time.LocalDateTime;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -14,4 +16,5 @@ public class ChapterDTOResponse {
     String authorId;
     String title;
     String content;
+    LocalDateTime publishedDate;
 }
