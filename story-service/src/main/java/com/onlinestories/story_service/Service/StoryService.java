@@ -181,13 +181,13 @@ public class StoryService {
         }
     }
 
-    public StoryResponse updateStory(String userId, UpdateStoryRequest request, MultipartFile img) {
+    public StoryResponse updateStory(String userId, boolean isAdmin, UpdateStoryRequest request, MultipartFile img) {
         try {
             log.info("Updating story: {}", request.getStoryId());
             Story story = storyRepository.findById(request.getStoryId())
                     .orElseThrow(() -> new AppException(ErrorCode.STORY_NOT_FOUND));
 
-            if(!story.getAuthorId().equals(userId)){
+            if(!story.getAuthorId().equals(userId) && !isAdmin){
                 log.error("Unauthorized access: User {} is not the author of story {}", userId, request.getStoryId());
                 throw new AppException(ErrorCode.NOT_AUTHOR_OF_STORY);
             }
@@ -235,25 +235,31 @@ public class StoryService {
             storyRepository.save(story);
             log.info("Story {} updated successfully", request.getStoryId());
 
-            StoryUpdatedEvent event = StoryUpdatedEvent.builder()
-                    .storyId(story.getStoryId())
-                    .authorId(story.getAuthorId())
-                    .authorName(userClient.getUserById(story.getAuthorId()).getResult().getNickname())
-                    .title(story.getTitle())
-                    .description(story.getDescription())
-                    .coverImg(story.getImg())
-                    .status(story.getStatus().name())
-                    .numberOfChapters(story.getNumberOfChapters())
-                    .averageRatingScore(story.getAverageRatingScore())
-                    .totalRatingCount(story.getTotalRatingCount())
-                    .premium(story.isPremium())
-                    .unlockPrice(story.getUnlockPrice())
-                    .genres(story.getGenres().stream()
-                            .map(Story.GenreSummary::getName)
-                            .collect(Collectors.toList()))
-                    .tags(story.getTags().stream().toList())
-                    .build();
-            storyEventProducer.storyUpdatedEvent(event);
+
+            try {
+                StoryUpdatedEvent event = StoryUpdatedEvent.builder()
+                        .storyId(story.getStoryId())
+                        .authorId(story.getAuthorId())
+                        .authorName(userClient.getUserById(story.getAuthorId()).getResult().getNickname())
+                        .title(story.getTitle())
+                        .description(story.getDescription())
+                        .coverImg(story.getImg())
+                        .status(story.getStatus().name())
+                        .numberOfChapters(story.getNumberOfChapters())
+                        .averageRatingScore(story.getAverageRatingScore())
+                        .totalRatingCount(story.getTotalRatingCount())
+                        .premium(story.isPremium())
+                        .unlockPrice(story.getUnlockPrice())
+                        .genres(story.getGenres().stream()
+                                .map(Story.GenreSummary::getName)
+                                .collect(Collectors.toList()))
+                        .tags(story.getTags().stream().toList())
+                        .build();
+                storyEventProducer.storyUpdatedEvent(event);
+            }
+            catch (Exception ex) {
+                log.error("Failed to publish StoryUpdatedEvent for story {}: {}", story.getStoryId(), ex.getMessage(), ex);
+            }
 
             return StoryResponse.builder()
                     .storyId(story.getStoryId())

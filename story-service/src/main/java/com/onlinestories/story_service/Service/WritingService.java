@@ -4,7 +4,6 @@ import com.onlinestories.common.chapter.event.ChapterPublishedEvent;
 import com.onlinestories.common.chapter.event.ChapterSyncEvent;
 import com.onlinestories.common.exception.AppException;
 import com.onlinestories.common.exception.ErrorCode;
-import com.onlinestories.common.story.dto.PlagiarismRequest;
 import com.onlinestories.story_service.Client.AIClient;
 import com.onlinestories.story_service.Client.MediaClient;
 import com.onlinestories.story_service.DTO.Request.CreateChapterRequest;
@@ -107,7 +106,7 @@ public class WritingService {
 
 
 
-    public ChapterResponse updateChapter(String userId,UpdateChapterRequest request, MultipartFile img) {
+    public ChapterResponse updateChapter(String userId, boolean isAdmin,UpdateChapterRequest request, MultipartFile img) {
         try{
             log.info("Updating chapter: {}", request.getChapterId());
             Chapter chapter = chapterRepository.findById(request.getChapterId())
@@ -116,7 +115,7 @@ public class WritingService {
             Story story = storyRepository.findById(chapter.getStoryId())
                     .orElseThrow(() -> new AppException(ErrorCode.STORY_NOT_FOUND));
 
-            if(!story.getAuthorId().equals(userId)){
+            if(!story.getAuthorId().equals(userId) && !isAdmin){
                 log.warn("User with ID: {} is not the author of the story and cannot update chapter details", userId);
                 throw new AppException(ErrorCode.ACCESS_DENIED);
             }
@@ -175,21 +174,26 @@ public class WritingService {
             chapterRepository.save(chapter);
 
             if(chapter.getPublishedVersionId() != null){
-                ChapterSyncEvent event = ChapterSyncEvent.builder()
-                        .chapterId(chapter.getChapterId())
-                        .storyId(chapter.getStoryId())
-                        .authorId(story.getAuthorId())
-                        .chapterTitle(chapter.getTitle())
-                        .storyTitle(story.getTitle())
-                        .content(Jsoup.parse(storyHelper.getContentForReading(chapter.getPublishedVersionId())).text())
-                        .genres(story.getGenres()
-                                .stream()
-                                .map(Story.GenreSummary::getName)
-                                .collect(Collectors.toList()))
-                        .publishedDate(chapter.getPublishedAt())
-                        .status(chapter.getStatus().name())
-                        .build();
-                chapterEventProducer.publishChapterSyncEvent(event);
+                try {
+                    ChapterSyncEvent event = ChapterSyncEvent.builder()
+                            .chapterId(chapter.getChapterId())
+                            .storyId(chapter.getStoryId())
+                            .authorId(story.getAuthorId())
+                            .chapterTitle(chapter.getTitle())
+                            .storyTitle(story.getTitle())
+                            .content(Jsoup.parse(storyHelper.getContentForReading(chapter.getPublishedVersionId())).text())
+                            .genres(story.getGenres()
+                                    .stream()
+                                    .map(Story.GenreSummary::getName)
+                                    .collect(Collectors.toList()))
+                            .publishedDate(chapter.getPublishedAt())
+                            .status(chapter.getStatus().name())
+                            .build();
+                    chapterEventProducer.publishChapterSyncEvent(event);
+                }
+                catch (Exception e){
+                    log.error("Error publishing chapter sync event after chapter update: {}", e.getMessage());
+                }
             }
 
             return ChapterResponse.builder()
@@ -514,15 +518,20 @@ public class WritingService {
 
                 log.info("Chapter {} scheduled to be published at {}", chapter.getChapterId(), publishDate);
 
-                ChapterPublishedEvent event = ChapterPublishedEvent.builder()
-                        .chapterId(chapter.getChapterId())
-                        .storyId(chapter.getStoryId())
-                        .title(chapter.getTitle())
-                        .authorId(story.getAuthorId())
-                        .eventType("CHAPTER_SCHEDULED")
-                        .build();
-                chapterEventProducer.publishChapterCreatedEvent(event);
-                return ChapterResponse.builder()
+                try{
+                    ChapterPublishedEvent event = ChapterPublishedEvent.builder()
+                            .chapterId(chapter.getChapterId())
+                            .storyId(chapter.getStoryId())
+                            .title(chapter.getTitle())
+                            .authorId(story.getAuthorId())
+                            .eventType("CHAPTER_SCHEDULED")
+                            .build();
+                    chapterEventProducer.publishChapterCreatedEvent(event);
+                }
+                catch (Exception e){
+                    log.error("Error publishing chapter scheduled event: {}", e.getMessage());
+                }
+                    return ChapterResponse.builder()
                         .chapterId(chapter.getChapterId())
                         .status(chapter.getStatus().name())
                         .publishedAt(chapter.getPublishedAt())
@@ -567,30 +576,39 @@ public class WritingService {
         storyRepository.save(story);
         storyHelper.markStoryAsDirty(story.getStoryId());
 
-        ChapterPublishedEvent eventPublished = ChapterPublishedEvent.builder()
-                .chapterId(chapter.getChapterId())
-                .storyId(chapter.getStoryId())
-                .title(chapter.getTitle())
-                .authorId(story.getAuthorId())
-                .eventType("CHAPTER_PUBLISHED")
-                .build();
-        chapterEventProducer.publishChapterCreatedEvent(eventPublished);
+        try {
+            ChapterPublishedEvent eventPublished = ChapterPublishedEvent.builder()
+                    .chapterId(chapter.getChapterId())
+                    .storyId(chapter.getStoryId())
+                    .title(chapter.getTitle())
+                    .authorId(story.getAuthorId())
+                    .eventType("CHAPTER_PUBLISHED")
+                    .build();
+            chapterEventProducer.publishChapterCreatedEvent(eventPublished);
+        } catch (Exception e) {
+            log.error("Error publishing chapter published event: {}", e.getMessage());
+        }
 
-        ChapterSyncEvent eventSync = ChapterSyncEvent.builder()
-                .chapterId(chapter.getChapterId())
-                .storyId(chapter.getStoryId())
-                .authorId(story.getAuthorId())
-                .chapterTitle(chapter.getTitle())
-                .storyTitle(story.getTitle())
-                .content(version.getContent())
-                .genres(story.getGenres()
-                        .stream()
-                        .map(Story.GenreSummary::getName)
-                        .collect(Collectors.toList()))
-                .publishedDate(chapter.getPublishedAt())
-                .status(chapter.getStatus().name())
-                .build();
-        chapterEventProducer.publishChapterSyncEvent(eventSync);
+        try{
+            ChapterSyncEvent eventSync = ChapterSyncEvent.builder()
+                    .chapterId(chapter.getChapterId())
+                    .storyId(chapter.getStoryId())
+                    .authorId(story.getAuthorId())
+                    .chapterTitle(chapter.getTitle())
+                    .storyTitle(story.getTitle())
+                    .content(version.getContent())
+                    .genres(story.getGenres()
+                            .stream()
+                            .map(Story.GenreSummary::getName)
+                            .collect(Collectors.toList()))
+                    .publishedDate(chapter.getPublishedAt())
+                    .status(chapter.getStatus().name())
+                    .build();
+            chapterEventProducer.publishChapterSyncEvent(eventSync);
+        }
+        catch (Exception e){
+            log.error("Error publishing chapter sync event after chapter publish: {}", e.getMessage());
+        }
 
         log.info("Chapter with ID: {} published automatically/immediately success", chapter.getChapterId());
 

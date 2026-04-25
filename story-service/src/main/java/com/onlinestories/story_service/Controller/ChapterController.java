@@ -1,6 +1,7 @@
 package com.onlinestories.story_service.Controller;
 
 import com.onlinestories.common.exception.ApiResponse;
+import com.onlinestories.common.utils.JwtUtils;
 import com.onlinestories.story_service.DTO.Request.CreateChapterRequest;
 import com.onlinestories.story_service.DTO.Request.PublishRequest;
 import com.onlinestories.story_service.DTO.Request.UpdateChapterRequest;
@@ -83,11 +84,12 @@ public class ChapterController {
             @RequestPart UpdateChapterRequest request,
             @RequestPart(value = "file", required = false) MultipartFile img){
         String userId = jwt.getSubject();
+        boolean isAdmin = JwtUtils.isAdmin(jwt);
         log.info("Received request to update chapter: {}", request.getChapterId());
         return ApiResponse.<ChapterResponse>builder()
                 .code(200)
                 .message("Chapter updated successfully")
-                .result(writingService.updateChapter(userId, request, img))
+                .result(writingService.updateChapter(userId, isAdmin, request, img))
                 .build();
     }
 

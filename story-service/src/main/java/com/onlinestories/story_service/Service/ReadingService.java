@@ -434,6 +434,31 @@ public class ReadingService {
         return new PageImpl<>(content, PageRequest.of(page, size), total);
     }
 
+    public Page<StoryResponse> getAllStories(int page, int size) {
+        log.info("Fetching all published stories, page: {}, size: {}", page, size);
+        Pageable pageable = PageRequest.of(page, size);
+        Page<StoryResponse> storyPage = storyRepository.findByStatusNot(StoryStatus.DRAFT.name(), pageable)
+                .map(story -> StoryResponse.builder()
+                        .storyId(story.getStoryId())
+                        .authorId(story.getAuthorId())
+                        .title(story.getTitle())
+                        .description(story.getDescription())
+                        .img(story.getImg())
+                        .status(story.getStatus().name())
+                        .numberOfChapters(story.getNumberOfChapters())
+                        .numberOfViews(story.getNumberOfViews())
+                        .averageRatingScore(story.getAverageRatingScore())
+                        .totalRatingCount(story.getTotalRatingCount())
+                        .genres(story.getGenres()
+                                .stream()
+                                .map(Story.GenreSummary::getName)
+                                .collect(Collectors.toSet()))
+                        .build());
+
+        log.info("Fetched {} stories", storyPage.getTotalElements());
+        return storyPage;
+    }
+
 
     @Transactional
     public ReadingHistoryResponse readChapter(String userId, String storyId, String chapterId, Float progress) {

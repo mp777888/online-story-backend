@@ -39,6 +39,11 @@
             <version>2.0.12</version> <!-- Bạn có thể dùng version này vì nó tương thích với Spring Boot 3 / Java 21 -->
             <scope>compile</scope>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-oauth2-jose</artifactId>
+            <version>6.5.7</version>
+        </dependency>
     </dependencies>
 
 </project>

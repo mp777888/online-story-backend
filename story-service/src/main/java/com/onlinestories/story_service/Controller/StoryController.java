@@ -1,6 +1,7 @@
 package com.onlinestories.story_service.Controller;
 
 import com.onlinestories.common.exception.ApiResponse;
+import com.onlinestories.common.utils.JwtUtils;
 import com.onlinestories.story_service.DTO.Request.CreateStoryRequest;
 import com.onlinestories.story_service.DTO.Request.UpdateStoryRequest;
 import com.onlinestories.story_service.DTO.Response.ChapterResponse;
@@ -117,11 +118,12 @@ public class StoryController {
             @RequestPart("request") UpdateStoryRequest request,
             @RequestPart(value = "file", required = false) MultipartFile img) {
         String userId = jwt.getSubject();
+        boolean isAdmin = JwtUtils.isAdmin(jwt);
         log.info("Received request to update story: {}", request.getTitle());
         return ApiResponse.<StoryResponse>builder()
                 .code(200)
                 .message("Story updated successfully")
-                .result(storyService.updateStory(userId, request, img))
+                .result(storyService.updateStory(userId, isAdmin, request, img))
                 .build();
     }
 
@@ -162,6 +164,18 @@ public class StoryController {
                 .code(200)
                 .message("Top viewed stories retrieved successfully")
                 .result(readingService.getTopViewedStories(period, page, size))
+                .build();
+    }
+
+    @GetMapping("/all-stories")
+    public ApiResponse<Page<StoryResponse>> getAllStories(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        log.info("Received request to fetch all stories for page: {}, size: {}", page, size);
+        return ApiResponse.<Page<StoryResponse>>builder()
+                .code(200)
+                .message("All stories fetched successfully")
+                .result(readingService.getAllStories(page, size))
                 .build();
     }
 
