@@ -434,6 +434,105 @@ public class ReadingService {
         return new PageImpl<>(content, PageRequest.of(page, size), total);
     }
 
+    public Page<StoryResponse> getRecentlyUpdatedStories(int page, int size) {
+        log.info("Getting recently updated stories, page: {}, size: {}", page, size);
+
+        // 1. Chỉ lấy những chapter đã được publish
+        var matchPublishedChapters = Aggregation.match(
+                Criteria.where("status").is(ChapterStatus.PUBLISHED.name())
+        );
+
+        // 2. Sắp xếp chapter theo thời gian publishedAt giảm dần
+        var sortChapters = Aggregation.sort(
+                Sort.by(Sort.Order.desc("publishedAt"))
+        );
+
+        // 3. Group theo storyId, lấy thời gian publishedAt mới nhất
+        var groupByStory = Aggregation.group("storyId")
+                .first("publishedAt").as("latestPublishedAt");
+
+        // 4. Sắp xếp lại các group theo thời gian latestPublishedAt vừa lấy
+        var sortByLatestPublishedAt = Aggregation.sort(
+                Sort.by(Sort.Order.desc("latestPublishedAt"))
+        );
+
+        // Đổi _id (kết quả của group) thành storyId (string) để dùng cho lookup
+        var normalizeKey = Aggregation.project()
+                .and("_id").as("storyId")
+                .and("latestPublishedAt").as("latestPublishedAt");
+
+        // 5. Lookup sang bảng story để lấy thông tin truyện chi tiết
+        AggregationOperation lookupStory = context -> new Document("$lookup",
+                new Document("from", "story")
+                        .append("let", new Document("sid", "$storyId"))
+                        .append("pipeline", List.of(
+                                new Document("$match", new Document("$expr",
+                                        new Document("$eq", List.of(
+                                                new Document("$toString", "$_id"),
+                                                "$$sid"
+                                        ))
+                                ))
+                        ))
+                        .append("as", "storyDetails")
+        );
+
+        var unwindStory = Aggregation.unwind("storyDetails");
+
+        var onlyPublishedStories = Aggregation.match(
+                Criteria.where("storyDetails.status").ne(StoryStatus.DRAFT.name())
+        );
+
+        // 6. Phân trang
+        var pageAgg = Aggregation.newAggregation(
+                matchPublishedChapters,
+                sortChapters,
+                groupByStory,
+                sortByLatestPublishedAt,
+                normalizeKey,
+                Aggregation.skip((long) page * size), // Lùi skip/limit lên trước lookup để tối ưu performance
+                Aggregation.limit(size),
+                lookupStory,
+                unwindStory,
+                onlyPublishedStories,
+                Aggregation.project()
+                        .and("storyId").as("storyId")
+                        .and("storyDetails.authorId").as("authorId")
+                        .and("storyDetails.title").as("title")
+                        .and("storyDetails.numberOfChapters").as("numberOfChapters")
+                        .and("storyDetails.averageRatingScore").as("averageRatingScore")
+                        .and("storyDetails.totalRatingCount").as("totalRatingCount")
+                        .and("latestPublishedAt").as("latestModifiedAt")
+        );
+
+        AggregationResults<Document> pageResults =
+                mongoTemplate.aggregate(pageAgg, "chapter", Document.class);
+
+        var content = pageResults.getMappedResults().stream()
+                .map(doc -> StoryResponse.builder()
+                        .storyId(doc.getString("storyId"))
+                        .authorId(doc.getString("authorId"))
+                        .title(doc.getString("title"))
+                        .img(doc.getString("img"))
+                        .numberOfChapters(doc.get("numberOfChapters") instanceof Number n ? n.intValue() : 0)
+                        .averageRatingScore(doc.get("averageRatingScore") instanceof Number n ? n.doubleValue() : 0.0)
+                        .totalRatingCount(doc.get("totalRatingCount") instanceof Number n ? n.intValue() : 0)
+                        .build())
+                .toList();
+
+        // 7. Aggregation để đếm tổng số records
+        var countAgg = Aggregation.newAggregation(
+                matchPublishedChapters,
+                groupByStory
+        );
+
+        AggregationResults<Document> countResults =
+                mongoTemplate.aggregate(countAgg, "chapter", Document.class);
+
+        long total = countResults.getMappedResults().size();
+
+        return new PageImpl<>(content, PageRequest.of(page, size), total);
+    }
+
     public Page<StoryResponse> getAllStories(int page, int size) {
         log.info("Fetching all published stories, page: {}, size: {}", page, size);
         Pageable pageable = PageRequest.of(page, size);

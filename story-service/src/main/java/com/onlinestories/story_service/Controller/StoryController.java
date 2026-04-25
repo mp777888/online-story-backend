@@ -167,6 +167,18 @@ public class StoryController {
                 .build();
     }
 
+    @GetMapping("/latest-updated-stories")
+    public ApiResponse<Page<StoryResponse>> getLatestUpdatedStories(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        log.info("Received get latest updated stories request for page: {}, size: {}", page, size);
+        return ApiResponse.<Page<StoryResponse>>builder()
+                .code(200)
+                .message("Latest updated stories retrieved successfully")
+                .result(readingService.getRecentlyUpdatedStories(page, size))
+                .build();
+    }
+
     @GetMapping("/all-stories")
     public ApiResponse<Page<StoryResponse>> getAllStories(
             @RequestParam(defaultValue = "0") int page,
