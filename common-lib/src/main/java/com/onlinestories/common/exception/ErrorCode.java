@@ -60,7 +60,13 @@ public enum ErrorCode {
     HISTORY_NOT_FOUND(5010, "Transaction history not found", HttpStatus.NOT_FOUND),
     HISTORY_ERROR(5011, "Transaction history error", HttpStatus.INTERNAL_SERVER_ERROR),
 
-    PLAGIARISM_DETECTED(6001, "Plagiarism detected", HttpStatus.BAD_REQUEST)
+    PLAGIARISM_DETECTED(6001, "Plagiarism detected", HttpStatus.BAD_REQUEST),
+
+    CREATE_CONTEST_FAILED(7001, "Failed to create contest", HttpStatus.INTERNAL_SERVER_ERROR),
+    CONTEST_NOT_FOUND(7002, "Contest not found", HttpStatus.NOT_FOUND),
+    CONTEST_NOT_ACTIVE(7003, "Contest is not active or has already ended", HttpStatus.BAD_REQUEST),
+    ALREADY_PARTICIPATED(7004, "User has already participated in this contest", HttpStatus.BAD_REQUEST),
+    PARTICIPATE_CONTEST_FAILED(7005, "Failed to participate in contest", HttpStatus.INTERNAL_SERVER_ERROR)
     ;
     private final int code;
     private final String message;
