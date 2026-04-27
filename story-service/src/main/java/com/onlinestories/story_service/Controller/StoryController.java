@@ -104,11 +104,12 @@ public class StoryController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         String userId = jwt.getSubject();
+        boolean isAdmin = JwtUtils.isAdmin(jwt);
         log.info("Received request to fetch story with chapters for story ID: {}", storyId);
         return ApiResponse.<Page<ChapterResponse>>builder()
                 .code(200)
                 .message("Story with chapters fetched successfully")
-                .result(readingService.getChaptersByStoryId(userId,storyId, page, size))
+                .result(readingService.getChaptersByStoryId(userId, isAdmin,storyId, page, size))
                 .build();
     }
 

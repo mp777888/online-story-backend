@@ -128,7 +128,7 @@ public class WritingService {
                 String newStatusStr = request.getStatus().toUpperCase();
                 ChapterStatus newStatus = ChapterStatus.valueOf(newStatusStr);
 
-                if(chapter.getStatus() == ChapterStatus.TAKEN_DOWN){
+                if(chapter.getStatus() == ChapterStatus.TAKEN_DOWN && !isAdmin){
                     log.warn("Chapter with ID: {} is currently taken down, cannot change status except admin", request.getChapterId());
                     throw new AppException(ErrorCode.CHAPTER_IS_TAKEN_DOWN);
                 }

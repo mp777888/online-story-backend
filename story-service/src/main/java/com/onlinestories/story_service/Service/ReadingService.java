@@ -56,7 +56,7 @@ public class ReadingService {
     StoryHelper storyHelper;
 
     public Page<ChapterResponse> getChaptersByStoryId(
-            String userId, String storyId, int page, int size) {
+            String userId, boolean isAdmin, String storyId, int page, int size) {
         try{
             log.info("Fetching chapters for story: {}, page: {}, size: {}", storyId, page, size);
 
@@ -72,6 +72,17 @@ public class ReadingService {
                                 .chapterId(chapter.getChapterId())
                                 .title(chapter.getTitle())
                                 .img(chapter.getImg())
+                                .createdAt(chapter.getCreatedAt())
+                                .build());
+            }
+            else if(isAdmin){
+                log.info("User {} is an admin fetching all chapters for story {}", userId, storyId);
+                chapterPage = chapterRepository.findByStoryIdAndStatus(storyId, ChapterStatus.TAKEN_DOWN, pageable)
+                        .map(chapter -> ChapterResponse.builder()
+                                .chapterId(chapter.getChapterId())
+                                .title(chapter.getTitle())
+                                .img(chapter.getImg())
+                                .status(chapter.getStatus().name())
                                 .createdAt(chapter.getCreatedAt())
                                 .build());
             }
