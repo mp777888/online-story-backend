@@ -7,6 +7,16 @@ spring:
         mongodb:
             uri: ${MONGODB_URI}
             database: ${MONGODB_DB}
+        redis:
+            url: ${REDIS_URL}
+            ssl:
+                enabled: true
+            timeout: 5000
+            lettuce:
+                pool:
+                    max-active: 8
+                    max-idle: 8
+                    min-idle: 0
     kafka:
         bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
         producer:

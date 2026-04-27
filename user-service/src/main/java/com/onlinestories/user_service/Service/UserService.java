@@ -47,6 +47,7 @@ public class UserService {
     final TransactionClient transactionClient;
     final MediaClient mediaClient;
     final UserEventProducer userEventProducer;
+    final NotificationService notificationService;
 
     @Value("${app.keycloak.realm}")
     String appRealm;
@@ -330,6 +331,8 @@ public class UserService {
 
             userRepository.save(user);
             userRepository.save(followUser);
+
+            notificationService.processFollowNotification(user, followUserId);
 
         }
         catch (Exception e){

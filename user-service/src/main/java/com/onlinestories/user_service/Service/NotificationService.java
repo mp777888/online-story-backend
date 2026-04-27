@@ -1,7 +1,9 @@
 package com.onlinestories.user_service.Service;
 
+import com.onlinestories.common.user.enums.NotiType;
 import com.onlinestories.user_service.DTO.Response.NotificationResponse;
 import com.onlinestories.user_service.Entity.Notification;
+import com.onlinestories.user_service.Entity.User;
 import com.onlinestories.user_service.Repository.NotificationRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -15,24 +17,46 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+
+import java.util.concurrent.TimeUnit;
 
 @Service
 @Slf4j
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class NotificationService {
+    StringRedisTemplate stringRedisTemplate;
     NotificationRepository notificationRepository;
     MongoTemplate mongoTemplate;
 
-    public void sendNotification(String userId, String message) {
-        Notification notification = Notification.builder()
-                .userId(userId)
-                .message(message)
-                .isRead(false)
-                .build();
-        notificationRepository.save(notification);
-        log.info("Notification sent to user {}: {}", userId, message);
+    public void processFollowNotification(User follower, String targetUserId) {
+        String redisKey = "cooldown:follow:notify:" + follower.getUserId() + ":" + targetUserId;
+
+        // Kiểm tra xem Redis có key này chưa
+        Boolean isOnCooldown = stringRedisTemplate.hasKey(redisKey);
+
+        if (Boolean.FALSE.equals(isOnCooldown)) {
+            // 1. Tiến hành lưu DB và gửi Notification cho user
+            Notification notification = Notification.builder()
+                    .userId(targetUserId)
+                    .message(follower.getNickname() + " đã bắt đầu theo dõi bạn")
+                    .isRead(false)
+                    .type(NotiType.USER_FOLLOWED)
+                    .refId(follower.getUserId())
+                    .build();
+            try{
+                notificationRepository.save(notification);
+                log.info("Follow notification sent to user {}: {}", targetUserId, notification.getMessage());
+                // 2. Set cờ hạn chế trong Redis với TTL 1 giờ
+                stringRedisTemplate.opsForValue().set(redisKey, "1", 1, TimeUnit.HOURS);
+            } catch (Exception e) {
+                log.error("Failed to save follow notification for user {}: {}", targetUserId, e.getMessage());
+            }
+        } else {
+            log.info("Follow notification for user {} is on cooldown. Skipping notification.", targetUserId);
+        }
     }
 
     public void markAsRead(String notificationId) {
