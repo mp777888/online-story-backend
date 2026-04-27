@@ -2,6 +2,7 @@ package com.onlinestories.user_service.Kafka.Consumer;
 
 import com.onlinestories.common.chapter.event.ChapterPublishedEvent;
 import com.onlinestories.common.report.event.ReportResponseEvent;
+import com.onlinestories.common.user.enums.NotiType;
 import com.onlinestories.user_service.Entity.Notification;
 
 import com.onlinestories.common.kafka.KafkaTopics;
@@ -55,6 +56,8 @@ public class ChapterEventConsumer {
                                     // Tạo message hiển thị cho user
                                     .message(message)
                                     .isRead(false)
+                                    .type(NotiType.CHAPTER_PUBLISHED)
+                                    .refId(event.getChapterId())
                                     .createdAt(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")))
                                     .build()
                     ).toList();
@@ -76,6 +79,35 @@ public class ChapterEventConsumer {
         }
     }
 
+    @KafkaListener(topics = KafkaTopics.CHAPTER_PUBLISHED_APPROVED, groupId = "${spring.application.name}")
+    public void listenChapterPublishedApproved(ChapterPublishedEvent event) {
+        log.info("Received Kafka Event CHAPTER_PUBLISHED_APPROVED: storyId={}, chapterId={}",
+                event.getStoryId(), event.getChapterId());
+        try {
+            userRepository.findById(event.getAuthorId()).ifPresent(author -> {
+                String message = "Chương mới của bạn đã được duyệt và đăng lên: " + event.getTitle();
+
+                Notification notification = Notification.builder()
+                        .userId(event.getAuthorId())
+                        .message(message)
+                        .isRead(false)
+                        .type(NotiType.CHAPTER_PUBLISHED)
+                        .refId(event.getChapterId())
+                        .createdAt(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")))
+                        .build();
+                notificationRepository.save(notification);
+
+                // websocket
+                messagingTemplate.convertAndSend("/topic/user/" + notification.getUserId(), notification);
+
+                log.info("Successfully saved notification for chapter approval: chapterId={}, userId={}",
+                        event.getChapterId(), event.getAuthorId());
+            });
+        } catch (Exception e) {
+            log.error("Error processing ChapterPublishedApprovedEvent: {}", e.getMessage(), e);
+        }
+    }
+
     @KafkaListener(topics = KafkaTopics.REPORT_RESPONDED, groupId = "${spring.application.name}")
     public void listenReportResponded(ReportResponseEvent event){
         log.info("Received Kafka Event REPORT_RESPONDED: reportId={}, respondedId={}",
@@ -91,6 +123,8 @@ public class ChapterEventConsumer {
                     .userId(event.getRespondedId())
                     .message(message)
                     .isRead(false)
+                    .type(NotiType.REPORT)
+                    .refId(event.getReportId())
                     .createdAt(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")))
                     .build();
             notificationRepository.save(notification);

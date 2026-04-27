@@ -14,6 +14,8 @@ public class NotificationResponse {
     String notificationId;
     String userId;
     String message;
+    String type;
+    String refId;
     boolean isRead;
     LocalDateTime createdAt;
 }

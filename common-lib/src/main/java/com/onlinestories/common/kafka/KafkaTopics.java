@@ -10,6 +10,7 @@ public class KafkaTopics {
 
     public static final String CHAPTER_UPDATED = "chapter.updated.v1";
     public static final String CHAPTER_PUBLISHED = "chapter.published.v1";
+    public static final String CHAPTER_PUBLISHED_APPROVED = "chapter.published.v2";
     public static final String CHAPTER_DELETED = "chapter.deleted.v1";
     public static final String CHAPTER_SYNC = "chapter.sync.v1";
 

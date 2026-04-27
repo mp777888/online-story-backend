@@ -1,5 +1,6 @@
 package com.onlinestories.user_service.Entity;
 
+import com.onlinestories.common.user.enums.NotiType;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.springframework.data.annotation.Id;
@@ -22,5 +23,7 @@ public class Notification {
     String userId;
     String message;
     boolean isRead = false;
+    NotiType type;
+    String refId;
     LocalDateTime createdAt = LocalDateTime.now();
 }

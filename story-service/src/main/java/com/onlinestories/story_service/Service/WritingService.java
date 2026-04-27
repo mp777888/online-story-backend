@@ -585,6 +585,7 @@ public class WritingService {
                     .eventType("CHAPTER_PUBLISHED")
                     .build();
             chapterEventProducer.publishChapterCreatedEvent(eventPublished);
+            chapterEventProducer.publishChapterApprovedEvent(eventPublished);
         } catch (Exception e) {
             log.error("Error publishing chapter published event: {}", e.getMessage());
         }
