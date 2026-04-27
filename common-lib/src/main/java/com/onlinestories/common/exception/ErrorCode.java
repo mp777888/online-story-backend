@@ -59,6 +59,7 @@ public enum ErrorCode {
     PAYMENT_NOT_FOUND(5009, "Payment not found", HttpStatus.NOT_FOUND),
     HISTORY_NOT_FOUND(5010, "Transaction history not found", HttpStatus.NOT_FOUND),
     HISTORY_ERROR(5011, "Transaction history error", HttpStatus.INTERNAL_SERVER_ERROR),
+    PAYOUT_ERROR(5012, "Payout error", HttpStatus.INTERNAL_SERVER_ERROR),
 
     PLAGIARISM_DETECTED(6001, "Plagiarism detected", HttpStatus.BAD_REQUEST),
 

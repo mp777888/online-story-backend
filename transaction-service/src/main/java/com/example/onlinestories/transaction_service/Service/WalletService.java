@@ -1,17 +1,14 @@
 package com.example.onlinestories.transaction_service.Service;
 import com.example.onlinestories.transaction_service.Client.StoryClient;
 import com.example.onlinestories.transaction_service.DTO.Response.HistoryResponse;
-import com.example.onlinestories.transaction_service.Entity.History;
-import com.example.onlinestories.transaction_service.Entity.PendingPayment;
-import com.example.onlinestories.transaction_service.Entity.UnlockStory;
-import com.example.onlinestories.transaction_service.Entity.Wallet;
+import com.example.onlinestories.transaction_service.DTO.Response.PayoutResponse;
+import com.example.onlinestories.transaction_service.DTO.Response.PendingPaymentResponse;
+import com.example.onlinestories.transaction_service.Entity.*;
 import com.example.onlinestories.transaction_service.DTO.Response.WalletResponse;
 import com.example.onlinestories.transaction_service.Enums.HistoryStatus;
 import com.example.onlinestories.transaction_service.Enums.PaymentStatus;
-import com.example.onlinestories.transaction_service.Repostiory.HistoryRepository;
-import com.example.onlinestories.transaction_service.Repostiory.PendingPaymentRepository;
-import com.example.onlinestories.transaction_service.Repostiory.UnlockStoryRepository;
-import com.example.onlinestories.transaction_service.Repostiory.WalletRepository;
+import com.example.onlinestories.transaction_service.Enums.PayoutStatus;
+import com.example.onlinestories.transaction_service.Repostiory.*;
 import com.onlinestories.common.exception.AppException;
 import com.onlinestories.common.exception.ErrorCode;
 import com.onlinestories.common.story.dto.StoryDTOResponse;
@@ -30,7 +27,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 
 @Service
 @Slf4j
@@ -40,6 +39,7 @@ public class WalletService {
     WalletRepository walletRepository;
     UnlockStoryRepository unlockStoryRepository;
     HistoryRepository historyRepository;
+    PayoutHistoryRepository payoutHistoryRepository;
     PendingPaymentRepository pendingPaymentRepository;
     MongoTemplate mongoTemplate;
     StoryClient storyClient;
@@ -259,11 +259,90 @@ public class WalletService {
     }
 
     @Transactional
+    public void payoutProcess(String authorId, long totalViews, String payoutMonth) {
+        log.info("Processing payout for authorId: {}, totalViews: {}, payoutMonth: {}", authorId, totalViews, payoutMonth);
+        double payoutAmount = totalViews * 0.5;
+        try {
+            updateWritingTokens(authorId, (int) payoutAmount);
+            PayoutHistory payoutHistory = PayoutHistory.builder()
+                    .authorId(authorId)
+                    .payoutMonth(payoutMonth)
+                    .totalViews(totalViews)
+                    .earnedTokens(payoutAmount)
+                    .status(PayoutStatus.COMPLETED)
+                    .executedAt(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")))
+                    .build();
+
+            payoutHistoryRepository.save(payoutHistory);
+
+            log.info("Payout processed for authorId: {}, payoutAmount: {}, payoutMonth: {}", authorId, payoutAmount, payoutMonth);
+
+        } catch (Exception e) {
+            log.error("Error processing payout for authorId: {}, payoutAmount: {}, payoutMonth: {}, error: {}",
+                    authorId, payoutAmount, payoutMonth, e.getMessage());
+            throw new AppException(ErrorCode.PAYOUT_ERROR);
+        }
+    }
+
+    @Transactional
     public void addCheckInTokens(String userId, int tokens) {
         log.info("Adding check-in tokens for userId: {}, tokens: {}", userId, tokens);
         walletRepository.findByUserId(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.WALLET_NOT_FOUND));
         updateReadingTokens(userId, tokens, HistoryStatus.EARNED);
+    }
+
+    public Page<PayoutResponse> getPayoutHistory(String payMonth, int page, int size) {
+        log.info("Getting payout history for payMonth: {}, page: {}, size: {}", payMonth, page, size);
+        Pageable pageable = PageRequest.of(page, size);
+        Page<PayoutHistory> historyPage;
+
+        if (payMonth != null && !payMonth.trim().isEmpty()) {
+            historyPage = payoutHistoryRepository.findByPayoutMonth(payMonth, pageable);
+        } else {
+            historyPage = payoutHistoryRepository.findAll(pageable);
+        }
+
+        log.info("Found {} payout records", historyPage.getTotalElements());
+
+        return historyPage.map(history -> PayoutResponse.builder()
+                .payId(history.getPayId())
+                .authorId(history.getAuthorId())
+                .payoutMonth(history.getPayoutMonth())
+                .totalViews(history.getTotalViews())
+                .earnedTokens(history.getEarnedTokens())
+                .status(history.getStatus().name())
+                .executedAt(history.getExecutedAt())
+                .build());
+    }
+
+    public Page<PendingPaymentResponse> getPendingPayments(String monthStr, int page, int size) {
+        log.info("Getting pending payments for month: {}, page: {}, size: {}", monthStr, page, size);
+        Pageable pageable = PageRequest.of(page, size);
+        Page<PendingPayment> paymentPage;
+
+        if (monthStr != null && !monthStr.trim().isEmpty()) {
+            // Parse chuỗi YYYY-MM sang ngày bắt đầu và kết thúc của tháng
+            YearMonth yearMonth = YearMonth.parse(monthStr, DateTimeFormatter.ofPattern("yyyy-MM"));
+            LocalDateTime startOfMonth = yearMonth.atDay(1).atStartOfDay();
+            LocalDateTime endOfMonth = yearMonth.atEndOfMonth().atTime(23, 59, 59, 999999999);
+
+            paymentPage = pendingPaymentRepository.findByCreatedAtBetween(startOfMonth, endOfMonth, pageable);
+        } else {
+            paymentPage = pendingPaymentRepository.findAll(pageable);
+        }
+
+        log.info("Found {} pending payments", paymentPage.getTotalElements());
+
+        return paymentPage.map(payment -> PendingPaymentResponse.builder()
+                .penId(payment.getPenId())
+                .txnRef(payment.getTxnRef())
+                .userId(payment.getUserId())
+                .amount(payment.getAmount())
+                .status(payment.getStatus().name())
+                .createdAt(payment.getCreatedAt())
+                .paidAt(payment.getPaidAt())
+                .build());
     }
 
     private int getReadingTokensByAmount(int amount) {

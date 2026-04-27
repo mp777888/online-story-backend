@@ -24,7 +24,6 @@ public class PendingPayment {
     String userId;
     int amount;
     PaymentStatus status;
-    String vnpTransactionNo;
     LocalDateTime createdAt;
     LocalDateTime paidAt;
 }

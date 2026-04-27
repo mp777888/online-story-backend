@@ -6,6 +6,7 @@ public class KafkaTopics {
     public static final String STORY_UPDATED = "story.updated.v1";
     public static final String STORY_DELETED = "story.deleted.v1";
     public static final String STORY_METRICS_UPDATED = "story.metrics-updated.v1";
+    public static final String PAYOUT_PROCESSED = "payout.processed.v1";
 
     public static final String CHAPTER_UPDATED = "chapter.updated.v1";
     public static final String CHAPTER_PUBLISHED = "chapter.published.v1";

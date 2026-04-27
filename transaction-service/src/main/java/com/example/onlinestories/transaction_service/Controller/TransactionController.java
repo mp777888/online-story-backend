@@ -1,6 +1,8 @@
 package com.example.onlinestories.transaction_service.Controller;
 
 import com.example.onlinestories.transaction_service.DTO.Response.HistoryResponse;
+import com.example.onlinestories.transaction_service.DTO.Response.PayoutResponse;
+import com.example.onlinestories.transaction_service.DTO.Response.PendingPaymentResponse;
 import com.example.onlinestories.transaction_service.DTO.Response.WalletResponse;
 import com.example.onlinestories.transaction_service.Service.MomoService;
 import com.example.onlinestories.transaction_service.Service.VNPayService;
@@ -13,6 +15,7 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -130,6 +133,32 @@ public class TransactionController {
         return ApiResponse.<Page<HistoryResponse>>builder()
                 .code(200)
                 .result(walletService.getMyHistory(userId, page, size))
+                .build();
+    }
+
+    @GetMapping("/payout-history")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<Page<PayoutResponse>> getPayoutHistory(
+            @RequestParam(defaultValue = "") String payoutMonth,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        log.info("Received request to get payout history for month: {}, page: {}, size: {}", payoutMonth, page, size);
+        return ApiResponse.<Page<PayoutResponse>>builder()
+                .code(200)
+                .result(walletService.getPayoutHistory(payoutMonth, page, size))
+                .build();
+    }
+
+    @GetMapping("/pending-payments")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<Page<PendingPaymentResponse>> getPendingPayments(
+            @RequestParam(defaultValue = "") String month,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        log.info("Received request to get pending payments for month: {}, page: {}, size: {}", month, page, size);
+        return ApiResponse.<Page<PendingPaymentResponse>>builder()
+                .code(200)
+                .result(walletService.getPendingPayments(month, page, size))
                 .build();
     }
 }

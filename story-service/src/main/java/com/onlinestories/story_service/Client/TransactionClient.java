@@ -13,4 +13,10 @@ public interface TransactionClient {
             @RequestParam String storyId
     );
 
+    @PostMapping("/api/transactions/internal/update-writing-tokens")
+    void updateWritingTokens(
+            @RequestParam String userId,
+            @RequestParam int tokens
+    );
+
 }

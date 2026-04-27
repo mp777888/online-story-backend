@@ -27,4 +27,9 @@ public class InternalController {
     public void addTokensForCheckIn(@RequestParam String userId, @RequestParam int tokens) {
         walletService.addCheckInTokens(userId, tokens);
     }
+
+    @PostMapping("/update-writing-tokens")
+    public void addTokens(@RequestParam String userId, @RequestParam int tokens) {
+        walletService.updateWritingTokens(userId, tokens);
+    }
 }

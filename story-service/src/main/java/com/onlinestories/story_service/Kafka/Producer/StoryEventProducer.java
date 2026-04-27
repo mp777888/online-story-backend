@@ -1,6 +1,7 @@
 package com.onlinestories.story_service.Kafka.Producer;
 
 import com.onlinestories.common.kafka.KafkaTopics;
+import com.onlinestories.common.story.event.PayoutEvent;
 import com.onlinestories.common.story.event.StoryMetricsSyncEvent;
 import com.onlinestories.common.story.event.StoryUpdatedEvent;
 import lombok.RequiredArgsConstructor;
@@ -35,5 +36,15 @@ public class StoryEventProducer {
 
         kafkaTemplate.send(KafkaTopics.STORY_METRICS_UPDATED, event.getStoryId(), event);
         log.info("Successfully published StoryMetricsUpdatedEvent: {}", event.getEventId());
+    }
+
+    public void payoutStoryViewsEvent(PayoutEvent event) {
+        log.info("Publishing PayoutEvent for authorId: {}", event.getAuthorId());
+        if (event.getEventId() == null) event.setEventId(UUID.randomUUID().toString());
+        if (event.getOccurredAt() == null) event.setOccurredAt(Instant.now());
+        event.setEventType(event.getEventType());
+
+        kafkaTemplate.send(KafkaTopics.PAYOUT_PROCESSED, event.getAuthorId(), event);
+        log.info("Successfully published PayoutEvent: {}", event.getEventId());
     }
 }
