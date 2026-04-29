@@ -96,6 +96,7 @@ public class InternalService {
                 .storyId(chapter.getStoryId())
                 .title(chapter.getTitle())
                 .content(storyHelper.getContentForReading(chapter.getPublishedVersionId()))
+                .publishedDate(chapter.getPublishedAt())
                 .build();
     }
 }

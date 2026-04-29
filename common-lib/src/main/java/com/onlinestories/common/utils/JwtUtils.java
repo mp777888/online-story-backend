@@ -20,4 +20,8 @@ public class JwtUtils {
 
         return false;
     }
+
+    public static String getSubject(Jwt jwt) {
+        return jwt != null ? jwt.getSubject() : null;
+    }
 }
