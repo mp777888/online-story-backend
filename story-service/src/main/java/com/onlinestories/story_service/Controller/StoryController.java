@@ -196,7 +196,7 @@ public class StoryController {
     public ApiResponse<Boolean> checkIfStoryUnlocked(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam String storyId) {
-        String userId = jwt.getSubject();
+        String userId = JwtUtils.getSubject(jwt);
         log.info("Received request to check if story is unlocked for user: {}, story ID: {}", userId, storyId);
         return ApiResponse.<Boolean>builder()
                 .code(200)

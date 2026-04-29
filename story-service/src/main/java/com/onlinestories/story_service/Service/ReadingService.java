@@ -762,6 +762,9 @@ public class ReadingService {
         log.info("Checking if story {} is unlocked for user {}", storyId, userId);
         Story story = storyRepository.findById(storyId)
                 .orElseThrow(() -> new AppException(ErrorCode.STORY_NOT_FOUND));
+        if ("GUEST_USER".equals(userId)) {
+            return false;
+        }
         return story.getAuthorId().equals(userId) || transactionClient.checkIfStoryUnlocked(userId, storyId);
     }
 
