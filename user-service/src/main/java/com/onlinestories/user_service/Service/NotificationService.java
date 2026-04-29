@@ -20,6 +20,8 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -45,6 +47,7 @@ public class NotificationService {
                     .isRead(false)
                     .type(NotiType.USER_FOLLOWED)
                     .refId(follower.getUserId())
+                    .createdAt(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")))
                     .build();
             try{
                 notificationRepository.save(notification);
