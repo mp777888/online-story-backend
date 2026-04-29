@@ -22,6 +22,6 @@ public class JwtUtils {
     }
 
     public static String getSubject(Jwt jwt) {
-        return jwt != null ? jwt.getSubject() : null;
+        return jwt != null ? jwt.getSubject() : "GUEST_USER";
     }
 }

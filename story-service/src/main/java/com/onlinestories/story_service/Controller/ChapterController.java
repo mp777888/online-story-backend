@@ -59,7 +59,7 @@ public class ChapterController {
     public ApiResponse<ChapterResponse> getChapterDetails(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam String chapterId){
-        String userId = jwt.getSubject();
+        String userId = JwtUtils.getSubject(jwt);
         log.info("Received request to fetch chapter details for chapter ID: {}", chapterId);
         return ApiResponse.<ChapterResponse>builder()
                 .code(200)
@@ -219,7 +219,7 @@ public class ChapterController {
             @RequestParam String storyId,
             @RequestParam String chapterId,
             @RequestParam Float progress){
-        String userId = jwt.getSubject();
+        String userId = JwtUtils.getSubject(jwt);
         log.info("Received request to read chapter ID: {} for user ID: {}", chapterId, userId);
         return ApiResponse.<ReadingHistoryResponse>builder()
                 .code(200)
@@ -246,7 +246,7 @@ public class ChapterController {
     public ApiResponse<ReadingHistoryResponse> getLatestChapter(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam String storyId){
-        String userId = jwt.getSubject();
+        String userId = JwtUtils.getSubject(jwt);
         log.info("Received request to fetch latest chapter for story ID: {}", storyId);
         return ApiResponse.<ReadingHistoryResponse>builder()
                 .code(200)

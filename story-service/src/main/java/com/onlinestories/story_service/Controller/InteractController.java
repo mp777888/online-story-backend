@@ -1,6 +1,7 @@
 package com.onlinestories.story_service.Controller;
 
 import com.onlinestories.common.exception.ApiResponse;
+import com.onlinestories.common.utils.JwtUtils;
 import com.onlinestories.story_service.DTO.Request.CommentRequest;
 import com.onlinestories.story_service.DTO.Request.RatingRequest;
 import com.onlinestories.story_service.DTO.Response.CommentResponse;
@@ -28,7 +29,7 @@ public class InteractController {
     public ApiResponse<CommentResponse> addComment(
             @AuthenticationPrincipal Jwt jwt,
             @RequestBody CommentRequest request) {
-        String userId = jwt.getSubject();
+        String userId = JwtUtils.getSubject(jwt);
         log.info("Received add comment request: {}", request);
         return ApiResponse.<CommentResponse>builder()
                 .code(200)
@@ -76,7 +77,7 @@ public class InteractController {
     public ApiResponse<RatingResponse> addRating(
             @AuthenticationPrincipal Jwt jwt,
             @RequestBody RatingRequest request) {
-        String userId = jwt.getSubject();
+        String userId = JwtUtils.getSubject(jwt);
         log.info("Received add rating request: {}", request);
         return ApiResponse.<RatingResponse>builder()
                 .code(200)
@@ -99,7 +100,7 @@ public class InteractController {
     public ApiResponse<RatingResponse> getMyRating(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam String storyId) {
-        String userId = jwt.getSubject();
+        String userId = JwtUtils.getSubject(jwt);
         log.info("Received get my rating request for storyId: {}, userId: {}", storyId, userId);
         return ApiResponse.<RatingResponse>builder()
                 .code(200)
@@ -112,7 +113,7 @@ public class InteractController {
     public ApiResponse<String> addFavorite(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam String storyId) {
-        String userId = jwt.getSubject();
+        String userId = JwtUtils.getSubject(jwt);
         log.info("Received add favorite request for storyId: {}, userId: {}", storyId, userId);
         interactService.addingStoryToFavoriteList(userId, storyId);
         return ApiResponse.<String>builder()
@@ -126,7 +127,7 @@ public class InteractController {
     public ApiResponse<Boolean> isFavorite(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam String storyId) {
-        String userId = jwt.getSubject();
+        String userId = JwtUtils.getSubject(jwt);
         log.info("Received check favorite request for storyId: {}, userId: {}", storyId, userId);
         boolean isFavorite = interactService.isStoryInFavoriteList(userId, storyId);
         return ApiResponse.<Boolean>builder()

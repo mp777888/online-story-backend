@@ -590,8 +590,8 @@ public class ReadingService {
             throw new AppException(ErrorCode.CHAPTER_IS_NOT_PUBLISHED);
         }
 
-        if(story.getAuthorId().equals(userId)){
-            log.info("User {} is the author of the story {}, allowing access to read chapter without view count increment", userId, storyId);
+        if(story.getAuthorId().equals(userId) || "GUEST_USER".equals(userId)){
+            log.info("User {} is the author of the story or a guest user, skipping view count and history update", userId);
             return ReadingHistoryResponse.builder()
                     .userId(userId)
                     .storyId(storyId)

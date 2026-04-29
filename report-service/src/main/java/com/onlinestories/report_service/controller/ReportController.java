@@ -2,6 +2,7 @@ package com.onlinestories.report_service.controller;
 
 import com.onlinestories.common.exception.ApiResponse;
 import com.onlinestories.common.report.enums.ReportStatus;
+import com.onlinestories.common.utils.JwtUtils;
 import com.onlinestories.report_service.dto.request.ReportRequest;
 import com.onlinestories.report_service.dto.response.ReportResponse;
 import com.onlinestories.report_service.service.ReportService;
@@ -30,7 +31,7 @@ public class ReportController {
         @AuthenticationPrincipal Jwt jwt,
         @RequestBody ReportRequest reportRequest
     ){
-        String userId = jwt.getSubject();
+        String userId = JwtUtils.getSubject(jwt);
         log.info("Received report request: {}", reportRequest);
         return ApiResponse.<ReportResponse>builder()
             .code(200)

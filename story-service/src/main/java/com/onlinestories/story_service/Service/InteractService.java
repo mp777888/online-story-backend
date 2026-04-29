@@ -46,6 +46,10 @@ public class InteractService {
         log.info("Adding comment for chapterId: {}, userId: {}"
                 , request.getChapterId(), userId);
 
+        if ("GUEST_USER".equals(userId)) {
+            throw new AppException(ErrorCode.GUEST_USER_FORBIDDEN);
+        }
+
         Chapter chapter = chapterRepository.findById(request.getChapterId())
                 .orElseThrow(() -> new AppException(ErrorCode.CHAPTER_NOT_FOUND));
 
@@ -154,6 +158,10 @@ public class InteractService {
         log.info("Rating story by userId: {}, storyId: {}, ratingScore: {}"
                 , userId, request.getStoryId(), request.getRatingScore());
 
+        if ("GUEST_USER".equals(userId)) {
+            throw new AppException(ErrorCode.GUEST_USER_FORBIDDEN);
+        }
+
         if (!storyRepository.existsById(request.getStoryId())) {
             throw new AppException(ErrorCode.STORY_NOT_FOUND);
         }
@@ -239,6 +247,10 @@ public class InteractService {
     public void addingStoryToFavoriteList(String userId, String storyId) {
         log.info("Adding story to favorite list by userId: {}, storyId: {}", userId, storyId);
 
+        if ("GUEST_USER".equals(userId)) {
+            throw new AppException(ErrorCode.GUEST_USER_FORBIDDEN);
+        }
+
         if (!storyRepository.existsById(storyId)) {
             throw new AppException(ErrorCode.STORY_NOT_FOUND);
         }
@@ -277,6 +289,9 @@ public class InteractService {
 
     public Boolean isStoryInFavoriteList(String userId, String storyId) {
         log.info("Checking if story is in favorite list by userId: {}, storyId: {}", userId, storyId);
+        if ("GUEST_USER".equals(userId)) {
+            return false;
+        }
 
         if (!storyRepository.existsById(storyId)) {
             throw new AppException(ErrorCode.STORY_NOT_FOUND);

@@ -48,7 +48,7 @@ public class StoryController {
     public ApiResponse<StoryResponse> getStoryDetails(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam String storyId) {
-        String userId = jwt.getSubject();
+        String userId = JwtUtils.getSubject(jwt);
         log.info("Received request to fetch story details for story ID: {}", storyId);
         return ApiResponse.<StoryResponse>builder()
                 .code(200)
@@ -103,7 +103,7 @@ public class StoryController {
             @RequestParam String storyId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        String userId = jwt.getSubject();
+        String userId = JwtUtils.getSubject(jwt);
         boolean isAdmin = JwtUtils.isAdmin(jwt);
         log.info("Received request to fetch story with chapters for story ID: {}", storyId);
         return ApiResponse.<Page<ChapterResponse>>builder()

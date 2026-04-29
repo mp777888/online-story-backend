@@ -67,7 +67,10 @@ public enum ErrorCode {
     CONTEST_NOT_FOUND(7002, "Contest not found", HttpStatus.NOT_FOUND),
     CONTEST_NOT_ACTIVE(7003, "Contest is not active or has already ended", HttpStatus.BAD_REQUEST),
     ALREADY_PARTICIPATED(7004, "User has already participated in this contest", HttpStatus.BAD_REQUEST),
-    PARTICIPATE_CONTEST_FAILED(7005, "Failed to participate in contest", HttpStatus.INTERNAL_SERVER_ERROR)
+    PARTICIPATE_CONTEST_FAILED(7005, "Failed to participate in contest", HttpStatus.INTERNAL_SERVER_ERROR),
+
+
+    GUEST_USER_FORBIDDEN(9001, "Guest users are not allowed to perform this action", HttpStatus.FORBIDDEN)
     ;
     private final int code;
     private final String message;
