@@ -15,6 +15,8 @@ public enum ErrorCode {
     ALREADY_CHECKED_IN(1007,"User has already checked in today",HttpStatus.BAD_REQUEST),
     EMAIL_ALREADY_EXISTS(1008, "Email already exists", HttpStatus.BAD_REQUEST),
     USERNAME_ALREADY_EXISTS(1009, "Username already exists", HttpStatus.BAD_REQUEST),
+    USER_NOT_VERIFIED(1010, "User email is not verified", HttpStatus.FORBIDDEN),
+    EMAIL_SEND_FAILED(1011, "Failed to send email", HttpStatus.INTERNAL_SERVER_ERROR),
 
     STORY_NOT_FOUND(2001, "Story not found", HttpStatus.NOT_FOUND),
     CHAPTER_NOT_FOUND(2002, "Chapter not found", HttpStatus.NOT_FOUND),
@@ -72,7 +74,8 @@ public enum ErrorCode {
     PARTICIPATE_CONTEST_FAILED(7005, "Failed to participate in contest", HttpStatus.INTERNAL_SERVER_ERROR),
 
 
-    GUEST_USER_FORBIDDEN(9001, "Guest users are not allowed to perform this action", HttpStatus.FORBIDDEN)
+    GUEST_USER_FORBIDDEN(9001, "Guest users are not allowed to perform this action", HttpStatus.FORBIDDEN),
+    UNCATEGORIZED_EXCEPTION(9999, "An unexpected error occurred", HttpStatus.INTERNAL_SERVER_ERROR)
     ;
     private final int code;
     private final String message;

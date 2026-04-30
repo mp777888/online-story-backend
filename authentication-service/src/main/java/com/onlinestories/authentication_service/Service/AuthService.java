@@ -17,6 +17,7 @@ import org.keycloak.admin.client.KeycloakBuilder;
 import org.keycloak.admin.client.resource.UsersResource;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
@@ -26,6 +27,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
 
+import java.time.Duration;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
@@ -36,6 +38,9 @@ import java.util.Map;
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class AuthService {
+    final Keycloak keycloak;
+    final StringRedisTemplate redisTemplate;
+
     @Value("${keycloak.server-url}")
     private String authServerUrl;
 
@@ -47,6 +52,12 @@ public class AuthService {
 
     @Value("${keycloak.client-secret}")
     private String clientSecret;
+
+    @Value("${app.keycloak.realm}")
+    String appRealm;
+
+    @Value("${app.keycloak.redirect-uri}")
+    String redirectUri;
 
     final WebClient.Builder webClient;
     final UserClient userClient;
@@ -86,9 +97,37 @@ public class AuthService {
             Map<String, Object> finalResponse = new HashMap<>(responseMap);
             finalResponse.put("is_admin", isAdmin);
             return finalResponse;
+        } catch (WebClientResponseException e) {
+            if (e.getStatusCode().is4xxClientError()) {
+                String errorBody = e.getResponseBodyAsString();
+
+                if (errorBody.contains("Account is not fully set up")) {
+                    log.warn("User {} login failed: Email not verified", request.getUsername());
+
+                    String redisKey = "cooldown:resend_email:" + request.getUsername();
+
+                    Boolean canSend = redisTemplate.opsForValue()
+                            .setIfAbsent(redisKey, "locked", Duration.ofMinutes(5));
+
+                    if (Boolean.TRUE.equals(canSend)) {
+                        resendVerificationEmail(request.getUsername());
+                        log.info("Auto-resent verification email to {}", request.getUsername());
+                    } else {
+                        log.info("Spam prevention: Skipped resending email to {}. Still in cooldown.", request.getUsername());
+                    }
+                    throw new AppException(ErrorCode.USER_NOT_VERIFIED);
+                }
+
+                log.warn("Invalid credentials for user: {}", request.getUsername());
+                throw new AppException(ErrorCode.INVALID_CREDENTIALS);
+            }
+
+            log.error("Keycloak server error during authentication: {}", e.getMessage());
+            throw new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION);
+
         } catch (Exception e) {
             log.error("Error during authentication for user {}: {}", request.getUsername(), e.getMessage());
-            throw new AppException(ErrorCode.INVALID_CREDENTIALS);
+            throw new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION);
         }
     }
 
@@ -255,5 +294,26 @@ public class AuthService {
             log.info("User {} needs onboarding. Flag set to true.", userId);
         }
         return !isUserExist;
+    }
+
+    private void resendVerificationEmail(String username) {
+        UsersResource usersResource = keycloak.realm(appRealm).users();
+
+        // Tìm user theo username
+        List<UserRepresentation> users = usersResource.searchByUsername(username, true);
+        if (users.isEmpty()) {
+            throw new AppException(ErrorCode.USER_NOT_FOUND);
+        }
+
+        String userId = users.getFirst().getId();
+
+        try {
+            usersResource.get(userId).sendVerifyEmail(clientId, redirectUri);
+            log.info("Resent verification email to user {}", username);
+
+        } catch (Exception e) {
+            log.error("Failed to resend email to {}: {}", username, e.getMessage());
+            throw new AppException(ErrorCode.EMAIL_SEND_FAILED);
+        }
     }
 }

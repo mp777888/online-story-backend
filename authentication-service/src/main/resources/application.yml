@@ -2,6 +2,17 @@ server:
   port: 8082
 
 spring:
+  data:
+    redis:
+      url: ${REDIS_URL}
+      ssl:
+        enabled: true
+      timeout: 5000
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
   application:
     name: authentication-service
 
@@ -10,6 +21,11 @@ keycloak:
     realm: ${REALM}
     client-id: ${CLIENT_ID}
     client-secret: ${CLIENT_SECRET}
+
+app:
+  keycloak:
+    realm: ${REALM}
+    redirect-uri: ${KEYCLOAK_REDIRECT_URI:http://localhost:3000}
 
 eureka:
   client:
