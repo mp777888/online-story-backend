@@ -20,6 +20,7 @@ services:
 
     volumes:
       - ./docker/keycloak/realms:/opt/keycloak/data/import
+      - ./docker/keycloak/theme/online-stories-theme:/opt/keycloak/themes/online-stories-theme
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.6.1

@@ -52,6 +52,12 @@ public class UserService {
     @Value("${app.keycloak.realm}")
     String appRealm;
 
+    @Value("${keycloak.admin.client-id}")
+    String appClientId;
+
+    @Value("${app.keycloak.redirect-uri}")
+    String redirectUri;
+
 
     @Transactional
     public UserResponse createUser(UserCreateRequest request) {
@@ -115,6 +121,17 @@ public class UserService {
                     .img("")
                     .build();
             userEventProducer.sendUserCreatedEvent(userCreatedEvent);
+
+            try {
+                keycloak.realm(appRealm)
+                        .users()
+                        .get(userId)
+                        .sendVerifyEmail(appClientId, redirectUri);
+
+                log.info("Verification email successfully sent to {}", request.getEmail());
+            } catch (Exception ex) {
+                log.error("Failed to send verification email to user {}: {}", request.getEmail(), ex.getMessage(), ex);
+            }
 
             return userResponse;
         }

@@ -48,6 +48,7 @@ keycloak:
 app:
     keycloak:
         realm: ${REALM}
+        redirect-uri: ${KEYCLOAK_REDIRECT_URI:http://localhost:3000}
 
 eureka:
     client:
