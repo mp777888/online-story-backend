@@ -67,8 +67,15 @@ public class UserService {
         List<UserRepresentation> existingUsers = usersResource.searchByUsername(request.getUsername(), true);
         if (!existingUsers.isEmpty()) {
             log.error("Username {} already exists in Keycloak", request.getUsername());
-            throw new AppException(ErrorCode.USER_NOT_FOUND);
+            throw new AppException(ErrorCode.USERNAME_ALREADY_EXISTS);
         }
+
+        List<UserRepresentation> existingEmails = usersResource.searchByEmail(request.getEmail(), true);
+        if (!existingEmails.isEmpty()) {
+            log.error("Email {} already exists in Keycloak", request.getEmail());
+            throw new AppException(ErrorCode.EMAIL_ALREADY_EXISTS);
+        }
+
         UserRepresentation userRepresentation = new UserRepresentation();
         userRepresentation.setUsername(request.getUsername());
         userRepresentation.setEmail(request.getEmail());

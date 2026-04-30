@@ -13,6 +13,8 @@ public enum ErrorCode {
     USER_EXISTED(1005,"User already exists",HttpStatus.BAD_REQUEST),
     USER_CREATION_FAILED(1006,"User creation failed",HttpStatus.INTERNAL_SERVER_ERROR),
     ALREADY_CHECKED_IN(1007,"User has already checked in today",HttpStatus.BAD_REQUEST),
+    EMAIL_ALREADY_EXISTS(1008, "Email already exists", HttpStatus.BAD_REQUEST),
+    USERNAME_ALREADY_EXISTS(1009, "Username already exists", HttpStatus.BAD_REQUEST),
 
     STORY_NOT_FOUND(2001, "Story not found", HttpStatus.NOT_FOUND),
     CHAPTER_NOT_FOUND(2002, "Chapter not found", HttpStatus.NOT_FOUND),
