@@ -52,8 +52,10 @@ public class AnalyticsService {
 
 
     public Page<StoryDailyViewResponse> getStoryDailyViews(
-            String userId, String storyId, int page, int size) {
-        log.info("Fetching daily views for story ID: {}, page: {}, size: {}", storyId, page, size);
+            String userId, String storyId, String monthStr, int page, int size) {
+
+        log.info("Fetching daily views for story ID: {}, month: {}, page: {}, size: {}", storyId, monthStr, page, size);
+
         Story story = storyRepository.findById(storyId)
                 .orElseThrow(() -> new AppException(ErrorCode.STORY_NOT_FOUND));
 
@@ -62,8 +64,20 @@ public class AnalyticsService {
             throw new AppException(ErrorCode.NOT_AUTHOR_OF_STORY);
         }
 
-        Pageable pageable = PageRequest.of(page, size);
-        Page<StoryDailyView> storyDailyViews = storyDailyViewRepository.findByStoryId(storyId, pageable);
+        // Ưu tiên sắp xếp ngày mới nhất lên đầu
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "date"));
+        Page<StoryDailyView> storyDailyViews;
+
+        if (monthStr != null && !monthStr.trim().isEmpty()) {
+            // Lấy khoảng thời gian của tháng
+            YearMonth yearMonth = YearMonth.parse(monthStr, DateTimeFormatter.ofPattern("yyyy-MM"));
+            LocalDate startDate = yearMonth.atDay(1);
+            LocalDate endDate = yearMonth.atEndOfMonth();
+
+            storyDailyViews = storyDailyViewRepository.findByStoryIdAndDateBetween(storyId, startDate, endDate, pageable);
+        } else {
+            storyDailyViews = storyDailyViewRepository.findByStoryId(storyId, pageable);
+        }
 
         return storyDailyViews.map(view -> StoryDailyViewResponse.builder()
                 .id(view.getId())
@@ -71,7 +85,6 @@ public class AnalyticsService {
                 .date(view.getDate())
                 .viewCount(view.getViewCount())
                 .build());
-
     }
 
     public Page<ChapterStatsResponse> getChapterStats(

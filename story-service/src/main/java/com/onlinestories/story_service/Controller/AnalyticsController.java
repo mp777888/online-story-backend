@@ -35,6 +35,7 @@ public class AnalyticsController {
     public ApiResponse<Page<StoryDailyViewResponse>> getStoryDailyViews(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam String storyId,
+            @RequestParam String month,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         String userId = jwt.getSubject();
@@ -43,7 +44,7 @@ public class AnalyticsController {
         return ApiResponse.<Page<StoryDailyViewResponse>>builder()
                 .code(200)
                 .message("Story daily views fetched successfully")
-                .result(analyticsService.getStoryDailyViews(userId, storyId, page, size))
+                .result(analyticsService.getStoryDailyViews(userId, storyId, month, page, size))
                 .build();
     }
 
