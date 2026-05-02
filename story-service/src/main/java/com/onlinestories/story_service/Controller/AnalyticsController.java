@@ -1,6 +1,7 @@
 package com.onlinestories.story_service.Controller;
 
 import com.onlinestories.common.exception.ApiResponse;
+import com.onlinestories.story_service.DTO.Response.AuthorMonthlyStatsResponse;
 import com.onlinestories.story_service.DTO.Response.ChapterStatsResponse;
 import com.onlinestories.story_service.DTO.Response.StoryDailyViewResponse;
 
@@ -87,6 +88,20 @@ public class AnalyticsController {
                 .code(200)
                 .message("Tag trends fetched successfully")
                 .result(analyticsService.getTopTrendingTags(startDate, endDate, limit))
+                .build();
+    }
+
+    @GetMapping("/monthly-stats")
+    public ApiResponse<AuthorMonthlyStatsResponse> getAuthorMonthlyStats(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam String month) {
+        String userId = jwt.getSubject();
+        log.info("Received request to fetch monthly stats for author ID: {}, month: {}",
+                userId, month);
+        return ApiResponse.<AuthorMonthlyStatsResponse>builder()
+                .code(200)
+                .message("Author monthly stats fetched successfully")
+                .result(analyticsService.getAuthorMonthlyStats(userId, month))
                 .build();
     }
 }

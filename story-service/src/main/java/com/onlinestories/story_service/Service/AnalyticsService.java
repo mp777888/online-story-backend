@@ -2,12 +2,16 @@ package com.onlinestories.story_service.Service;
 
 import com.onlinestories.common.exception.AppException;
 import com.onlinestories.common.exception.ErrorCode;
+import com.onlinestories.story_service.DTO.Response.AuthorMonthlyStatsResponse;
 import com.onlinestories.story_service.DTO.Response.ChapterStatsResponse;
 import com.onlinestories.story_service.DTO.Response.StoryDailyViewResponse;
 import com.onlinestories.story_service.DTO.Response.TrendStatisticResponse;
+import com.onlinestories.story_service.Entity.Chapter;
 import com.onlinestories.story_service.Entity.Story;
 import com.onlinestories.story_service.Entity.StoryDailyView;
 
+import com.onlinestories.story_service.Enum.ChapterStatus;
+import com.onlinestories.story_service.Enum.StoryStatus;
 import com.onlinestories.story_service.Repository.ChapterRepository;
 import com.onlinestories.story_service.Repository.ProgressReadingRepository;
 import com.onlinestories.story_service.Repository.StoryDailyViewRepository;
@@ -16,6 +20,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.bson.Document;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -24,9 +29,14 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.aggregation.AggregationResults;
 import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Service
@@ -136,5 +146,93 @@ public class AnalyticsService {
         return results.getMappedResults();
     }
 
+    // Thêm hàm này vào AnalyticsService.java
 
+    public AuthorMonthlyStatsResponse getAuthorMonthlyStats(String authorId, String monthStr) {
+        log.info("Fetching monthly stats for author: {}, month: {}", authorId, monthStr);
+
+        // 1. Phân tích thời gian (Parse month string to dates)
+        YearMonth yearMonth = java.time.YearMonth.parse(monthStr, DateTimeFormatter.ofPattern("yyyy-MM"));
+        LocalDate startDate = yearMonth.atDay(1);
+        LocalDate endDate = yearMonth.atEndOfMonth();
+
+        Criteria dateCriteria = Criteria.where("date").gte(startDate).lte(endDate);
+
+        // 2. Lấy danh sách câu truyện của tác giả này
+        List<Story> authorStories = storyRepository.findByAuthorIdAndStatusNot(
+                        authorId, com.onlinestories.story_service.Enum.StoryStatus.DRAFT, PageRequest.of(0, 9999))
+                .toList();
+
+        List<String> authorStoryIds = authorStories.stream()
+                .map(Story::getStoryId)
+                .toList();
+
+        if (authorStoryIds.isEmpty()) {
+            return AuthorMonthlyStatsResponse.builder()
+                    .authorId(authorId).month(monthStr)
+                    .totalViews(0).totalPublishedChapters(0)
+                    .estimatedIncome(0)
+                    .topStories(List.of())
+                    .build();
+        }
+
+        Criteria authorStoryCriteria = Criteria.where("storyId").in(authorStoryIds);
+
+        // 3. Tính: Tổng Views trong tháng và Top Story View
+        Aggregation viewAggregation = Aggregation.newAggregation(
+                Aggregation.match(new Criteria().andOperator(dateCriteria, authorStoryCriteria)),
+                Aggregation.group("storyId").sum("viewCount").as("periodViews"),
+                Aggregation.sort(Sort.Direction.DESC, "periodViews")
+        );
+
+        AggregationResults<org.bson.Document> viewResults = mongoTemplate.aggregate(
+                viewAggregation, "storyDailyView", org.bson.Document.class);
+
+        long totalMonthViews = 0;
+        List<AuthorMonthlyStatsResponse.TopStoryStat> topStories = new java.util.ArrayList<>();
+
+        // Quét kết quả Aggregation views
+        for (Document doc : viewResults.getMappedResults()) {
+            String sId = doc.getString("_id");
+            Number views = (Number) doc.get("periodViews");
+            long vCount = views != null ? views.longValue() : 0;
+
+            totalMonthViews += vCount;
+
+            // Nếu muốn lấy Top 5 truyện xem nhiều nhất
+            if (topStories.size() < 5) {
+                // Lấy thông tin truyện (Title, Chapters)
+                storyRepository.findById(sId).ifPresent(s -> topStories.add(AuthorMonthlyStatsResponse.TopStoryStat.builder()
+                        .storyId(sId)
+                        .title(s.getTitle())
+                        .numberOfChapters(s.getNumberOfChapters())
+                        .periodViews(vCount)
+                        .build()));
+            }
+        }
+
+        // 4. Tính: Tổng số chương đã đăng tải (PUBLISHED) TRONG THÁNG NÀY
+        LocalDateTime startDateTime = startDate.atStartOfDay();
+        LocalDateTime endDateTime = endDate.atTime(23, 59, 59, 999999999);
+
+        Query chapterQuery = new Query(
+                new Criteria().andOperator(
+                        Criteria.where("storyId").in(authorStoryIds), // Các truyện của tác giả
+                        Criteria.where("status").is(ChapterStatus.PUBLISHED), // Trạng thái đã đăng
+                        Criteria.where("publishedAt").gte(startDateTime).lte(endDateTime) // Đăng trong khoảng thời gian này
+                )
+        );
+
+        long totalPublishedChaptersThisMonth = mongoTemplate.count(chapterQuery, Chapter.class);
+
+        // 5. Trả về kết quả
+        return AuthorMonthlyStatsResponse.builder()
+                .authorId(authorId)
+                .month(monthStr)
+                .totalViews(totalMonthViews)
+                .totalPublishedChapters(totalPublishedChaptersThisMonth)
+                .estimatedIncome(totalMonthViews * 0.5)
+                .topStories(topStories)
+                .build();
+    }
 }
