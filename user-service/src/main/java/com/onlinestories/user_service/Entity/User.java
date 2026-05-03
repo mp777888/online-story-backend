@@ -1,6 +1,7 @@
 package com.onlinestories.user_service.Entity;
 
 
+import com.onlinestories.common.user.enums.Gender;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.springframework.data.annotation.Id;
@@ -29,6 +30,7 @@ public class User {
     LocalDate dob;
     String walletId;
     String description;
+    Gender gender;
     LocalDateTime createdAt;
     Set<String> categories = new HashSet<>();
     double trendingScore;

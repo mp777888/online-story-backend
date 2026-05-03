@@ -2,6 +2,7 @@ package com.onlinestories.user_service.Service;
 
 import com.onlinestories.common.exception.AppException;
 import com.onlinestories.common.exception.ErrorCode;
+import com.onlinestories.common.user.enums.Gender;
 import com.onlinestories.common.user.event.UserEvent;
 import com.onlinestories.user_service.Client.MediaClient;
 import com.onlinestories.user_service.Client.TransactionClient;
@@ -26,13 +27,12 @@ import org.keycloak.admin.client.resource.UsersResource;
 import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.time.DayOfWeek;
-import java.time.LocalDate;
-import java.time.ZoneId;
+import java.time.*;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 
@@ -108,6 +108,7 @@ public class UserService {
             user.setUserId(userId);
             user.setNickname(request.getUsername());
             user.setDob(request.getDob());
+            user.setGender(Gender.valueOf(request.getGender()));
             user.setCreatedAt(java.time.LocalDateTime.now());
             user.setWalletId(walletResponse.getWalletId());
 
@@ -120,6 +121,7 @@ public class UserService {
             userResponse.setEmail(request.getEmail());
             userResponse.setDob(request.getDob());
             userResponse.setCreatedAt(user.getCreatedAt());
+            userResponse.setGender(request.getGender());
 
             UserEvent userCreatedEvent = UserEvent.builder()
                     .userId(userId)
@@ -189,6 +191,7 @@ public class UserService {
             user.setNickname(request.getNickname());
             user.setDob(request.getDob());
             user.setCreatedAt(java.time.LocalDateTime.now());
+            user.setGender(Gender.valueOf(request.getGender()));
             user.setWalletId(walletResponse.getWalletId());
 
             userRepository.save(user);
@@ -197,6 +200,7 @@ public class UserService {
             userResponse.setNickname(request.getNickname());
             userResponse.setEmail(email);
             userResponse.setDob(request.getDob());
+            userResponse.setGender(request.getGender());
             userResponse.setCreatedAt(user.getCreatedAt());
 
             UserEvent userCreatedEvent = UserEvent.builder()
@@ -227,6 +231,7 @@ public class UserService {
                     .username(userRep.getUsername())
                     .nickname(user.getNickname())
                     .email(userRep.getEmail())
+                    .gender(user.getGender().name())
                     .dob(user.getDob())
                     .img(user.getImg())
                     .description(user.getDescription())
@@ -251,6 +256,7 @@ public class UserService {
                     .userId(user.getUserId())
                     .username(userRep.getUsername())
                     .email(userRep.getEmail())
+                    .gender(user.getGender().name())
                     .nickname(user.getNickname())
                     .description(user.getDescription())
                     .dob(user.getDob())
@@ -303,6 +309,9 @@ public class UserService {
             if (request.getDescription() != null) {
                 user.setDescription(request.getDescription());
             }
+            if (request.getGender() != null) {
+                user.setGender(Gender.valueOf(request.getGender()));
+            }
 
             userRepository.save(user);
 
@@ -320,6 +329,7 @@ public class UserService {
                     .username(userRep.getUsername())
                     .email(userRep.getEmail())
                     .nickname(user.getNickname())
+                    .gender(user.getGender().name())
                     .description(user.getDescription())
                     .dob(user.getDob())
                     .img(user.getImg())
@@ -330,6 +340,16 @@ public class UserService {
             log.error(e.getMessage());
             throw e;
         }
+    }
+
+    public long countNewUsersByMonth(String month) {
+        YearMonth yearMonth = YearMonth.parse(month);
+
+        LocalDateTime startOfMonth = yearMonth.atDay(1).atStartOfDay();
+
+        LocalDateTime endOfMonth = yearMonth.atEndOfMonth().atTime(23, 59, 59, 999999999);
+
+        return userRepository.countByCreatedAtBetween(startOfMonth, endOfMonth);
     }
 
     public void deleteUser(String userId){

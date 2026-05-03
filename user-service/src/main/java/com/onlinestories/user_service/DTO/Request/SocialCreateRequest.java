@@ -13,4 +13,5 @@ import java.time.LocalDate;
 public class SocialCreateRequest {
     String nickname;
     LocalDate dob;
+    String gender;
 }

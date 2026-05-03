@@ -15,6 +15,7 @@ public class UserResponse {
     String userId;
     String username;
     String nickname;
+    String gender;
     String email;
     String img;
     String description;

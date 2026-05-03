@@ -14,6 +14,7 @@ import lombok.AccessLevel;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -85,6 +86,16 @@ public class UserController {
         return ApiResponse.<UserResponse>builder()
                 .code(200)
                 .result(userService.getUserById(id))
+                .build();
+    }
+
+    @GetMapping("/new-users-count")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<Long> getNewUsersCount(@RequestParam String month) {
+        log.info("Received request to get new users count for month={}", month);
+        return ApiResponse.<Long>builder()
+                .code(200)
+                .result(userService.countNewUsersByMonth(month))
                 .build();
     }
 
