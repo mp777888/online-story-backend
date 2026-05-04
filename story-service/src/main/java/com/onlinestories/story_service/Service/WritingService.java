@@ -162,12 +162,17 @@ public class WritingService {
             }
 
             if(request.getPublishedAt() != null){
-                ChapterVersion version = chapterVersionRepository.findById(chapter.getPublishedVersionId())
-                        .orElse(null);
-                if(version == null){
+                if (chapter.getPublishedVersionId() == null || chapter.getPublishedVersionId().isEmpty()) {
                     log.warn("Cannot set publishedAt for chapterId: {} because it has no published version", request.getChapterId());
                     throw new AppException(ErrorCode.VERSION_NOT_FOUND);
                 }
+
+                chapterVersionRepository.findById(chapter.getPublishedVersionId())
+                        .orElseThrow(() -> {
+                            log.warn("Cannot set publishedAt for chapterId: {} because the published version was not found", request.getChapterId());
+                            return new AppException(ErrorCode.VERSION_NOT_FOUND);
+                        });
+
                 chapter.setPublishedAt(request.getPublishedAt());
             }
 

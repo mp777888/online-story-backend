@@ -16,6 +16,5 @@ public class UpdateChapterRequest {
     String chapterId;
     String title;
     String status;
-    boolean isPublished;
     LocalDateTime publishedAt;
 }
