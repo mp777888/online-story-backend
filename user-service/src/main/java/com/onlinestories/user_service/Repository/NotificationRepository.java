@@ -9,4 +9,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface NotificationRepository extends MongoRepository<Notification, String> {
     Page<Notification> findByUserId(String userId, Pageable pageable);
+
+    void deleteByUserId(String userId);
 }

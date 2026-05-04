@@ -1,9 +1,6 @@
 package com.example.onlinestories.transaction_service.Controller;
 
-import com.example.onlinestories.transaction_service.DTO.Response.HistoryResponse;
-import com.example.onlinestories.transaction_service.DTO.Response.PayoutResponse;
-import com.example.onlinestories.transaction_service.DTO.Response.PendingPaymentResponse;
-import com.example.onlinestories.transaction_service.DTO.Response.WalletResponse;
+import com.example.onlinestories.transaction_service.DTO.Response.*;
 import com.example.onlinestories.transaction_service.Service.MomoService;
 import com.example.onlinestories.transaction_service.Service.VNPayService;
 import com.example.onlinestories.transaction_service.Service.WalletService;
@@ -20,6 +17,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -126,13 +124,14 @@ public class TransactionController {
     @GetMapping("/history")
     public ApiResponse<Page<HistoryResponse>> getTransactionHistory(
             @AuthenticationPrincipal Jwt jwt,
+            @RequestParam String month,
             @RequestParam int page,
             @RequestParam int size) {
         String userId = jwt.getSubject();
         log.info("Received request to get transaction history for userId: {}, page: {}, size: {}", userId, page, size);
         return ApiResponse.<Page<HistoryResponse>>builder()
                 .code(200)
-                .result(walletService.getMyHistory(userId, page, size))
+                .result(walletService.getMyHistory(userId, month, page, size))
                 .build();
     }
 
@@ -159,6 +158,17 @@ public class TransactionController {
         return ApiResponse.<Page<PendingPaymentResponse>>builder()
                 .code(200)
                 .result(walletService.getPendingPayments(month, page, size))
+                .build();
+    }
+
+    @GetMapping("/top-users-top-up")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<List<TopUserTopUpResponse>> getTopUsersTopUp(
+            @RequestParam(defaultValue = "5") int topN) {
+        log.info("Received request to get top {} users by top-up amount", topN);
+        return ApiResponse.<List<TopUserTopUpResponse>>builder()
+                .code(200)
+                .result(walletService.getTopUsersByTopUpAmount(topN))
                 .build();
     }
 }

@@ -45,4 +45,30 @@ public class NotificationController {
                 .result(notificationService.getAllMyNotifications(userId, page, size))
                 .build();
     }
+
+    @DeleteMapping("/clear")
+    public ApiResponse<String> clearAllMyNotifications(@AuthenticationPrincipal Jwt jwt) {
+        String userId = jwt.getSubject();
+        log.info("Received request to clear notifications for userId={}", userId);
+        notificationService.clearAllMyNotifications(userId);
+        return ApiResponse.<String>builder()
+                .code(200)
+                .message("All notifications cleared successfully")
+                .result("All notifications cleared successfully")
+                .build();
+    }
+
+    @DeleteMapping("/delete")
+    public ApiResponse<String> deleteNotification(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam String notificationId) {
+        String userId = jwt.getSubject();
+        log.info("Received request to delete notification {} for userId={}", notificationId, userId);
+        notificationService.deleteNotification(notificationId);
+        return ApiResponse.<String>builder()
+                .code(200)
+                .message("Notification deleted successfully")
+                .result("Notification deleted successfully")
+                .build();
+    }
 }

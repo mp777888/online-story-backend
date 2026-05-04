@@ -1,5 +1,6 @@
 package com.example.onlinestories.transaction_service.Controller;
 
+import com.onlinestories.common.transaction.enums.HistoryStatus;
 import com.example.onlinestories.transaction_service.Service.WalletService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +30,9 @@ public class InternalController {
     }
 
     @PostMapping("/update-writing-tokens")
-    public void addTokens(@RequestParam String userId, @RequestParam int tokens) {
-        walletService.updateWritingTokens(userId, tokens);
+    public void addTokens(
+            @RequestParam String userId,
+            @RequestParam int tokens) {
+        walletService.updateWritingTokens(userId, tokens, HistoryStatus.EARNED);
     }
 }

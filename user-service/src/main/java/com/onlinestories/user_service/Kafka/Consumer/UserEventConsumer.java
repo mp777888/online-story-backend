@@ -2,6 +2,8 @@ package com.onlinestories.user_service.Kafka.Consumer;
 
 import com.onlinestories.common.chapter.event.ChapterPublishedEvent;
 import com.onlinestories.common.report.event.ReportResponseEvent;
+import com.onlinestories.common.transaction.enums.HistoryStatus;
+import com.onlinestories.common.transaction.event.TransEvent;
 import com.onlinestories.common.user.enums.NotiType;
 import com.onlinestories.user_service.Entity.Notification;
 
@@ -22,7 +24,7 @@ import java.util.Set;
 @Component
 @Slf4j
 @RequiredArgsConstructor
-public class ChapterEventConsumer {
+public class UserEventConsumer {
 
     private final UserRepository userRepository;
     private final NotificationRepository notificationRepository;
@@ -136,6 +138,47 @@ public class ChapterEventConsumer {
                     event.getReportId(), event.getRespondedId());
         } catch (Exception e) {
             log.error("Error processing ReportResponseEvent: {}", e.getMessage(), e);
+        }
+    }
+
+    @KafkaListener(topics = KafkaTopics.TRANSACTION_EVENT, groupId = "${spring.application.name}")
+    public void listenTransactionEvent(TransEvent event){
+        log.info("Received Kafka Event TRANSACTION_EVENT: userId={}, amount={}, eventType={}",
+                event.getUserId(), event.getTokens(), event.getEventType());
+        try {
+            userRepository.findById(event.getUserId()).ifPresent(user ->
+                    log.info("Found user for transaction event: userId={}, nickname={}",
+                            user.getUserId(), user.getNickname()));
+
+            String message;
+
+            if(event.getStatus().equals(HistoryStatus.EARNED)){
+                message = "Bạn vừa nhận được " + event.getTokens() + " người đọc mua truyện của bạn ";
+            }
+            else if(event.getStatus().equals(HistoryStatus.PAYOUT)){
+                message = "Bạn vừa được nhận " + event.getTokens() + " từ việc viết truyện hàng tháng. Hãy kiểm tra ngay!";
+            }
+            else{
+                log.warn("Unknown transaction status: {}. No notifications will be sent.", event.getStatus());
+                return;
+            }
+
+
+            Notification notification = Notification.builder()
+                    .userId(event.getUserId())
+                    .message(message)
+                    .isRead(false)
+                    .type(NotiType.TRANSACTION)
+                    .createdAt(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")))
+                    .build();
+            notificationRepository.save(notification);
+
+            // websocket
+            messagingTemplate.convertAndSend("/topic/user/" + notification.getUserId(), notification);
+
+            log.info("Successfully saved notification for userId={}", event.getUserId());
+        } catch (Exception e) {
+            log.error("Error processing TransactionEvent: {}", e.getMessage(), e);
         }
     }
 }

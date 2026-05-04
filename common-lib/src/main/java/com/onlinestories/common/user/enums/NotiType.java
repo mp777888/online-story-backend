@@ -5,4 +5,5 @@ public enum NotiType {
     CHAPTER_PUBLISHED,
     USER_FOLLOWED,
     COMMENT,
+    TRANSACTION,
 }

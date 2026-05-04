@@ -85,5 +85,15 @@ public class NotificationService {
                         .build());
     }
 
+    public void deleteNotification(String notificationId) {
+        notificationRepository.deleteById(notificationId);
+        log.info("Notification {} deleted", notificationId);
+    }
+
+    public void clearAllMyNotifications(String userId) {
+        notificationRepository.deleteByUserId(userId);
+        log.info("All notifications for user {} cleared", userId);
+    }
+
 
 }

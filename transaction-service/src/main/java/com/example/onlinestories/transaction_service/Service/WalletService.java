@@ -1,17 +1,16 @@
 package com.example.onlinestories.transaction_service.Service;
 import com.example.onlinestories.transaction_service.Client.StoryClient;
-import com.example.onlinestories.transaction_service.DTO.Response.HistoryResponse;
-import com.example.onlinestories.transaction_service.DTO.Response.PayoutResponse;
-import com.example.onlinestories.transaction_service.DTO.Response.PendingPaymentResponse;
+import com.example.onlinestories.transaction_service.DTO.Response.*;
 import com.example.onlinestories.transaction_service.Entity.*;
-import com.example.onlinestories.transaction_service.DTO.Response.WalletResponse;
-import com.example.onlinestories.transaction_service.Enums.HistoryStatus;
+import com.example.onlinestories.transaction_service.Kafka.Producer.TransactionProducer;
+import com.onlinestories.common.transaction.enums.HistoryStatus;
 import com.example.onlinestories.transaction_service.Enums.PaymentStatus;
 import com.example.onlinestories.transaction_service.Enums.PayoutStatus;
 import com.example.onlinestories.transaction_service.Repostiory.*;
 import com.onlinestories.common.exception.AppException;
 import com.onlinestories.common.exception.ErrorCode;
 import com.onlinestories.common.story.dto.StoryDTOResponse;
+import com.onlinestories.common.transaction.event.TransEvent;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -19,7 +18,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.aggregation.Aggregation;
+import org.springframework.data.mongodb.core.aggregation.AggregationResults;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
@@ -30,6 +32,7 @@ import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 @Service
 @Slf4j
@@ -43,6 +46,7 @@ public class WalletService {
     PendingPaymentRepository pendingPaymentRepository;
     MongoTemplate mongoTemplate;
     StoryClient storyClient;
+    TransactionProducer transactionProducer;
 
     public WalletResponse createWallet(String userId){
         log.info("Creating wallet for userId: {}", userId);
@@ -99,7 +103,7 @@ public class WalletService {
 
 
         try{
-            updateReadingTokens(payment.getUserId(), tokensToAdd, HistoryStatus.EARNED);
+            updateReadingTokens(payment.getUserId(), tokensToAdd, HistoryStatus.TOP_UP);
             log.info("Reading tokens topped up for userId: {}, tokens added: {}", payment.getUserId(), tokensToAdd);
             payment.setStatus(PaymentStatus.PAID);
             payment.setPaidAt(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")));
@@ -152,7 +156,7 @@ public class WalletService {
             throw new AppException(ErrorCode.INSUFFICIENT_BALANCE);
         } else {
             updateReadingTokens(userId, -storyDTOResponse.getUnlockPrice(), HistoryStatus.SPENT);
-            updateWritingTokens(storyDTOResponse.getAuthorId(), storyDTOResponse.getUnlockPrice() * 80 / 100);
+            updateWritingTokens(storyDTOResponse.getAuthorId(), storyDTOResponse.getUnlockPrice() * 80 / 100, HistoryStatus.EARNED);
         }
 
         var newUnlockStory = UnlockStory.builder()
@@ -187,7 +191,7 @@ public class WalletService {
     }
 
     @Transactional
-    public void updateWritingTokens(String userId, int tokens) {
+    public void updateWritingTokens(String userId, int tokens, HistoryStatus status) {
         log.info("Updating writing tokens for userId: {}, tokens: {}", userId, tokens);
 
         try{
@@ -196,7 +200,7 @@ public class WalletService {
             mongoTemplate.updateFirst(query, update, Wallet.class);
             log.info("Writing tokens updated for userId: {}", userId);
 
-            updateHistory(userId, tokens, HistoryStatus.EARNED);
+            updateHistory(userId, tokens, status);
         } catch (Exception e) {
             log.error("Error updating writing tokens for userId: {}, tokens: {}, error: {}", userId, tokens, e.getMessage());
             throw new AppException(ErrorCode.UPDATE_TOKEN_ERROR);
@@ -214,6 +218,14 @@ public class WalletService {
         try{
             mongoTemplate.save(history);
             log.info("History updated for userId: {}, tokenChange: {}", userId, tokenChange);
+            if(status.equals(HistoryStatus.EARNED) || status.equals(HistoryStatus.PAYOUT)){
+                TransEvent event = TransEvent.builder()
+                        .userId(userId)
+                        .tokens(tokenChange)
+                        .status(status)
+                        .build();
+                transactionProducer.sendTransactionEvent(event);
+            }
         } catch (Exception e) {
             log.error("Error updating history for userId: {}, tokenChange: {}, error: {}", userId, tokenChange, e.getMessage());
             throw new AppException(ErrorCode.HISTORY_ERROR);
@@ -221,10 +233,21 @@ public class WalletService {
     }
 
     public Page<HistoryResponse> getMyHistory(
-            String userId, int page, int size) {
-        log.info("Getting history for userId: {}, page: {}, size: {}", userId, page, size);
-        Pageable pageable = PageRequest.of(page, size);
-        Page<History> historyPage = historyRepository.findByUserId(userId, pageable);
+            String userId, String monthStr, int page, int size) {
+        log.info("Getting history for userId: {}, month: {}, page: {}, size: {}", userId, monthStr, page, size);
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<History> historyPage;
+
+        if (monthStr != null && !monthStr.trim().isEmpty()) {
+            YearMonth yearMonth = YearMonth.parse(monthStr, DateTimeFormatter.ofPattern("yyyy-MM"));
+            LocalDateTime startOfMonth = yearMonth.atDay(1).atStartOfDay();
+            LocalDateTime endOfMonth = yearMonth.atEndOfMonth().atTime(23, 59, 59, 999999999);
+
+            historyPage = historyRepository.findByUserIdAndCreatedAtBetween(userId, startOfMonth, endOfMonth, pageable);
+        } else {
+            historyPage = historyRepository.findByUserId(userId, pageable);
+        }
+
         log.info("History found for userId: {}, totalElements: {}", userId, historyPage.getTotalElements());
         return historyPage.map(history -> HistoryResponse.builder()
                 .historyId(history.getHistoryId())
@@ -263,7 +286,7 @@ public class WalletService {
         log.info("Processing payout for authorId: {}, totalViews: {}, payoutMonth: {}", authorId, totalViews, payoutMonth);
         double payoutAmount = totalViews * 0.5;
         try {
-            updateWritingTokens(authorId, (int) payoutAmount);
+            updateWritingTokens(authorId, (int) payoutAmount, HistoryStatus.PAYOUT);
             PayoutHistory payoutHistory = PayoutHistory.builder()
                     .authorId(authorId)
                     .payoutMonth(payoutMonth)
@@ -289,7 +312,7 @@ public class WalletService {
         log.info("Adding check-in tokens for userId: {}, tokens: {}", userId, tokens);
         walletRepository.findByUserId(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.WALLET_NOT_FOUND));
-        updateReadingTokens(userId, tokens, HistoryStatus.EARNED);
+        updateReadingTokens(userId, tokens, HistoryStatus.CHECK_IN);
     }
 
     public Page<PayoutResponse> getPayoutHistory(String payMonth, int page, int size) {
@@ -343,6 +366,33 @@ public class WalletService {
                 .createdAt(payment.getCreatedAt())
                 .paidAt(payment.getPaidAt())
                 .build());
+    }
+
+    public List<TopUserTopUpResponse> getTopUsersByTopUpAmount(int limit) {
+        log.info("Getting top {} users by top-up amount", limit);
+
+        Aggregation aggregation = Aggregation.newAggregation(
+                // 1. Chỉ lấy các giao dịch nạp tiền thành công
+                Aggregation.match(Criteria.where("status").is(PaymentStatus.PAID)),
+
+                // 2. Nhóm theo userId và tính tổng amount
+                Aggregation.group("userId")
+                        .sum("amount").as("totalAmount"),
+
+                // 3. Sắp xếp giảm dần theo tổng tiền
+                Aggregation.sort(Sort.Direction.DESC, "totalAmount"),
+
+                // 4. Giới hạn số lượng user
+                Aggregation.limit(limit)
+        );
+
+        AggregationResults<TopUserTopUpResponse> results = mongoTemplate.aggregate(
+                aggregation,
+                "pendingPayment",
+                TopUserTopUpResponse.class
+        );
+
+        return results.getMappedResults();
     }
 
     private int getReadingTokensByAmount(int amount) {
