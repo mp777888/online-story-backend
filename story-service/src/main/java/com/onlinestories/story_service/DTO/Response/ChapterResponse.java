@@ -24,4 +24,5 @@ public class ChapterResponse {
     Float percentageRead;
     LocalDateTime createdAt;
     LocalDateTime publishedAt;
+    LocalDateTime lastEditedAt;
 }

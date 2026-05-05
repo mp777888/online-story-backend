@@ -84,6 +84,7 @@ public class WritingService {
                             ? null : mediaClient.uploadFile(img,"chapter-img"))
                     .status(ChapterStatus.DRAFT)
                     .createdAt(LocalDateTime.now())
+                    .lastEditedAt(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")))
                     .build();
 
             chapterRepository.save(chapter);
@@ -96,6 +97,7 @@ public class WritingService {
                     .title(chapter.getTitle())
                     .img(chapter.getImg())
                     .createdAt(chapter.getCreatedAt())
+                    .lastEditedAt(chapter.getLastEditedAt())
                     .build();
         }
         catch(Exception e){
@@ -175,7 +177,7 @@ public class WritingService {
 
                 chapter.setPublishedAt(request.getPublishedAt());
             }
-
+            chapter.setLastEditedAt(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")));
             chapterRepository.save(chapter);
 
             if(chapter.getPublishedVersionId() != null){
@@ -208,6 +210,7 @@ public class WritingService {
                     .img(chapter.getImg())
                     .status(chapter.getStatus().name())
                     .createdAt(chapter.getCreatedAt())
+                    .lastEditedAt(chapter.getLastEditedAt())
                     .build();
 
         }
@@ -279,6 +282,8 @@ public class WritingService {
                     .set("content", content)
                     .set("lastSavedAt", LocalDateTime.now());
             mongoTemplate.upsert(query, update, ChapterDraft.class);
+
+            storyHelper.updateChapterLastEditedTime(chapterId);
 
             log.info("Chapter draft auto-saved successfully for chapterId: {}", chapterId);
         }
@@ -396,6 +401,7 @@ public class WritingService {
                 version.setContent(content);
             }
             chapterVersionRepository.save(version);
+            storyHelper.updateChapterLastEditedTime(version.getChapterId());
             log.info("Chapter version with ID: {} updated successfully", versionId);
             return VersionResponse.builder()
                     .versionId(version.getChapterVersionId())
@@ -461,7 +467,7 @@ public class WritingService {
                     .createdAt(LocalDateTime.now())
                     .build();
             chapterVersionRepository.save(version);
-
+            storyHelper.updateChapterLastEditedTime(chapterId);
             log.info("Word file imported successfully for chapterId: {}, versionId: {}", chapterId, version.getChapterVersionId());
             return VersionResponse.builder()
                     .versionId(version.getChapterVersionId())
@@ -504,10 +510,10 @@ public class WritingService {
             Chapter chapter = chapterRepository.findById(request.getChapterId())
                     .orElseThrow(() -> new AppException(ErrorCode.CHAPTER_NOT_FOUND));
 
-            if(chapter.getStatus() == ChapterStatus.PUBLISHED){
-                log.warn("Chapter with ID: {} is already published", request.getChapterId());
-                throw new AppException(ErrorCode.CHAPTER_ALREADY_PUBLISHED);
-            }
+//            if(chapter.getStatus() == ChapterStatus.PUBLISHED){
+//                log.warn("Chapter with ID: {} is already published", request.getChapterId());
+//                throw new AppException(ErrorCode.CHAPTER_ALREADY_PUBLISHED);
+//            }
 
             ChapterVersion version = chapterVersionRepository.findById(request.getChapterVersionId())
                     .orElseThrow(() -> new AppException(ErrorCode.VERSION_NOT_FOUND));
@@ -554,10 +560,10 @@ public class WritingService {
 
     @Transactional
     public ChapterResponse doPublishChapter(Story story, Chapter chapter, ChapterVersion version) {
-        if (chapter.getStatus() == ChapterStatus.PUBLISHED) {
-            log.warn("Chapter with ID: {} is already published", chapter.getChapterId());
-            throw new AppException(ErrorCode.CHAPTER_ALREADY_PUBLISHED);
-        }
+//        if (chapter.getStatus() == ChapterStatus.PUBLISHED) {
+//            log.warn("Chapter with ID: {} is already published", chapter.getChapterId());
+//            throw new AppException(ErrorCode.CHAPTER_ALREADY_PUBLISHED);
+//        }
 
 //        if(aiClient.checkPlagiarism(new PlagiarismRequest(
 //                story.getAuthorId(),

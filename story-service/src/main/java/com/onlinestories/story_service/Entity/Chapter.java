@@ -26,6 +26,7 @@ public class Chapter {
     String img;
     LocalDateTime createdAt;
     LocalDateTime publishedAt;
+    LocalDateTime lastEditedAt;
     ChapterStatus status;
     String publishedVersionId;
     String audioUrl;

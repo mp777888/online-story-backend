@@ -2,6 +2,7 @@ package com.onlinestories.story_service.Utils;
 
 import com.onlinestories.common.exception.AppException;
 import com.onlinestories.common.exception.ErrorCode;
+import com.onlinestories.story_service.Entity.Chapter;
 import com.onlinestories.story_service.Entity.ChapterVersion;
 import com.onlinestories.story_service.Enum.Period;
 import com.onlinestories.story_service.Repository.ChapterVersionRepository;
@@ -9,6 +10,10 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
@@ -25,6 +30,7 @@ import java.time.temporal.TemporalAdjusters;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class StoryHelper {
     static String DIRTY_STORIES_KEY = "dirty_stories_metrics";
+    MongoTemplate mongoTemplate;
     StringRedisTemplate stringRedisTemplate;
     ChapterVersionRepository chapterVersionRepository;
 
@@ -78,5 +84,16 @@ public class StoryHelper {
 
         log.info("Chapter version details fetched successfully for chapterId: {}", chapterVersionId);
         return version.getContent();
+    }
+
+    public void updateChapterLastEditedTime(String chapterId) {
+        try {
+            Query query = new Query( Criteria.where("_id").is(chapterId));
+            Update update = new Update().set("lastEditedAt", LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")));
+
+            mongoTemplate.updateFirst(query, update, Chapter.class);
+        } catch (Exception e) {
+            log.error("Error updating lastEditedAt for chapterId {}: {}", chapterId, e.getMessage());
+        }
     }
 }

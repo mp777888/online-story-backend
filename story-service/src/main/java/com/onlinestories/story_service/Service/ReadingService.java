@@ -73,6 +73,7 @@ public class ReadingService {
                                 .title(chapter.getTitle())
                                 .img(chapter.getImg())
                                 .createdAt(chapter.getCreatedAt())
+                                .lastEditedAt(chapter.getLastEditedAt())
                                 .build());
             }
             else if(isAdmin){
@@ -208,6 +209,7 @@ public class ReadingService {
                 .img(chapter.getImg())
                 .createdAt(chapter.getCreatedAt())
                 .publishedAt(chapter.getPublishedAt())
+                .lastEditedAt(chapter.getLastEditedAt())
                 .build();
     }
 
