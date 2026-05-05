@@ -368,8 +368,17 @@ public class WalletService {
                 .build());
     }
 
-    public List<TopUserTopUpResponse> getTopUsersByTopUpAmount(int limit) {
+    public List<TopUserTopUpResponse> getTopUsersByTopUpAmount(int limit, String monthStr) {
         log.info("Getting top {} users by top-up amount", limit);
+
+        Criteria matchCriteria = Criteria.where("status").is(PaymentStatus.PAID);
+        if (monthStr != null && !monthStr.trim().isEmpty()) {
+            YearMonth yearMonth = YearMonth.parse(monthStr, DateTimeFormatter.ofPattern("yyyy-MM"));
+            LocalDateTime startOfMonth = yearMonth.atDay(1).atStartOfDay();
+            LocalDateTime endOfMonth = yearMonth.atEndOfMonth().atTime(23, 59, 59, 999999999);
+
+            matchCriteria.and("paidAt").gte(startOfMonth).lte(endOfMonth);
+        }
 
         Aggregation aggregation = Aggregation.newAggregation(
                 // 1. Chỉ lấy các giao dịch nạp tiền thành công

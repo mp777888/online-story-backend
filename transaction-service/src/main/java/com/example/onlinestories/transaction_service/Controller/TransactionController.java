@@ -164,11 +164,12 @@ public class TransactionController {
     @GetMapping("/top-users-top-up")
     @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<List<TopUserTopUpResponse>> getTopUsersTopUp(
-            @RequestParam(defaultValue = "5") int topN) {
+            @RequestParam(defaultValue = "5") int topN,
+            @RequestParam(defaultValue = "") String month) {
         log.info("Received request to get top {} users by top-up amount", topN);
         return ApiResponse.<List<TopUserTopUpResponse>>builder()
                 .code(200)
-                .result(walletService.getTopUsersByTopUpAmount(topN))
+                .result(walletService.getTopUsersByTopUpAmount(topN, month))
                 .build();
     }
 }
