@@ -381,8 +381,8 @@ public class WalletService {
         }
 
         Aggregation aggregation = Aggregation.newAggregation(
-                // 1. Chỉ lấy các giao dịch nạp tiền thành công
-                Aggregation.match(Criteria.where("status").is(PaymentStatus.PAID)),
+                // 1. Lọc giao dịch nạp tiền thành công (và lấy trong tháng nếu có)
+                Aggregation.match(matchCriteria),
 
                 // 2. Nhóm theo userId và tính tổng amount
                 Aggregation.group("userId")
