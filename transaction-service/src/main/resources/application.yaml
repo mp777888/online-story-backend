@@ -28,6 +28,9 @@ spring:
           issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8181/realms/online-stories-realm}
 
 eureka:
+  instance:
+    hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
+    prefer-ip-address: false
   client:
     service-url:
       defaultZone: http://localhost:8761/eureka/

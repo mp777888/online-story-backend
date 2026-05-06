@@ -28,6 +28,9 @@ app:
     redirect-uri: ${KEYCLOAK_REDIRECT_URI:http://localhost:3000}
 
 eureka:
+  instance:
+    hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
+    prefer-ip-address: false
   client:
     service-url:
       defaultZone: http://localhost:8761/eureka/

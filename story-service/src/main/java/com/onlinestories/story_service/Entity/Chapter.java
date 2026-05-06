@@ -22,7 +22,6 @@ public class Chapter {
     @Indexed
     String storyId;
     String title;
-    String summary;
     String img;
     LocalDateTime createdAt;
     LocalDateTime publishedAt;

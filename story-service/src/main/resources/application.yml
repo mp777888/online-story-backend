@@ -52,6 +52,9 @@ azure:
     region: ${AZURE_SPEECH_REGION}
 
 eureka:
+  instance:
+      hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
+      prefer-ip-address: false
   client:
     service-url:
         defaultZone: http://localhost:8761/eureka/
