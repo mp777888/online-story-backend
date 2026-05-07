@@ -17,7 +17,7 @@ spring:
     name: authentication-service
 
 keycloak:
-    server-url: "http://localhost:8181"
+    server-url: ${KEYCLOAK_SERVER_URL:http://localhost:8181}
     realm: ${REALM}
     client-id: ${CLIENT_ID}
     client-secret: ${CLIENT_SECRET}

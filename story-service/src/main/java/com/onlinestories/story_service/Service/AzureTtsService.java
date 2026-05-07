@@ -22,10 +22,24 @@ public class AzureTtsService {
 
 
     public byte[] synthesizeText(String text, String language) {
+
+        SpeechSynthesizer synthesizer = null;
+        SpeechSynthesisResult result = null;
+
         try {
+
+            log.info("Initializing Azure TTS...");
+            log.info("Speech region: {}", speechRegion);
+            log.info("Speech key exists: {}", speechKey != null);
+
             // 1. Cấu hình Speech
-            SpeechConfig speechConfig = SpeechConfig.fromSubscription(speechKey, speechRegion);
-            String voiceName = language.equals(Language.ENGLISH.name()) ? "en-US-JennyNeural" : "vi-VN-HoaiMyNeural";
+            SpeechConfig speechConfig =
+                    SpeechConfig.fromSubscription(speechKey, speechRegion);
+
+            String voiceName = language.equals(Language.ENGLISH.name())
+                    ? "en-US-JennyNeural"
+                    : "vi-VN-HoaiMyNeural";
+
             speechConfig.setSpeechSynthesisVoiceName(voiceName);
 
             // Định dạng âm thanh xuất ra là MP3
@@ -33,30 +47,84 @@ public class AzureTtsService {
                     SpeechSynthesisOutputFormat.Audio16Khz64KBitRateMonoMp3
             );
 
-            // 2. Cấu hình Output là NULL (để nó không phát ra loa server, cũng không lưu file)
-            // Chúng ta chỉ muốn lấy dữ liệu trong bộ nhớ (in-memory)
-            SpeechSynthesizer synthesizer = new SpeechSynthesizer(speechConfig, null);
+            // 2. Cấu hình Output là NULL
+            // Chúng ta không phát ra loa server và không lưu file
+            // Chỉ lấy dữ liệu audio trong memory
+            synthesizer = new SpeechSynthesizer(speechConfig, null);
+
+            log.info("Calling Azure Speech synthesis...");
 
             // 3. Thực hiện chuyển đổi
-            SpeechSynthesisResult result = synthesizer.SpeakText(text);
+            result = synthesizer.SpeakText(text);
+
+            log.info("Azure result reason: {}", result.getReason());
 
             // 4. Xử lý kết quả
-            if (result.getReason() == ResultReason.SynthesizingAudioCompleted) {
-                // Trả về mảng byte âm thanh (định dạng WAV mặc định)
-                return result.getAudioData();
+            if (result.getReason()
+                    == ResultReason.SynthesizingAudioCompleted) {
+
+                // Lấy dữ liệu audio dạng byte[]
+                byte[] audioData = result.getAudioData();
+
+                log.info(
+                        "Audio generated successfully. Size={}",
+                        audioData != null ? audioData.length : 0
+                );
+
+                // Validate dữ liệu audio
+                if (audioData == null || audioData.length == 0) {
+                    throw new RuntimeException(
+                            "Azure returned empty audio data"
+                    );
+                }
+
+                return audioData;
+
             } else if (result.getReason() == ResultReason.Canceled) {
-                SpeechSynthesisCancellationDetails cancellation = SpeechSynthesisCancellationDetails.fromResult(result);
-                System.out.println("CANCELED: Reason=" + cancellation.getReason());
-                System.out.println("CANCELED: ErrorDetails=" + cancellation.getErrorDetails());
-                throw new RuntimeException("Azure TTS Error: " + cancellation.getErrorDetails());
+
+                SpeechSynthesisCancellationDetails cancellation =
+                        SpeechSynthesisCancellationDetails.fromResult(result);
+
+                log.error(
+                        "CANCELED: Reason={}",
+                        cancellation.getReason()
+                );
+
+                log.error(
+                        "CANCELED: ErrorDetails={}",
+                        cancellation.getErrorDetails()
+                );
+
+                throw new RuntimeException(
+                        "Azure TTS Error: "
+                                + cancellation.getErrorDetails()
+                );
             }
 
-            result.close();
-            synthesizer.close();
+            throw new RuntimeException(
+                    "Unexpected Azure TTS result: "
+                            + result.getReason()
+            );
 
         } catch (Exception e) {
-            e.printStackTrace();
+
+            log.error("Azure speech synthesis failed", e);
+
+            throw new RuntimeException(
+                    "Failed to synthesize speech",
+                    e
+            );
+
+        } finally {
+
+            // Giải phóng resource tránh memory leak
+            if (result != null) {
+                result.close();
+            }
+
+            if (synthesizer != null) {
+                synthesizer.close();
+            }
         }
-        return null;
     }
 }

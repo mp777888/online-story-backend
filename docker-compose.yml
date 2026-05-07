@@ -134,18 +134,16 @@ services:
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
       - KEYCLOAK_ISSUER_URI=http://keycloak:8080/realms/online-stories-realm
       - OPENSEARCH_URL=${OPENSEARCH_URL}
-      - OPENSEARCH_USERNAME=${OPENSEARCH_USERNAME}
-      - OPENSEARCH_PASSWORD=${OPENSEARCH_PASSWORD}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - GEMINI_PROJECT_ID=${GEMINI_PROJECT_ID}
       - MONGODB_URI=${MONGODB_URI}
       - MONGODB_DB=${AI_MONGODB_DB}
 
-  media_service:
+  media-service:
     build:
       context: .
       dockerfile: media_service/Dockerfile
-    container_name: media_service
+    container_name: media-service
     networks:
       - micro-network
     depends_on:
@@ -247,9 +245,12 @@ services:
       - MONGODB_DB=${TRANSACTION_MONGODB_DB}
       - VN_PAY_TMN_CODE=${VN_PAY_TMN_CODE}
       - VN_PAY_SECRET_KEY=${VN_PAY_SECRET_KEY}
+      - VN_PAY_RETURN_URL=${VN_PAY_RETURN_URL:-http://localhost:9000/api/transactions/vn-pay-call-back}
       - MOMO_PARTNER_CODE=${MOMO_PARTNER_CODE}
       - MOMO_ACCESS_KEY=${MOMO_ACCESS_KEY}
       - MOMO_SECRET_KEY=${MOMO_SECRET_KEY}
+      - MOMO_REDIRECT_URL=${MOMO_REDIRECT_URL:-http://localhost:9000/api/transactions/momo-call-back}
+      - MOMO_IPN_URL=${MOMO_IPN_URL:-http://localhost:9000/api/transactions/momo-call-back}
 
   user-service:
     build:
@@ -276,6 +277,33 @@ services:
       - MONGODB_URI=${MONGODB_URI}
       - MONGODB_DB=${USER_MONGODB_DB}
       - REDIS_URL=${REDIS_URL}
+
+#  prometheus:
+#    image: prom/prometheus:latest
+#    container_name: prometheus
+#    networks:
+#      - micro-network
+#    ports:
+#      - "9090:9090"
+#    volumes:
+#      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+#    command:
+#      - '--config.file=/etc/prometheus/prometheus.yml'
+#    depends_on:
+#      - service-registry
+#
+#  grafana:
+#    image: grafana/grafana:latest
+#    container_name: grafana
+#    networks:
+#      - micro-network
+#    ports:
+#      - "3000:3000"
+#    depends_on:
+#      - prometheus
+#    environment:
+#      - GF_SECURITY_ADMIN_PASSWORD=admin
+#      - GF_SECURITY_ADMIN_USER=admin
 
 networks:
   micro-network:
