@@ -47,7 +47,7 @@ payment:
     url: https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
     tmnCode: ${VN_PAY_TMN_CODE}
     secretKey: ${VN_PAY_SECRET_KEY}
-    returnUrl: ${VN_PAY_RETURN_URL}http://localhost:8085/api/transactions/vn-pay-call-back
+    returnUrl: ${VN_PAY_RETURN_URL:http://localhost:8085/api/transactions/vn-pay-call-back}
     version: 2.1.0
     command: pay
     orderType: other

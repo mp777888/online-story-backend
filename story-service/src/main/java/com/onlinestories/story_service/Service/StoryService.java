@@ -219,10 +219,10 @@ public class StoryService {
             }
 
             if (img != null && !img.isEmpty()) {
-                if (story.getImg() != null) {
-                    String message = mediaClient.deleteFile(story.getImg(), "image");
-                    log.info("Deleted old image for story {}: {}", story.getStoryId(), message);
-                }
+//                if (story.getImg() != null) {
+//                    String message = mediaClient.deleteFile(story.getImg(), "image");
+//                    log.info("Deleted old image for story {}: {}", story.getStoryId(), message);
+//                }
                 String imgUrl = mediaClient.uploadFile(img, "cover-img");
                 story.setImg(imgUrl);
             }
