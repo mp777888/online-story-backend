@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Thông báo - Online Stories</title>
+    <title>Thông báo - NovelToolKit</title>
     <style>
         body { margin: 0; padding: 0; background-color: #f4f4f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; }
         .card { background-color: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); text-align: center; max-width: 400px; width: 90%; }
@@ -17,7 +17,7 @@
 <body>
 
 <div class="card">
-    <div class="logo">📚 Online Stories</div>
+    <div class="logo">📚 NovelToolKit</div>
 
     <!-- Keycloak sẽ điền câu thông báo "Your email address has been verified" vào biến này -->
     <div class="message">

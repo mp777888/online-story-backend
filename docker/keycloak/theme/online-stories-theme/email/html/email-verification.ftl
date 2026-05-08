@@ -49,7 +49,7 @@
     <tr>
         <td align="center" style="background-color: #f8f9fa; padding: 30px 20px; font-size: 12px; color: #6c757d; border-top: 1px solid #eeeeee;">
             <p style="margin: 0 0 10px 0;">&copy; 2026 NovelToolKit. Tất cả các quyền được bảo lưu.</p>
-            <p style="margin: 0 0 10px 0;">Nếu bạn có bất kỳ câu hỏi nào, vui lòng liên hệ với đội hỗ trợ tại <a href="mailto:support@onlinestories.com" style="color: #4437a3; text-decoration: underline;">support@onlinestories.com</a></p>
+            <p style="margin: 0 0 10px 0;">Nếu bạn có bất kỳ câu hỏi nào, vui lòng liên hệ với đội hỗ trợ tại <a href="mailto:contact@NovelToolKit.vn" style="color: #4437a3; text-decoration: underline;">contact@NovelToolKit.vn</a></p>
             <p style="margin: 0; font-style: italic;">Đây là tin nhắn tự động, vui lòng không trả lời email này.</p>
         </td>
     </tr>

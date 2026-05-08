@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Đặt lại mật khẩu Online Stories</title>
+    <title>Đặt lại mật khẩu NovelToolKit</title>
     <style>
         body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
         table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
@@ -18,7 +18,7 @@
     <!-- Header -->
     <tr>
         <td align="center" style="background-color: #272863; padding: 35px 20px;">
-            <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: bold;">📚 Online Stories</h1>
+            <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: bold;">📚 NovelToolKit</h1>
         </td>
     </tr>
 
@@ -27,7 +27,7 @@
         <td style="padding: 40px 30px; color: #1a1a1a; line-height: 1.6;">
             <h2 style="margin: 0 0 20px 0; font-size: 20px;">Xin chào, ${user.firstName!user.username!'bạn'}! 👋</h2>
 
-            <p style="margin: 0 0 15px 0;">Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản Online Stories của bạn.</p>
+            <p style="margin: 0 0 15px 0;">Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn.</p>
 
             <p style="margin: 0 0 30px 0;">Nếu bạn là người thực hiện yêu cầu này, vui lòng nhấn vào nút bên dưới để tạo mật khẩu mới:</p>
 
@@ -44,8 +44,8 @@
     <!-- Footer -->
     <tr>
         <td align="center" style="background-color: #f8f9fa; padding: 30px 20px; font-size: 12px; color: #6c757d; border-top: 1px solid #eeeeee;">
-            <p style="margin: 0 0 10px 0;">&copy; 2026 Online Stories. Tất cả các quyền được bảo lưu.</p>
-            <p style="margin: 0 0 10px 0;">Nếu bạn có bất kỳ câu hỏi nào, vui lòng liên hệ với đội hỗ trợ tại <a href="mailto:support@onlinestories.com" style="color: #4437a3; text-decoration: underline;">support@onlinestories.com</a></p>
+            <p style="margin: 0 0 10px 0;">&copy; 2026 NovelToolKit. Tất cả các quyền được bảo lưu.</p>
+            <p style="margin: 0 0 10px 0;">Nếu bạn có bất kỳ câu hỏi nào, vui lòng liên hệ với đội hỗ trợ tại <a href="mailto:contact@NovelToolKit.vn" style="color: #4437a3; text-decoration: underline;">contact@NovelToolKit.vn</a></p>
             <p style="margin: 0; font-style: italic;">Đây là tin nhắn tự động, vui lòng không trả lời email này.</p>
         </td>
     </tr>
