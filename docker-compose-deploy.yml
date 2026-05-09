@@ -1,0 +1,310 @@
+﻿version: "3.8"
+
+services:
+  keycloak:
+    container_name: keycloak
+    image: quay.io/keycloak/keycloak:24.0.1
+    command: [ "start-dev", "--import-realm" ]
+    networks:
+      - micro-network
+
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://${DATABASE_HOST}:5432/${DATABASE_NAME}?sslmode=require
+      KC_DB_USERNAME: ${DATABASE_USERNAME}
+      KC_DB_PASSWORD: ${DATABASE_PASSWORD}
+
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+
+    ports:
+      - "8181:8080"
+
+    volumes:
+      - ./docker/keycloak/realms:/opt/keycloak/data/import
+      - ./docker/keycloak/theme/online-stories-theme:/opt/keycloak/themes/online-stories-theme
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.1
+    container_name: zookeeper
+    networks:
+      - micro-network
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.1
+    container_name: kafka
+    networks:
+      - micro-network
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://${IP_ADDRESS}:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    networks:
+      - micro-network
+    depends_on:
+      - kafka
+    ports:
+      - "8089:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+
+  service-registry:
+    build:
+      context: .
+      dockerfile: service-registry/Dockerfile
+    container_name: service-registry
+    networks:
+      - micro-network
+    ports:
+      - "8761:8761"
+    environment:
+      - EUREKA_INSTANCE_HOSTNAME=service-registry
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: api-gateway/Dockerfile
+    container_name: api-gateway
+    networks:
+      - micro-network
+    depends_on:
+      - service-registry
+    ports:
+      - "9000:9000"
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
+      - KEYCLOAK_ISSUER_URI=http://keycloak:8080/realms/online-stories-realm
+
+  authentication-service:
+    build:
+      context: .
+      dockerfile: authentication-service/Dockerfile
+    container_name: authentication-service
+    networks:
+      - micro-network
+    depends_on:
+      - service-registry
+    ports:
+      - "8082:8082"
+    environment:
+      - EUREKA_INSTANCE_HOSTNAME=authentication-service
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
+      - KEYCLOAK_SERVER_URL=http://keycloak:8080
+      - REALM=online-stories-realm
+      - CLIENT_ID=${CLIENT_ID}
+      - CLIENT_SECRET=${CLIENT_SECRET}
+      - KEYCLOAK_REDIRECT_URI=${KEYCLOAK_REDIRECT_URI}
+      - REDIS_URL=${REDIS_URL}
+
+  ai-service:
+    build:
+      context: .
+      dockerfile: ai-service/Dockerfile
+    container_name: ai-service
+    networks:
+      - micro-network
+    depends_on:
+      - service-registry
+      - kafka
+    ports:
+      - "8088:8088"
+    environment:
+      - EUREKA_INSTANCE_HOSTNAME=ai-service
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - KEYCLOAK_ISSUER_URI=http://keycloak:8080/realms/online-stories-realm
+      - OPENSEARCH_URL=${OPENSEARCH_URL}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_PROJECT_ID=${GEMINI_PROJECT_ID}
+      - MONGODB_URI=${MONGODB_URI}
+      - MONGODB_DB=${AI_MONGODB_DB}
+
+  media-service:
+    build:
+      context: .
+      dockerfile: media_service/Dockerfile
+    container_name: media-service
+    networks:
+      - micro-network
+    depends_on:
+      - service-registry
+    ports:
+      - "8084:8084"
+    environment:
+      - EUREKA_INSTANCE_HOSTNAME=media-service
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
+
+  recommend-service:
+    build:
+      context: .
+      dockerfile: recommend-service/Dockerfile
+    container_name: recommend-service
+    networks:
+      - micro-network
+    depends_on:
+      - service-registry
+      - kafka
+    ports:
+      - "8086:8086"
+    environment:
+      - EUREKA_INSTANCE_HOSTNAME=recommend-service
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - KEYCLOAK_ISSUER_URI=http://keycloak:8080/realms/online-stories-realm
+      - MONGODB_URI=${MONGODB_URI}
+      - MONGODB_DB=${RECOMMEND_MONGODB_DB}
+      - REDIS_URL=${REDIS_URL}
+      - REALM=online-stories-realm
+      - OPENSEARCH_URL=${OPENSEARCH_URL}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - COHERE_API_KEY=${COHERE_API_KEY}
+
+  report-service:
+    build:
+      context: .
+      dockerfile: report-service/Dockerfile
+    container_name: report-service
+    networks:
+      - micro-network
+    depends_on:
+      - service-registry
+      - kafka
+    ports:
+      - "8087:8087"
+    environment:
+      - EUREKA_INSTANCE_HOSTNAME=report-service
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - KEYCLOAK_ISSUER_URI=http://keycloak:8080/realms/online-stories-realm
+      - MONGODB_URI=${MONGODB_URI}
+      - MONGODB_DB=${REPORT_MONGODB_DB}
+
+  story-service:
+    build:
+      context: .
+      dockerfile: story-service/Dockerfile
+    container_name: story-service
+    networks:
+      - micro-network
+    depends_on:
+      - service-registry
+    ports:
+      - "8083:8083"
+    environment:
+      - EUREKA_INSTANCE_HOSTNAME=story-service
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - KEYCLOAK_ISSUER_URI=http://keycloak:8080/realms/online-stories-realm
+      - MONGODB_URI=${MONGODB_URI}
+      - MONGODB_DB=${STORY_MONGODB_DB}
+      - REDIS_URL=${REDIS_URL}
+      - AZURE_SPEECH_KEY=${AZURE_SPEECH_KEY}
+      - AZURE_SPEECH_REGION=${AZURE_SPEECH_REGION}
+
+  transaction-service:
+    build:
+      context: .
+      dockerfile: transaction-service/Dockerfile
+    container_name: transaction-service
+    networks:
+      - micro-network
+    depends_on:
+      - service-registry
+      - kafka
+    ports:
+      - "8085:8085"
+    environment:
+      - EUREKA_INSTANCE_HOSTNAME=transaction-service
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - KEYCLOAK_ISSUER_URI=http://keycloak:8080/realms/online-stories-realm
+      - MONGODB_URI=${MONGODB_URI}
+      - MONGODB_DB=${TRANSACTION_MONGODB_DB}
+      - VN_PAY_TMN_CODE=${VN_PAY_TMN_CODE}
+      - VN_PAY_SECRET_KEY=${VN_PAY_SECRET_KEY}
+      - VN_PAY_RETURN_URL=${VN_PAY_RETURN_URL}
+      - MOMO_PARTNER_CODE=${MOMO_PARTNER_CODE}
+      - MOMO_ACCESS_KEY=${MOMO_ACCESS_KEY}
+      - MOMO_SECRET_KEY=${MOMO_SECRET_KEY}
+      - MOMO_REDIRECT_URL=${MOMO_REDIRECT_URL}
+      - MOMO_IPN_URL=${MOMO_IPN_URL}
+
+  user-service:
+    build:
+      context: .
+      dockerfile: user-service/Dockerfile
+    container_name: user-service
+    networks:
+      - micro-network
+    depends_on:
+      - service-registry
+      - kafka
+    ports:
+      - "8081:8081"
+    environment:
+      - EUREKA_INSTANCE_HOSTNAME=user-service
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - KEYCLOAK_ISSUER_URI=http://keycloak:8080/realms/online-stories-realm
+      - KEYCLOAK_SERVER_URL=http://keycloak:8080
+      - REALM=online-stories-realm
+      - CLIENT_ID=${CLIENT_ID}
+      - CLIENT_SECRET=${CLIENT_SECRET}
+      - KEYCLOAK_REDIRECT_URI=${KEYCLOAK_REDIRECT_URI}
+      - MONGODB_URI=${MONGODB_URI}
+      - MONGODB_DB=${USER_MONGODB_DB}
+      - REDIS_URL=${REDIS_URL}
+
+#  prometheus:
+#    image: prom/prometheus:latest
+#    container_name: prometheus
+#    networks:
+#      - micro-network
+#    ports:
+#      - "9090:9090"
+#    volumes:
+#      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+#    command:
+#      - '--config.file=/etc/prometheus/prometheus.yml'
+#    depends_on:
+#      - service-registry
+#
+#  grafana:
+#    image: grafana/grafana:latest
+#    container_name: grafana
+#    networks:
+#      - micro-network
+#    ports:
+#      - "3000:3000"
+#    depends_on:
+#      - prometheus
+#    environment:
+#      - GF_SECURITY_ADMIN_PASSWORD=admin
+#      - GF_SECURITY_ADMIN_USER=admin
+
+networks:
+  micro-network:
+    driver: bridge
