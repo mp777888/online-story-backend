@@ -1,0 +1,29 @@
+name: Deploy NovelToolKit to Azure
+
+on:
+  push:
+    branches:
+      - master # Lắng nghe sự thay đổi trên nhánh master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH into Azure VM and Deploy
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            # 1. Đi vào thư mục dự án trên server
+            cd NovelToolKit
+            
+            # 2. Kéo code mới nhất từ nhánh master về
+            git pull origin master
+            
+            # 3. Chạy Docker
+            docker compose -f docker-compose-deploy.yml up -d --build
+            
+            # 4. Dọn dẹp các file rác của Docker cũ
+            docker image prune -f
