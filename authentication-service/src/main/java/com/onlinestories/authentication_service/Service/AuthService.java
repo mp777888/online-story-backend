@@ -3,8 +3,8 @@ package com.onlinestories.authentication_service.Service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.onlinestories.authentication_service.Client.UserClient;
-import com.onlinestories.authentication_service.DTO.AuthRequest;
+import com.onlinestories.authentication_service.client.UserClient;
+import com.onlinestories.authentication_service.dto.AuthRequest;
 
 import com.onlinestories.common.exception.AppException;
 import com.onlinestories.common.exception.ErrorCode;

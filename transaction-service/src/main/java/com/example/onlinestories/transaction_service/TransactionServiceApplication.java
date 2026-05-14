@@ -9,7 +9,7 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 		"com.example.onlinestories.transaction_service",
 		"com.onlinestories.common"
 })
-@EnableFeignClients(basePackages = "com.example.onlinestories.transaction_service.Client")
+@EnableFeignClients(basePackages = "com.example.onlinestories.transaction_service.client")
 @EnableDiscoveryClient
 public class TransactionServiceApplication {
 

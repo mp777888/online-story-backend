@@ -9,7 +9,7 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 		"com.onlinestories.authentication_service",
 		"com.onlinestories.common"
 })
-@EnableFeignClients(basePackages = "com.onlinestories.authentication_service.Client")
+@EnableFeignClients(basePackages = "com.onlinestories.authentication_service.client")
 @EnableDiscoveryClient
 public class AuthenticationServiceApplication {
 

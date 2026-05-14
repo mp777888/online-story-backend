@@ -10,7 +10,7 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 		"com.onlinestories.recommend_service",
 		"com.onlinestories.common"
 })
-@EnableFeignClients(basePackages = "com.onlinestories.recommend_service.Client")
+@EnableFeignClients(basePackages = "com.onlinestories.recommend_service.client")
 @EnableDiscoveryClient
 @EnableCaching
 public class RecommendServiceApplication {

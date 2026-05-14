@@ -10,7 +10,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 		"com.onlinestories.story_service",
 		"com.onlinestories.common"
 })
-@EnableFeignClients(basePackages = "com.onlinestories.story_service.Client")
+@EnableFeignClients(basePackages = "com.onlinestories.story_service.client")
 @EnableDiscoveryClient
 @EnableScheduling
 public class StoryServiceApplication {
