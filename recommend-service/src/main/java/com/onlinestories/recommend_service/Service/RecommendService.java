@@ -1,6 +1,6 @@
 package com.onlinestories.recommend_service.Service;
 
-import com.onlinestories.recommend_service.Entity.StorySearchItem;
+import com.onlinestories.recommend_service.entity.StorySearchItem;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.opensearch.client.opensearch.OpenSearchClient;

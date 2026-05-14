@@ -9,7 +9,7 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 		"com.onlinestories.user_service",
 		"com.onlinestories.common"
 })
-@EnableFeignClients(basePackages = "com.onlinestories.user_service.Client")
+@EnableFeignClients(basePackages = "com.onlinestories.user_service.client")
 @EnableDiscoveryClient
 public class UserServiceApplication {
 
