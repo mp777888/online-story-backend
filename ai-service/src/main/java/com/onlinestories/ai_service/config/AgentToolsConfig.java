@@ -75,7 +75,9 @@ public class AgentToolsConfig {
                         .limit(3)
                         .map(doc -> {
                             String storyTitle = doc.getMetadata().getOrDefault("storyTitle", "Chưa rõ").toString();
-                            return String.format("Tên truyện: %s \n---\nTrích đoạn nội dung: %s", storyTitle, doc.getText());
+                            String storyId = doc.getMetadata().getOrDefault("storyId", "Unknown").toString();
+                            return String.format("Tên truyện: %s (Mã ID truyện: %s) \n---\nTrích đoạn nội dung: %s",
+                                    storyTitle, storyId, doc.getText());
                         })
                         .collect(Collectors.joining("\n\n=====\n\n"));
 

@@ -64,6 +64,9 @@ bonsai:
   opensearch:
     url: ${OPENSEARCH_URL}
 
+api:
+  endpoints:
+    story: ${API_STORY_ENDPOINT:http://localhost:3000/story}
 
 eureka:
   instance:

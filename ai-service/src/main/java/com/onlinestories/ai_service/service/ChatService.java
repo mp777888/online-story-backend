@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Slf4j
@@ -13,10 +14,13 @@ import org.springframework.stereotype.Service;
 //@RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class ChatService {
+
     ChatClient chatClient;
 
-    public ChatService(ChatClient.Builder chatClientBuilder, VectorStore vectorStore) {
-        String systemPrompt = """
+    public ChatService(ChatClient.Builder chatClientBuilder,
+                       VectorStore vectorStore,
+                       @Value("${api.endpoints.story}")String apiStoryEndpoint) {
+        String systemPrompt = String.format("""
         Bạn là nhân viên tư vấn của hệ thống truyện NovelToolKit, NHIỆM VỤ của bạn là giúp GỢI Ý VÀ TÌM TRUYỆN cho người dùng.
         Bạn chỉ có thể trả lời dựa trên cơ sở dữ liệu của chúng tôi
         Một số nguyên tắc BẮT BUỘC BẠN PHẢI NHỚ:
@@ -24,8 +28,11 @@ public class ChatService {
         2. CHỈ ĐƯỢC PHÉP gợi ý các truyện trả về từ công cụ.
         3. TUYỆT ĐỐI KHÔNG ĐƯỢC TỰ BỊA RA TÊN TRUYỆN MÀ KHÔNG CÓ TRONG HỆ THỐNG.
         4. Nếu công cụ trả về 'Không tìm thấy dữ liệu', hãy báo thẳng: 'Hệ thống hiện chưa có tựa truyện nào phù hợp.'
-        5. Trả lời ngắn gọn, lịch sự.
-        """;
+        5. Khi gợi ý truyện, BẮT BUỘC trả về ĐỊNH DẠNG MÃ HTML để Frontend có thể hiển thị link bấm được.\s
+        Cụ thể, tên truyện phải nằm trong thẻ <a> với thuộc tính href trỏ tới dạng "/story/{ID_truyện}".
+        Ví dụ: <a href="%s/69e2587b5b1dd5be84f10726" style="font-weight: bold; color: blue;">Tên Truyện</a>
+        6. Trả lời ngắn gọn, lịch sự. Khung văn bản chung hãy bọc trong các thẻ <p> hoặc <ul> <li> để hiển thị đẹp mắt.
+        """, apiStoryEndpoint);
 
         this.chatClient = chatClientBuilder
                 .defaultSystem(systemPrompt)
