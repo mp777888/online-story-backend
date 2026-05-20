@@ -2,6 +2,7 @@ package com.onlinestories.story_service.service;
 
 import com.onlinestories.common.exception.AppException;
 import com.onlinestories.common.exception.ErrorCode;
+import com.onlinestories.story_service.client.TransactionClient;
 import com.onlinestories.story_service.dto.response.AuthorMonthlyStatsResponse;
 import com.onlinestories.story_service.dto.response.ChapterStatsResponse;
 import com.onlinestories.story_service.dto.response.StoryDailyViewResponse;
@@ -20,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.Document;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -37,6 +39,7 @@ import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @Slf4j
@@ -47,6 +50,7 @@ public class AnalyticsService {
     ChapterRepository chapterRepository;
     ProgressReadingRepository progressReadingRepository;
     StoryDailyViewRepository storyDailyViewRepository;
+    TransactionClient transactionClient;
     MongoTemplate mongoTemplate;
 
 
@@ -158,8 +162,7 @@ public class AnalyticsService {
         return results.getMappedResults();
     }
 
-    // Thêm hàm này vào AnalyticsService.java
-
+    @Cacheable(value = "authorMonthlyStats", key = "#authorId + '-' + #monthStr")
     public AuthorMonthlyStatsResponse getAuthorMonthlyStats(String authorId, String monthStr) {
         log.info("Fetching monthly stats for author: {}, month: {}", authorId, monthStr);
 
@@ -170,7 +173,7 @@ public class AnalyticsService {
 
         Criteria dateCriteria = Criteria.where("date").gte(startDate).lte(endDate);
 
-        // 2. Lấy danh sách câu truyện của tác giả này
+        // 2. Lấy danh sách truyện của tác giả này
         List<Story> authorStories = storyRepository.findByAuthorIdAndStatusNot(
                         authorId, com.onlinestories.story_service.enums.StoryStatus.DRAFT, PageRequest.of(0, 9999))
                 .toList();
@@ -227,6 +230,17 @@ public class AnalyticsService {
         LocalDateTime startDateTime = startDate.atStartOfDay();
         LocalDateTime endDateTime = endDate.atTime(23, 59, 59, 999999999);
 
+        Aggregation firstChapterAgg = Aggregation.newAggregation(
+                Aggregation.match(Criteria.where("storyId").in(authorStoryIds)
+                        .and("status").is(ChapterStatus.PUBLISHED)
+                        .and("publishedAt").ne(null)),
+                Aggregation.group("storyId").min("publishedAt").as("firstPublishedAt"),
+                // Lọc những truyện có thời gian chương ĐẦU TIÊN lọt vào tháng hiện tại
+                Aggregation.match(Criteria.where("firstPublishedAt").gte(startDateTime).lte(endDateTime))
+        );
+        long totalPublishedStoriesThisMonth = mongoTemplate.aggregate(firstChapterAgg, Chapter.class, Document.class).getMappedResults().size();
+
+
         Query chapterQuery = new Query(
                 new Criteria().andOperator(
                         Criteria.where("storyId").in(authorStoryIds), // Các truyện của tác giả
@@ -237,13 +251,37 @@ public class AnalyticsService {
 
         long totalPublishedChaptersThisMonth = mongoTemplate.count(chapterQuery, Chapter.class);
 
-        // 5. Trả về kết quả
+
+        // 5. Tính: Doanh thu ước tính
+        double unlockIncome = 0.0;
+        List<Story> premiumStories = authorStories.stream().filter(Story::isPremium).toList();
+        if (!premiumStories.isEmpty()) {
+            List<String> premiumStoryIds = premiumStories.stream().map(Story::getStoryId).toList();
+            try {
+                // Lấy mốc count unlock từ transaction
+                Map<String, Long> unlockCounts = transactionClient.getUnlockCountsForStories(premiumStoryIds, startDateTime, endDateTime);
+                for (Story s : premiumStories) {
+                    long count = unlockCounts.getOrDefault(s.getStoryId(), 0L);
+                    if (count > 0) {
+                        // Trích lại 80% doanh thu unlock cho tác giả
+                        unlockIncome += count * (s.getUnlockPrice() * 0.8);
+                    }
+                }
+            } catch (Exception e) {
+                log.error("Failed to fetch unlock counts from transaction-service: {}", e.getMessage());
+            }
+        }
+
+        double finalEstimatedIncome = (totalMonthViews * 0.5) + unlockIncome;
+
+        // 6. Trả về kết quả
         return AuthorMonthlyStatsResponse.builder()
                 .authorId(authorId)
                 .month(monthStr)
                 .totalViews(totalMonthViews)
+                .totalPublishedStories(totalPublishedStoriesThisMonth)
                 .totalPublishedChapters(totalPublishedChaptersThisMonth)
-                .estimatedIncome(totalMonthViews * 0.5)
+                .estimatedIncome(finalEstimatedIncome)
                 .topStories(topStories)
                 .build();
     }
