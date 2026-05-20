@@ -2,7 +2,7 @@ package com.onlinestories.recommend_service.controller;
 
 import com.onlinestories.common.exception.ApiResponse;
 import com.onlinestories.recommend_service.entity.StorySearchItem;
-import com.onlinestories.recommend_service.Service.RecommendService;
+import com.onlinestories.recommend_service.service.RecommendService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;

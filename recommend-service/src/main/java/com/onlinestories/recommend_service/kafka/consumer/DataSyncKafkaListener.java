@@ -1,4 +1,4 @@
-package com.onlinestories.recommend_service.Kafka.consumer;
+package com.onlinestories.recommend_service.kafka.consumer;
 
 import com.onlinestories.common.kafka.KafkaTopics;
 import com.onlinestories.common.story.event.StoryMetricsSyncEvent;
@@ -6,7 +6,7 @@ import com.onlinestories.common.story.event.StoryUpdatedEvent;
 import com.onlinestories.common.user.event.UserEvent;
 import com.onlinestories.recommend_service.entity.StorySearchItem;
 import com.onlinestories.recommend_service.entity.UserSearchItem;
-import com.onlinestories.recommend_service.Service.AiEmbeddingService;
+import com.onlinestories.recommend_service.service.AiEmbeddingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.opensearch.client.opensearch.OpenSearchClient;

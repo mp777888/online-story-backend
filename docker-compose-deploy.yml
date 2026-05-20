@@ -138,6 +138,7 @@ services:
       - GEMINI_PROJECT_ID=${GEMINI_PROJECT_ID}
       - MONGODB_URI=${MONGODB_URI}
       - MONGODB_DB=${AI_MONGODB_DB}
+      - API_STORY_ENDPOINT=${API_STORY_ENDPOINT}
 
   media-service:
     build:
