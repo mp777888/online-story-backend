@@ -15,6 +15,7 @@ public class AuthorMonthlyStatsResponse {
     String authorId;
     String month;
     long totalViews;
+    long totalPublishedStories;
     long totalPublishedChapters;
     double estimatedIncome;
     List<TopStoryStat> topStories;
@@ -22,6 +23,8 @@ public class AuthorMonthlyStatsResponse {
     @Getter
     @Setter
     @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class TopStoryStat {
         String storyId;
         String title;

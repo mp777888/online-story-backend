@@ -33,6 +33,8 @@ import java.time.YearMonth;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -267,6 +269,13 @@ public class WalletService {
             log.info("Unlock story does not exist for userId: {}, storyId: {}", userId, storyId);
             return false;
         }
+    }
+
+    public Map<String, Long> countUnlocksForStories(List<String> storyIds, LocalDateTime start, LocalDateTime end) {
+        List<UnlockStory> unlocks = unlockStoryRepository.findByStoryIdInAndUnlockDateBetween(storyIds, start, end);
+
+        return unlocks.stream()
+                .collect(Collectors.groupingBy(UnlockStory::getStoryId, Collectors.counting()));
     }
 
     public void updateStatus(String txnRef, String status) {
