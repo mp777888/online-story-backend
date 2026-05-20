@@ -2,7 +2,7 @@ package com.onlinestories.authentication_service.controller;
 
 import com.onlinestories.authentication_service.dto.AuthRequest;
 
-import com.onlinestories.authentication_service.Service.AuthService;
+import com.onlinestories.authentication_service.service.AuthService;
 import com.onlinestories.common.exception.ApiResponse;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;

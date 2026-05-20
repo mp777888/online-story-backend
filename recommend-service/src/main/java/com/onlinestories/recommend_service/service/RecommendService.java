@@ -1,4 +1,4 @@
-package com.onlinestories.recommend_service.Service;
+package com.onlinestories.recommend_service.service;
 
 import com.onlinestories.recommend_service.entity.StorySearchItem;
 import lombok.RequiredArgsConstructor;
