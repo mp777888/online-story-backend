@@ -510,10 +510,10 @@ public class WritingService {
             Chapter chapter = chapterRepository.findById(request.getChapterId())
                     .orElseThrow(() -> new AppException(ErrorCode.CHAPTER_NOT_FOUND));
 
-//            if(chapter.getStatus() == ChapterStatus.PUBLISHED){
-//                log.warn("Chapter with ID: {} is already published", request.getChapterId());
-//                throw new AppException(ErrorCode.CHAPTER_ALREADY_PUBLISHED);
-//            }
+            if(chapter.getStatus() == ChapterStatus.TAKEN_DOWN){
+                log.warn("Chapter with ID: {} is currently taken down and cannot be published", request.getChapterId());
+                throw new AppException(ErrorCode.CHAPTER_IS_TAKEN_DOWN);
+            }
 
             ChapterVersion version = chapterVersionRepository.findById(request.getChapterVersionId())
                     .orElseThrow(() -> new AppException(ErrorCode.VERSION_NOT_FOUND));
