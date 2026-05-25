@@ -1,5 +1,6 @@
 package com.onlinestories.ai_service.config;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.onlinestories.ai_service.client.StoryClient;
 import com.onlinestories.common.exception.ApiResponse;
 import com.onlinestories.common.story.dto.GenreResponse;
@@ -26,6 +27,7 @@ public class AgentToolsConfig {
 
     public record GenreRequest() {}
     public record ContentSearchRequest(String searchPhrase) {}
+    public record TopStoriesRequest(String period, int topN) {}
 
 
     @Bean
@@ -90,6 +92,56 @@ public class AgentToolsConfig {
             } catch (Exception e) {
                 log.error("Lỗi khi OpenSearch query: {}", e.getMessage());
                 return "Cơ sở dữ liệu đang quá tải, báo với người dùng hãy thử lại sau.";
+            }
+        };
+    }
+
+    @Bean
+    @Description("Dùng để lấy danh sách CÁC TRUYỆN ĐƯỢC XEM NHIỀU NHẤT (Top truyện hot, phổ biến, top-view) THEO THỜI GIAN. Tham số 'period' BẮT BUỘC chỉ được phép nhận 1 trong 4 giá trị Tiếng Anh sau: 'TODAY' (ngày), 'WEEK' (tuần), 'MONTH' (tháng), 'ALL_TIME' (hiện tại/tất cả).")
+    public Function<TopStoriesRequest, String> getTopStoriesFunction() {
+        return request -> {
+            log.info("Agent đang gọi getTopStoriesFunction với period: {}", request.period());
+
+            try {
+                // Đảm bảo AI truyền đúng tên biến Period (nếu nó truyền tiếng việt sẽ bị lỗi)
+                String validPeriod = request.period().toUpperCase();
+                if (!List.of("TODAY", "WEEK", "MONTH", "ALL_TIME").contains(validPeriod)) {
+                    validPeriod = "WEEK";
+                }
+
+                // Chọc sang story-service để lấy dữ liệu top truyện được xem nhiều nhất
+                ApiResponse<JsonNode> response =
+                        storyClient.getTopViewedStories(validPeriod, 0, request.topN());
+
+                if (response == null || response.getResult() == null) {
+                    return "Không thể lấy thông tin top truyện lúc này.";
+                }
+
+                // Dùng JsonNode gắp xuất trực tiếp mảng content
+                JsonNode contentArray = response.getResult().get("content");
+                if (contentArray == null || contentArray.isEmpty()) {
+                    return "Hiện tại chưa có xếp hạng bảng vàng cho thời gian này.";
+                }
+
+                StringBuilder sb = new StringBuilder();
+
+                for (int i = 0; i < contentArray.size(); i++) {
+                    JsonNode story = contentArray.get(i);
+                    String title = story.get("title").asText();
+                    String id = story.get("storyId").asText();
+                    int views = story.get("numberOfViews").asInt();
+
+                    sb.append(i + 1).append(". Tên truyện: ").append(title)
+                            .append(" (Mã ID truyện: ").append(id).append(") ")
+                            .append("- Lượt xem: ").append(views)
+                            .append("\n");
+                }
+
+                return "ĐÂY LÀ KẾT QUẢ TOP TRUYỆN ĐƯỢC XEM NHIỀU NHẤT TỪ HỆ THỐNG:\n" + sb;
+
+            } catch (Exception e) {
+                log.error("Lỗi khi lấy top truyện bằng AI Tool: {}", e.getMessage());
+                return "Hệ thống truyện đang bận hoặc quá tải, không thể xem xếp hạng lúc này.";
             }
         };
     }

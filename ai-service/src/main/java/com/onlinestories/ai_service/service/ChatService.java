@@ -44,7 +44,7 @@ public class ChatService {
             log.info("Received user message: {}", userMessage);
             return this.chatClient.prompt()
                     .user(userMessage)
-                    .toolNames("searchStoryByContent", "getAvailableGenres")
+                    .toolNames("searchStoryByContent", "getAvailableGenres", "getTopStoriesFunction")
                     .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, sessionId))
                     .call()
                     .content();

@@ -1,5 +1,6 @@
 package com.onlinestories.ai_service.client;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.onlinestories.common.chapter.dto.ChapterDTOResponse;
 import com.onlinestories.common.exception.ApiResponse;
 import com.onlinestories.common.story.dto.GenreResponse;
@@ -16,4 +17,10 @@ public interface StoryClient {
 
     @GetMapping("api/stories/genres/all")
     ApiResponse<List<GenreResponse>> getAllGenres();
+
+    @GetMapping("api/stories/top-viewed-stories")
+    ApiResponse<JsonNode> getTopViewedStories(
+            @RequestParam("period") String period,
+            @RequestParam("page") int page,
+            @RequestParam("size") int size);
 }
