@@ -3,6 +3,7 @@ package com.onlinestories.story_service.controller;
 import com.onlinestories.common.exception.ApiResponse;
 import com.onlinestories.common.utils.JwtUtils;
 import com.onlinestories.story_service.dto.request.CreateChapterRequest;
+import com.onlinestories.story_service.dto.request.ListChapterRequest;
 import com.onlinestories.story_service.dto.request.PublishRequest;
 import com.onlinestories.story_service.dto.request.UpdateChapterRequest;
 import com.onlinestories.story_service.dto.response.*;
@@ -252,6 +253,20 @@ public class ChapterController {
                 .code(200)
                 .message("Latest chapter fetched successfully")
                 .result(readingService.getLatestChapter(userId,storyId))
+                .build();
+    }
+
+    @PutMapping("/free-preview-chapters")
+    public ApiResponse<String> choosingFreePreviewChapters(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestBody ListChapterRequest request) {
+        String authorId = JwtUtils.getSubject(jwt);
+        log.info("Received request to set free preview chapters for story ID: {}, chapter IDs: {}", request.getStoryId(), request.getChapterIds());
+        writingService.chooseFreePreviewChapters(authorId, request);
+        return ApiResponse.<String>builder()
+                .code(200)
+                .message("Free preview chapters set successfully")
+                .result("Free preview chapters updated successfully")
                 .build();
     }
 

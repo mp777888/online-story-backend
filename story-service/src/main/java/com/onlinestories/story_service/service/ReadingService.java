@@ -70,6 +70,7 @@ public class ReadingService {
                                 .chapterId(chapter.getChapterId())
                                 .title(chapter.getTitle())
                                 .img(chapter.getImg())
+                                .isFreePreview(chapter.isFreePreview())
                                 .createdAt(chapter.getCreatedAt())
                                 .lastEditedAt(chapter.getLastEditedAt())
                                 .build());
@@ -81,6 +82,7 @@ public class ReadingService {
                                 .chapterId(chapter.getChapterId())
                                 .title(chapter.getTitle())
                                 .img(chapter.getImg())
+                                .isFreePreview(chapter.isFreePreview())
                                 .status(chapter.getStatus().name())
                                 .createdAt(chapter.getCreatedAt())
                                 .build());
@@ -92,6 +94,7 @@ public class ReadingService {
                                 .chapterId(chapter.getChapterId())
                                 .title(chapter.getTitle())
                                 .img(chapter.getImg())
+                                .isFreePreview(chapter.isFreePreview())
                                 .createdAt(chapter.getCreatedAt())
                                 .build());
             }

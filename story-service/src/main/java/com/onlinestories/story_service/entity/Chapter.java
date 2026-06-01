@@ -30,4 +30,5 @@ public class Chapter {
     String publishedVersionId;
     String audioUrl;
     int numberOfViews;
+    boolean isFreePreview = false;
 }
