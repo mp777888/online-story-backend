@@ -42,6 +42,7 @@ public enum ErrorCode {
     FAVORITE_NOT_FOUND(2022, "Favorite not found", HttpStatus.NOT_FOUND),
     CHAPTER_IS_TAKEN_DOWN(2023, "Chapter is taken down", HttpStatus.BAD_REQUEST),
     GENERATE_IMAGE_ERROR(2024, "Generate image error", HttpStatus.INTERNAL_SERVER_ERROR),
+    STORY_IS_NOT_PREMIUM(2025, "Story is not premium", HttpStatus.BAD_REQUEST),
     ACCESS_DENIED(2900, "Access denied", HttpStatus.FORBIDDEN),
 
     INVALID_CREDENTIALS(3001, "Invalid username or password", HttpStatus.UNAUTHORIZED),
@@ -64,6 +65,9 @@ public enum ErrorCode {
     HISTORY_NOT_FOUND(5010, "Transaction history not found", HttpStatus.NOT_FOUND),
     HISTORY_ERROR(5011, "Transaction history error", HttpStatus.INTERNAL_SERVER_ERROR),
     PAYOUT_ERROR(5012, "Payout error", HttpStatus.INTERNAL_SERVER_ERROR),
+    INVALID_WITHDRAWAL_REQUEST(5013, "Invalid withdrawal request", HttpStatus.BAD_REQUEST),
+    WITHDRAWAL_NOT_FOUND(5014, "Withdrawal not found", HttpStatus.NOT_FOUND),
+    PAYOS_PAYOUT_NOT_CONFIGURED(5015, "payOS payout is not configured", HttpStatus.INTERNAL_SERVER_ERROR),
 
     PLAGIARISM_DETECTED(6001, "Plagiarism detected", HttpStatus.BAD_REQUEST),
 

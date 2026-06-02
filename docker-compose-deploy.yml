@@ -92,6 +92,7 @@ services:
     ports:
       - "9000:9000"
     environment:
+      - PUBLIC_FE_URL=${PUBLIC_FE_URL}
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
       - KEYCLOAK_ISSUER_URI=http://keycloak:8080/realms/online-stories-realm
 

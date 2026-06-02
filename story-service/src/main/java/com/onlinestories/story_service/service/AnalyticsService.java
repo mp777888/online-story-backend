@@ -162,7 +162,7 @@ public class AnalyticsService {
         return results.getMappedResults();
     }
 
-    @Cacheable(value = "authorMonthlyStats", key = "#authorId + '-' + #monthStr")
+//    @Cacheable(value = "authorMonthlyStats", key = "#authorId + '-' + #monthStr")
     public AuthorMonthlyStatsResponse getAuthorMonthlyStats(String authorId, String monthStr) {
         log.info("Fetching monthly stats for author: {}, month: {}", authorId, monthStr);
 

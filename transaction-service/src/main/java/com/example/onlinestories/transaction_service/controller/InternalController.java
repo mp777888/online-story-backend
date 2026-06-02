@@ -41,7 +41,7 @@ public class InternalController {
         walletService.updateWritingTokens(userId, tokens, HistoryStatus.EARNED);
     }
 
-    @GetMapping("/internal/unlock-counts")
+    @GetMapping("/unlock-counts")
     public Map<String, Long> getUnlockCountsForStories(
             @RequestParam("storyIds") List<String> storyIds,
             @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,

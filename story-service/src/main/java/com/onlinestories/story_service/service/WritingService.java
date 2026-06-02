@@ -7,6 +7,7 @@ import com.onlinestories.common.exception.ErrorCode;
 import com.onlinestories.story_service.client.AIClient;
 import com.onlinestories.story_service.client.MediaClient;
 import com.onlinestories.story_service.dto.request.CreateChapterRequest;
+import com.onlinestories.story_service.dto.request.ListChapterRequest;
 import com.onlinestories.story_service.dto.request.PublishRequest;
 import com.onlinestories.story_service.dto.request.UpdateChapterRequest;
 import com.onlinestories.story_service.dto.response.ChapterResponse;
@@ -46,6 +47,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
@@ -483,6 +485,31 @@ public class WritingService {
     }
 
 
+    public void chooseFreePreviewChapters(String userId, ListChapterRequest request){
+        log.info("Choosing free preview chapters for storyId: {}", request.getStoryId());
+
+        Story story = storyRepository.findById(request.getStoryId())
+                .orElseThrow(() -> new AppException(ErrorCode.STORY_NOT_FOUND));
+
+        if(!story.getAuthorId().equals(userId)) {
+            log.warn("User with ID: {} is not the author of the story and cannot choose free preview chapters", userId);
+            throw new AppException(ErrorCode.ACCESS_DENIED);
+        }
+
+        if(!story.isPremium()){
+            log.warn("Story with ID: {} is not a premium story, cannot choose free preview chapters", request.getStoryId());
+            throw new AppException(ErrorCode.STORY_IS_NOT_PREMIUM);
+        }
+
+        List<Chapter> chapters = chapterRepository.findByStoryId(request.getStoryId());
+
+        for(Chapter chapter : chapters){
+            chapter.setFreePreview(request.getChapterIds().contains(chapter.getChapterId()));
+        }
+
+        chapterRepository.saveAll(chapters);
+        log.info("Free preview chapters updated successfully for storyId: {}", request.getStoryId());
+    }
 
     // Publish chapter
     @Transactional
@@ -510,10 +537,10 @@ public class WritingService {
             Chapter chapter = chapterRepository.findById(request.getChapterId())
                     .orElseThrow(() -> new AppException(ErrorCode.CHAPTER_NOT_FOUND));
 
-//            if(chapter.getStatus() == ChapterStatus.PUBLISHED){
-//                log.warn("Chapter with ID: {} is already published", request.getChapterId());
-//                throw new AppException(ErrorCode.CHAPTER_ALREADY_PUBLISHED);
-//            }
+            if(chapter.getStatus() == ChapterStatus.TAKEN_DOWN){
+                log.warn("Chapter with ID: {} is currently taken down and cannot be published", request.getChapterId());
+                throw new AppException(ErrorCode.CHAPTER_IS_TAKEN_DOWN);
+            }
 
             ChapterVersion version = chapterVersionRepository.findById(request.getChapterVersionId())
                     .orElseThrow(() -> new AppException(ErrorCode.VERSION_NOT_FOUND));

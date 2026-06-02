@@ -54,6 +54,21 @@ public class ReportController {
             .build();
     }
 
+    @GetMapping("/my")
+    public ApiResponse<Page<ReportResponse>> getMyReports(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ){
+        String userId = JwtUtils.getSubject(jwt);
+        log.info("Retrieving reports for user: {} - page: {}, size: {}", userId, page, size);
+        return ApiResponse.<Page<ReportResponse>>builder()
+            .code(200)
+            .message("User's reports retrieved successfully")
+            .result(reportService.getMyReports(userId, page, size))
+            .build();
+    }
+
     @GetMapping("/id")
     public ApiResponse<ReportResponse> getReportById(
             @AuthenticationPrincipal Jwt jwt,

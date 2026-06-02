@@ -200,6 +200,22 @@ public class ReportService {
                 .build();
     }
 
+    public Page<ReportResponse> getMyReports(String userId, int page, int size){
+        log.info("Getting reports for user: {}, page: {}, size: {}", userId, page, size);
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        return reportRepository.findByReporterId(userId, pageable)
+                .map(report -> ReportResponse.builder()
+                        .reportId(report.getReportId())
+                        .reporterId(report.getReporterId())
+                        .reportedId(report.getReportedId())
+                        .type(report.getType().name())
+                        .reason(report.getReason().name())
+                        .status(report.getStatus().name())
+                        .content(report.getContent())
+                        .createdAt(report.getCreatedAt())
+                        .build());
+    }
+
     public Page<ReportResponse> getAllReports(int page, int size){
         log.info("Getting all reports - page: {}, size: {}", page, size);
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());

@@ -1,6 +1,7 @@
 package com.onlinestories.ai_service.controller;
 
 import com.onlinestories.ai_service.dto.request.ContentSuggestionRequest;
+import com.onlinestories.ai_service.dto.request.GrammarCorrectionRequest;
 import com.onlinestories.ai_service.dto.request.SpellingCorrectionRequest;
 import com.onlinestories.ai_service.dto.response.PlagiarismResponse;
 import com.onlinestories.ai_service.service.WritingAssistantService;
@@ -48,6 +49,12 @@ public class AIController {
     public String correctSpelling(@RequestBody SpellingCorrectionRequest request) {
         log.info("Received request to correct spelling");
         return writingAssistantService.correctSpelling(request.content());
+    }
+
+    @PostMapping("/improve-grammar")
+    public String improveGrammar(@RequestBody GrammarCorrectionRequest request) {
+        log.info("Received request to improve grammar");
+        return writingAssistantService.improveGrammar(request.content());
     }
 
     @PostMapping("/suggest-content")
