@@ -16,11 +16,9 @@ services:
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
       KC_PROXY_HEADERS: xforwarded
-      KC_HOSTNAME_URL: ${KEYCLOAK_SCHEME}://${KEYCLOAK_DOMAIN}:${KEYCLOAK_PORT}
-      KC_HOSTNAME_ADMIN_URL: ${KEYCLOAK_SCHEME}://${KEYCLOAK_DOMAIN}:${KEYCLOAK_PORT}
+      KC_HOSTNAME_URL: ${https://novel-tool-kit.id.vn}
+      KC_HOSTNAME_ADMIN_URL: ${https://novel-tool-kit.id.vn}
 
-    ports:
-      - "2053:8080"
 
     volumes:
       - ./docker/keycloak/realms:/opt/keycloak/data/import
@@ -91,12 +89,10 @@ services:
       - micro-network
     depends_on:
       - service-registry
-    ports:
-      - "8443:9000"
     environment:
       - PUBLIC_FE_URL=${PUBLIC_FE_URL}
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
-      - KEYCLOAK_ISSUER_URI=${KEYCLOAK_SCHEME}://${KEYCLOAK_DOMAIN}:${KEYCLOAK_PORT}/realms/${REALM}
+      - KEYCLOAK_ISSUER_URI=${KEYCLOAK_ISSUER_URI}
 
   authentication-service:
     build:
@@ -107,8 +103,6 @@ services:
       - micro-network
     depends_on:
       - service-registry
-    ports:
-      - "8082:8082"
     environment:
       - EUREKA_INSTANCE_HOSTNAME=authentication-service
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
@@ -129,13 +123,11 @@ services:
     depends_on:
       - service-registry
       - kafka
-    ports:
-      - "8088:8088"
     environment:
       - EUREKA_INSTANCE_HOSTNAME=ai-service
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
-      - KEYCLOAK_ISSUER_URI=${KEYCLOAK_SCHEME}://${KEYCLOAK_DOMAIN}:${KEYCLOAK_PORT}/realms/${REALM}
+      - KEYCLOAK_ISSUER_URI=${KEYCLOAK_ISSUER_URI}
       - OPENSEARCH_URL=${OPENSEARCH_URL}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - GEMINI_PROJECT_ID=${GEMINI_PROJECT_ID}
@@ -152,8 +144,6 @@ services:
       - micro-network
     depends_on:
       - service-registry
-    ports:
-      - "8084:8084"
     environment:
       - EUREKA_INSTANCE_HOSTNAME=media-service
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
@@ -171,13 +161,11 @@ services:
     depends_on:
       - service-registry
       - kafka
-    ports:
-      - "8086:8086"
     environment:
       - EUREKA_INSTANCE_HOSTNAME=recommend-service
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
-      - KEYCLOAK_ISSUER_URI=${KEYCLOAK_SCHEME}://${KEYCLOAK_DOMAIN}:${KEYCLOAK_PORT}/realms/${REALM}
+      - KEYCLOAK_ISSUER_URI=${KEYCLOAK_ISSUER_URI}
       - MONGODB_URI=${MONGODB_URI}
       - MONGODB_DB=${RECOMMEND_MONGODB_DB}
       - REDIS_URL=${REDIS_URL}
@@ -196,13 +184,11 @@ services:
     depends_on:
       - service-registry
       - kafka
-    ports:
-      - "8087:8087"
     environment:
       - EUREKA_INSTANCE_HOSTNAME=report-service
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
-      - KEYCLOAK_ISSUER_URI=${KEYCLOAK_SCHEME}://${KEYCLOAK_DOMAIN}:${KEYCLOAK_PORT}/realms/${REALM}
+      - KEYCLOAK_ISSUER_URI=${KEYCLOAK_ISSUER_URI}
       - MONGODB_URI=${MONGODB_URI}
       - MONGODB_DB=${REPORT_MONGODB_DB}
 
@@ -215,13 +201,11 @@ services:
       - micro-network
     depends_on:
       - service-registry
-    ports:
-      - "8083:8083"
     environment:
       - EUREKA_INSTANCE_HOSTNAME=story-service
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
-      - KEYCLOAK_ISSUER_URI=${KEYCLOAK_SCHEME}://${KEYCLOAK_DOMAIN}:${KEYCLOAK_PORT}/realms/${REALM}
+      - KEYCLOAK_ISSUER_URI=${KEYCLOAK_ISSUER_URI}
       - MONGODB_URI=${MONGODB_URI}
       - MONGODB_DB=${STORY_MONGODB_DB}
       - REDIS_URL=${REDIS_URL}
@@ -238,13 +222,11 @@ services:
     depends_on:
       - service-registry
       - kafka
-    ports:
-      - "8085:8085"
     environment:
       - EUREKA_INSTANCE_HOSTNAME=transaction-service
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
-      - KEYCLOAK_ISSUER_URI=${KEYCLOAK_SCHEME}://${KEYCLOAK_DOMAIN}:${KEYCLOAK_PORT}/realms/${REALM}
+      - KEYCLOAK_ISSUER_URI=${KEYCLOAK_ISSUER_URI}
       - MONGODB_URI=${MONGODB_URI}
       - MONGODB_DB=${TRANSACTION_MONGODB_DB}
       - VN_PAY_TMN_CODE=${VN_PAY_TMN_CODE}
@@ -272,13 +254,11 @@ services:
     depends_on:
       - service-registry
       - kafka
-    ports:
-      - "8081:8081"
     environment:
       - EUREKA_INSTANCE_HOSTNAME=user-service
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
-      - KEYCLOAK_ISSUER_URI=${KEYCLOAK_SCHEME}://${KEYCLOAK_DOMAIN}:${KEYCLOAK_PORT}/realms/${REALM}
+      - KEYCLOAK_ISSUER_URI=${KEYCLOAK_ISSUER_URI}
       - KEYCLOAK_SERVER_URL=http://keycloak:8080
       - REALM=online-stories-realm
       - CLIENT_ID=${CLIENT_ID}
@@ -288,6 +268,18 @@ services:
       - MONGODB_DB=${USER_MONGODB_DB}
       - REDIS_URL=${REDIS_URL}
 
+  nginx:
+    image: nginx:latest
+    container_name: nginx-proxy
+    networks:
+      - micro-network
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - api-gateway
+      - keycloak
 networks:
   micro-network:
     driver: bridge
