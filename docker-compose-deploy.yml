@@ -13,12 +13,14 @@ services:
       KC_DB_URL: jdbc:postgresql://${DATABASE_HOST}:5432/${DATABASE_NAME}?sslmode=require
       KC_DB_USERNAME: ${DATABASE_USERNAME}
       KC_DB_PASSWORD: ${DATABASE_PASSWORD}
-
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_PROXY_HEADERS: xforwarded
+      KC_HOSTNAME_URL: ${KEYCLOAK_SCHEME}://${KEYCLOAK_DOMAIN}:${KEYCLOAK_PORT}
+      KC_HOSTNAME_ADMIN_URL: ${KEYCLOAK_SCHEME}://${KEYCLOAK_DOMAIN}:${KEYCLOAK_PORT}
 
     ports:
-      - "8181:8080"
+      - "2053:8080"
 
     volumes:
       - ./docker/keycloak/realms:/opt/keycloak/data/import
@@ -90,11 +92,11 @@ services:
     depends_on:
       - service-registry
     ports:
-      - "9000:9000"
+      - "8443:9000"
     environment:
       - PUBLIC_FE_URL=${PUBLIC_FE_URL}
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
-      - KEYCLOAK_ISSUER_URI=http://keycloak:8080/realms/online-stories-realm
+      - KEYCLOAK_ISSUER_URI=${KEYCLOAK_SCHEME}://${KEYCLOAK_DOMAIN}:${KEYCLOAK_PORT}/realms/${REALM}
 
   authentication-service:
     build:
@@ -133,7 +135,7 @@ services:
       - EUREKA_INSTANCE_HOSTNAME=ai-service
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
-      - KEYCLOAK_ISSUER_URI=http://keycloak:8080/realms/online-stories-realm
+      - KEYCLOAK_ISSUER_URI=${KEYCLOAK_SCHEME}://${KEYCLOAK_DOMAIN}:${KEYCLOAK_PORT}/realms/${REALM}
       - OPENSEARCH_URL=${OPENSEARCH_URL}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - GEMINI_PROJECT_ID=${GEMINI_PROJECT_ID}
@@ -175,7 +177,7 @@ services:
       - EUREKA_INSTANCE_HOSTNAME=recommend-service
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
-      - KEYCLOAK_ISSUER_URI=http://keycloak:8080/realms/online-stories-realm
+      - KEYCLOAK_ISSUER_URI=${KEYCLOAK_SCHEME}://${KEYCLOAK_DOMAIN}:${KEYCLOAK_PORT}/realms/${REALM}
       - MONGODB_URI=${MONGODB_URI}
       - MONGODB_DB=${RECOMMEND_MONGODB_DB}
       - REDIS_URL=${REDIS_URL}
@@ -200,7 +202,7 @@ services:
       - EUREKA_INSTANCE_HOSTNAME=report-service
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
-      - KEYCLOAK_ISSUER_URI=http://keycloak:8080/realms/online-stories-realm
+      - KEYCLOAK_ISSUER_URI=${KEYCLOAK_SCHEME}://${KEYCLOAK_DOMAIN}:${KEYCLOAK_PORT}/realms/${REALM}
       - MONGODB_URI=${MONGODB_URI}
       - MONGODB_DB=${REPORT_MONGODB_DB}
 
@@ -219,7 +221,7 @@ services:
       - EUREKA_INSTANCE_HOSTNAME=story-service
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
-      - KEYCLOAK_ISSUER_URI=http://keycloak:8080/realms/online-stories-realm
+      - KEYCLOAK_ISSUER_URI=${KEYCLOAK_SCHEME}://${KEYCLOAK_DOMAIN}:${KEYCLOAK_PORT}/realms/${REALM}
       - MONGODB_URI=${MONGODB_URI}
       - MONGODB_DB=${STORY_MONGODB_DB}
       - REDIS_URL=${REDIS_URL}
@@ -242,7 +244,7 @@ services:
       - EUREKA_INSTANCE_HOSTNAME=transaction-service
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
-      - KEYCLOAK_ISSUER_URI=http://keycloak:8080/realms/online-stories-realm
+      - KEYCLOAK_ISSUER_URI=${KEYCLOAK_SCHEME}://${KEYCLOAK_DOMAIN}:${KEYCLOAK_PORT}/realms/${REALM}
       - MONGODB_URI=${MONGODB_URI}
       - MONGODB_DB=${TRANSACTION_MONGODB_DB}
       - VN_PAY_TMN_CODE=${VN_PAY_TMN_CODE}
@@ -253,6 +255,12 @@ services:
       - MOMO_SECRET_KEY=${MOMO_SECRET_KEY}
       - MOMO_REDIRECT_URL=${MOMO_REDIRECT_URL}
       - MOMO_IPN_URL=${MOMO_IPN_URL}
+      - PAYOS_PAYOUT_CLIENT_ID=${PAYOS_PAYOUT_CLIENT_ID}
+      - PAYOS_PAYOUT_API_KEY=${PAYOS_PAYOUT_API_KEY}
+      - PAYOS_PAYOUT_CHECKSUM_KEY=${PAYOS_PAYOUT_CHECKSUM_KEY}
+      - PAYOS_BASE_URL=${PAYOS_BASE_URL}
+      - WRITING_TOKEN_VND_RATE=${WRITING_TOKEN_VND_RATE:-100}
+      - WITHDRAW_MIN_WRITING_TOKENS=${WITHDRAW_MIN_WRITING_TOKENS:-1000}
 
   user-service:
     build:
@@ -270,7 +278,7 @@ services:
       - EUREKA_INSTANCE_HOSTNAME=user-service
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:8761/eureka/
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
-      - KEYCLOAK_ISSUER_URI=http://keycloak:8080/realms/online-stories-realm
+      - KEYCLOAK_ISSUER_URI=${KEYCLOAK_SCHEME}://${KEYCLOAK_DOMAIN}:${KEYCLOAK_PORT}/realms/${REALM}
       - KEYCLOAK_SERVER_URL=http://keycloak:8080
       - REALM=online-stories-realm
       - CLIENT_ID=${CLIENT_ID}
@@ -279,33 +287,6 @@ services:
       - MONGODB_URI=${MONGODB_URI}
       - MONGODB_DB=${USER_MONGODB_DB}
       - REDIS_URL=${REDIS_URL}
-
-#  prometheus:
-#    image: prom/prometheus:latest
-#    container_name: prometheus
-#    networks:
-#      - micro-network
-#    ports:
-#      - "9090:9090"
-#    volumes:
-#      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-#    command:
-#      - '--config.file=/etc/prometheus/prometheus.yml'
-#    depends_on:
-#      - service-registry
-#
-#  grafana:
-#    image: grafana/grafana:latest
-#    container_name: grafana
-#    networks:
-#      - micro-network
-#    ports:
-#      - "3000:3000"
-#    depends_on:
-#      - prometheus
-#    environment:
-#      - GF_SECURITY_ADMIN_PASSWORD=admin
-#      - GF_SECURITY_ADMIN_USER=admin
 
 networks:
   micro-network:
