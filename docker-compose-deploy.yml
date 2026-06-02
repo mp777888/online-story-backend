@@ -16,8 +16,8 @@ services:
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
       KC_PROXY_HEADERS: xforwarded
-      KC_HOSTNAME_URL: ${https://novel-tool-kit.id.vn}
-      KC_HOSTNAME_ADMIN_URL: ${https://novel-tool-kit.id.vn}
+      KC_HOSTNAME_URL: https://novel-tool-kit.id.vn
+      KC_HOSTNAME_ADMIN_URL: https://novel-tool-kit.id.vn
 
 
     volumes:
