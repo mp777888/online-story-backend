@@ -1,98 +1,88 @@
 package com.onlinestories.ai_service.service;
 
-import com.onlinestories.ai_service.client.MediaClient;
-import com.onlinestories.common.media.dto.UploadBase64Request;
+import com.onlinestories.common.exception.AppException;
+import com.onlinestories.common.exception.ErrorCode;
 import lombok.AccessLevel;
-import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.reactive.function.client.ExchangeStrategies;
+import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
+import java.net.URI;
 import java.util.Base64;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class ImageService {
-    private final RestTemplate restTemplate = new RestTemplate();
 
-//    ImageModel imageModel;
-    MediaClient mediaClient;
+    @Value("${siliconflow.api-key}")
+    String apiKey;
 
-    public String generateImageBase64(String promptText) {
-        try {
-            log.info("Calling Pollinations API with prompt: {}", promptText);
+    final WebClient webClient;
 
-//            String safePrompt = String.format(
-//                    "A highly detailed, professional book cover design. " +
-//                            "The scene must be suitable for a publishing novel. " +
-//                            "No explicit, unsafe, or non-book related content. " +
-//                            "Style: Artistic, cinematic lighting, conceptual art. " +
-//                            "Subject: %s",
-//                    promptText
-//            );
-
-            //Encode prompt
-            String encodedPrompt = URLEncoder.encode(promptText, StandardCharsets.UTF_8);
-
-            // Tạo URL gọi API của Pollinations
-            // (tỉ lệ 512x768 hợp làm ảnh bìa truyện)
-            String url = "https://image.pollinations.ai/prompt/" + encodedPrompt + "?width=512&height=768&nologo=true";
-
-            // Gọi API và nhận về ảnh dưới dạng byte array
-            ResponseEntity<byte[]> response = restTemplate.getForEntity(url, byte[].class);
-
-            byte[] imageBytes = response.getBody();
-
-            if (imageBytes != null) {
-                // Mã hóa lại thành Base64 như cũ để không làm gãy luồng của Controller
-                String base64Image = Base64.getEncoder().encodeToString(imageBytes);
-                log.info("Successfully generated image from Pollinations API");
-                return "data:image/jpeg;base64," + base64Image;
-            }
-
-        } catch (Exception e) {
-            log.error("Error generating image from Pollinations API: {}", e.getMessage());
-            return "https://t3.ftcdn.net/jpg/04/62/93/66/360_F_462936689_BpEEcxfgMuYPfTaIAOC1tCDurmsno7Sp.jpg";
-        }
-
-        return null;
+    public ImageService(WebClient.Builder webClientBuilder) {
+        ExchangeStrategies strategies = ExchangeStrategies.builder()
+                .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(10 * 1024 * 1024))
+                .build();
+        this.webClient = webClientBuilder
+                    .baseUrl("https://api.siliconflow.com")
+                    .exchangeStrategies(strategies)
+                    .build();
     }
 
-//    public String generateImageBase64(String promptText) {
-//        try {
-//            log.info("Calling Imagen 4 API with prompt: {}", promptText);
-//
-//            String safePrompt = String.format(
-//                    "A highly detailed, professional book cover design. " +
-//                            "The scene must be suitable for a publishing novel. " +
-//                            "No explicit, unsafe, or non-book related content. " +
-//                            "Style: Artistic, cinematic lighting, conceptual art. " +
-//                            "Subject: %s",
-//                    promptText
-//            );
-//
-//            ImagePrompt imagePrompt = new ImagePrompt(safePrompt);
-//
-//            ImageResponse response = imageModel.call(imagePrompt);
-//
-//            // Bóc tách kết quả dạng Base64 từ response
-//            String base64Image = response.getResult().getOutput().getB64Json();
-//
-//            if (base64Image != null && !base64Image.isEmpty()) {
-//                log.info("Successfully generated image from Imagen 4 API");
-//                return mediaClient.uploadBase64(base64Image, "cover-img");
-//            }
-//
-//        } catch (Exception e) {
-//            log.error("Error generating image from Imagen 4 API: {}", e.getMessage());
-//            throw new AppException(ErrorCode.GENERATE_IMAGE_ERROR);
-//        }
-//        return null;
-//    }
+    public String generateImage(String prompt) {
+        String url = "/v1/images/generations";
+
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("model", "black-forest-labs/FLUX.1-schnell");
+        requestBody.put("prompt", prompt);
+        requestBody.put("image_size", "768x1024");
+        requestBody.put("prompt_enhancement", true);
+
+        try {
+            Map response = webClient.post()
+                    .uri(url)
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + apiKey)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(requestBody)
+                    .retrieve()
+                    .bodyToMono(Map.class)
+                    .block();
+
+            List<Map<String, Object>> imageList = (List<Map<String, Object>>) response.get("images");
+            if (imageList == null) { // Fallback phòng hờ chuẩn OpenAI
+                imageList = (List<Map<String, Object>>) response.get("data");
+            }
+
+            String imageUrl = (String) imageList.getFirst().get("url");
+            byte[] imageBytes = webClient.get()
+                    .uri(URI.create(imageUrl))
+                    .retrieve()
+                    .bodyToMono(byte[].class)
+                    .block();
+
+            if (imageBytes != null) {
+                String base64Image = Base64.getEncoder().encodeToString(imageBytes);
+                log.info("Successfully generated image from SiliconFlow for prompt: {}", prompt);
+                return "data:image/jpeg;base64," + base64Image;
+            }
+        } catch (WebClientResponseException e) {
+            String errorMessage = e.getResponseBodyAsString();
+            log.error("SiliconFlow rejected request (Error {}): {}", e.getStatusCode(), errorMessage);
+            throw new AppException(ErrorCode.GENERATE_IMAGE_ERROR);
+        } catch (Exception e) {
+            log.error("Error when creating/loading images: {}", e.getMessage(), e);
+            throw new AppException(ErrorCode.GENERATE_IMAGE_ERROR);
+        }
+        return null;
+    }
 }

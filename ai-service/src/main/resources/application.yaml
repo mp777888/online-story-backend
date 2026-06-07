@@ -63,7 +63,8 @@ spring:
 bonsai:
   opensearch:
     url: ${OPENSEARCH_URL}
-
+siliconflow:
+  api-key: ${SILICON_API_KEY}
 api:
   endpoints:
     story: ${API_STORY_ENDPOINT:http://localhost:3000/story}
