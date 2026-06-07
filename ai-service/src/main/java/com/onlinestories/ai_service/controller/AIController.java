@@ -28,7 +28,7 @@ public class AIController {
     @GetMapping("/generate-image")
     public String generateImage(@RequestParam String prompt) {
         log.info("Received request to generate image with prompt: {}", prompt);
-        return imageService.generateImageBase64(prompt);
+        return imageService.generateImage(prompt);
     }
 
     @GetMapping("/chat")

@@ -153,10 +153,10 @@ public class UserEventConsumer {
             String message;
 
             if(event.getStatus().equals(HistoryStatus.EARNED)){
-                message = "Bạn vừa nhận được " + event.getTokens() + " người đọc mua truyện của bạn ";
+                message = "Bạn vừa nhận được " + event.getTokens() + " xu từ người đọc mua truyện của bạn ";
             }
             else if(event.getStatus().equals(HistoryStatus.PAYOUT)){
-                message = "Bạn vừa được nhận " + event.getTokens() + " từ việc viết truyện hàng tháng. Hãy kiểm tra ngay!";
+                message = "Bạn vừa được nhận " + event.getTokens() + " xu từ việc viết truyện hàng tháng. Hãy kiểm tra ngay!";
             }
             else{
                 log.warn("Unknown transaction status: {}. No notifications will be sent.", event.getStatus());

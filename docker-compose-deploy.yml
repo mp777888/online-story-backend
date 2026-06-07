@@ -134,6 +134,7 @@ services:
       - MONGODB_URI=${MONGODB_URI}
       - MONGODB_DB=${AI_MONGODB_DB}
       - API_STORY_ENDPOINT=${API_STORY_ENDPOINT}
+      - SILICON_API_KEY=${SILICON_API_KEY}
 
   media-service:
     build:
