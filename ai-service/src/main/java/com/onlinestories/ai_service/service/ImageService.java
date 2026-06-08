@@ -59,7 +59,7 @@ public class ImageService {
                     .block();
 
             List<Map<String, Object>> imageList = (List<Map<String, Object>>) response.get("images");
-            if (imageList == null) { // Fallback phòng hờ chuẩn OpenAI
+            if (imageList == null) {
                 imageList = (List<Map<String, Object>>) response.get("data");
             }
 
