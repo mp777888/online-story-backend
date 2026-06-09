@@ -2,6 +2,7 @@ package com.onlinestories.story_service.service;
 
 import com.onlinestories.common.chapter.event.ChapterPublishedEvent;
 import com.onlinestories.common.chapter.event.ChapterSyncEvent;
+import com.onlinestories.common.chapter.event.ChapterTakenDownEvent;
 import com.onlinestories.common.exception.AppException;
 import com.onlinestories.common.exception.ErrorCode;
 import com.onlinestories.story_service.client.AIClient;
@@ -153,6 +154,19 @@ public class WritingService {
 
                 storyHelper.markStoryAsDirty(story.getStoryId());
                 chapter.setStatus(newStatus);
+                if(newStatus == ChapterStatus.TAKEN_DOWN){
+                    try{
+                        ChapterTakenDownEvent event = ChapterTakenDownEvent.builder()
+                                .chapterName(chapter.getTitle())
+                                .storyId(story.getStoryId())
+                                .storyName(story.getTitle())
+                                .authorId(story.getAuthorId())
+                                .build();
+                        chapterEventProducer.chapterTakenDownEvent(event);
+                    } catch(Exception e){
+                        log.warn("Error when publishing ChapterTakenDownEvent");
+                    }
+                }
             }
 
 

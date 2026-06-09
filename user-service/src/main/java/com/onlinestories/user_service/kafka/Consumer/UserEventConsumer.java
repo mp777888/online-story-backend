@@ -1,6 +1,7 @@
 package com.onlinestories.user_service.kafka.Consumer;
 
 import com.onlinestories.common.chapter.event.ChapterPublishedEvent;
+import com.onlinestories.common.chapter.event.ChapterTakenDownEvent;
 import com.onlinestories.common.report.event.ReportResponseEvent;
 import com.onlinestories.common.transaction.enums.HistoryStatus;
 import com.onlinestories.common.transaction.event.TransEvent;
@@ -179,6 +180,35 @@ public class UserEventConsumer {
             log.info("Successfully saved notification for userId={}", event.getUserId());
         } catch (Exception e) {
             log.error("Error processing TransactionEvent: {}", e.getMessage(), e);
+        }
+    }
+
+    @KafkaListener(topics = KafkaTopics.CHAPTER_TAKEN_DOWN, groupId = "${spring.application.name}")
+    public void listenChapterTakenDownEvent(ChapterTakenDownEvent event) {
+        log.info("Received Kafka Event CHAPTER_TAKEN_DOWN: storyId={}, chapter);Name={}",
+                event.getStoryId(), event.getChapterName());
+        try {
+            userRepository.findById(event.getAuthorId()).ifPresent(author -> {
+                String message = "Chương " + event.getChapterName() + " của bạn đã bị gỡ xuống vì vi phạm nội quy. Vui lòng kiểm tra lại nội dung chương và phản hồi cho chúng tôi biết nếu đây là sự nhầm lẫn. Xin cảm ơn!";
+
+
+                Notification notification = Notification.builder()
+                        .userId(event.getAuthorId())
+                        .message(message)
+                        .isRead(false)
+                        .type(NotiType.REPORT)
+                        .createdAt(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")))
+                        .build();
+
+                notificationRepository.save(notification);
+
+                // websocket
+                messagingTemplate.convertAndSend("/topic/user/" + notification.getUserId(), notification);
+                log.info("Successfully saved notification for userId={}", event.getAuthorId());
+
+            });
+        } catch (Exception e) {
+            log.error("Error processing ChapterTakenDownEvent: {}", e.getMessage(), e);
         }
     }
 }

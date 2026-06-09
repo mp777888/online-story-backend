@@ -9,6 +9,7 @@ public class KafkaTopics {
 
     public static final String CHAPTER_PUBLISHED = "chapter.published.v1";
     public static final String CHAPTER_PUBLISHED_APPROVED = "chapter.published.v2";
+    public static final String CHAPTER_TAKEN_DOWN = "chapter.taken-down.v1";
     public static final String CHAPTER_SYNC = "chapter.sync.v1";
 
     public static final String REPORT_RESPONDED = "report.responded.v1";
