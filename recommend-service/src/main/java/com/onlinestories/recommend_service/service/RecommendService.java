@@ -33,7 +33,7 @@ public class RecommendService {
         List<Object> results = new ArrayList<>();
         Pageable pageable = PageRequest.of(page, size);
         try {
-//            float[] queryVector = aiEmbeddingService.generateEmbedding(keyword);
+            float[] queryVector = aiEmbeddingService.generateEmbedding(keyword);
 
             SearchRequest request = SearchRequest.of(s -> s
                     .index("users","stories")
@@ -53,15 +53,15 @@ public class RecommendService {
                                             )
                                     )
                                     // SHOULD: Tìm kiếm truyện có embedding vector gần với query vector (tìm kiếm ngữ nghĩa)
-//                                    .should(sh -> sh
-//                                            // Giúp tìm ra các truyện miêu tả gián tiếp keyword
-//                                            .knn(k -> k
-//                                                    .field("embedding")
-//                                                    .vector(queryVector)
-//                                                    .k(20)
-//                                            )
-//                                    )
-//                                    .minimumShouldMatch("1")
+                                    .should(sh -> sh
+                                            // Giúp tìm ra các truyện miêu tả gián tiếp keyword
+                                            .knn(k -> k
+                                                    .field("embedding")
+                                                    .vector(queryVector)
+                                                    .k(20)
+                                            )
+                                    )
+                                    .minimumShouldMatch("1")
                                     // FILTER: Bắt buộc truyện phải có status != DRAFT
                                     .filter(f -> f
                                             .bool(filterBool -> filterBool
